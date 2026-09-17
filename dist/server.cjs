@@ -206,29 +206,41 @@ app.get("/api/agent/loops", async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+function scanDocsRecursively(dir, baseDir = dir) {
+  let results = [];
+  if (!import_fs.default.existsSync(dir)) return results;
+  const items = import_fs.default.readdirSync(dir, { withFileTypes: true });
+  for (const item of items) {
+    const fullPath = import_path.default.join(dir, item.name);
+    if (item.isDirectory()) {
+      results = results.concat(scanDocsRecursively(fullPath, baseDir));
+    } else if (item.isFile() && item.name.endsWith(".md")) {
+      const relativePath = import_path.default.relative(baseDir, fullPath).replace(/\\/g, "/");
+      const parts = relativePath.split("/");
+      const folder = parts.length > 1 ? parts[0] : "\uB8E8\uD2B8";
+      const content = import_fs.default.readFileSync(fullPath, "utf-8");
+      const hash = import_crypto.default.createHash("sha256").update(content).digest("hex");
+      const stat = import_fs.default.statSync(fullPath);
+      const title = content.split("\n").find((l) => l.startsWith("#"))?.replace(/^#+\s*/, "") || item.name;
+      const docId = `DOC-${relativePath.replace(/[\/\.]/g, "-").toUpperCase()}`;
+      results.push({
+        docId,
+        folder,
+        fileName: item.name,
+        filePath: `docs/${relativePath}`,
+        title,
+        contentHash: hash,
+        sizeBytes: stat.size,
+        updatedAt: stat.mtime.toISOString()
+      });
+    }
+  }
+  return results;
+}
 app.get("/api/agent/docs", async (req, res) => {
   try {
     const docsDir = import_path.default.join(process.cwd(), "docs");
-    const localFiles = [];
-    if (import_fs.default.existsSync(docsDir)) {
-      const files = import_fs.default.readdirSync(docsDir);
-      for (const file of files) {
-        if (file.endsWith(".md")) {
-          const filePath = import_path.default.join(docsDir, file);
-          const content = import_fs.default.readFileSync(filePath, "utf-8");
-          const hash = import_crypto.default.createHash("sha256").update(content).digest("hex");
-          const stat = import_fs.default.statSync(filePath);
-          localFiles.push({
-            fileName: file,
-            filePath: `docs/${file}`,
-            title: content.split("\n")[0].replace(/^#+\s*/, "") || file,
-            contentHash: hash,
-            sizeBytes: stat.size,
-            updatedAt: stat.mtime.toISOString()
-          });
-        }
-      }
-    }
+    const localFiles = scanDocsRecursively(docsDir);
     const dbDocsRes = await executeSql(`SELECT * FROM aiagent.agent_docs_meta ORDER BY file_path ASC;`);
     const dbMap = new Map(dbDocsRes.rows.map((d) => [d.file_path, d]));
     const merged = localFiles.map((f) => {
@@ -245,33 +257,57 @@ app.get("/api/agent/docs", async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+app.get("/api/agent/docs/content", async (req, res) => {
+  try {
+    const { filePath } = req.query;
+    if (!filePath || typeof filePath !== "string") {
+      return res.status(400).json({ success: false, error: "filePath parameter required" });
+    }
+    const safePath = import_path.default.normalize(filePath).replace(/^(\.\.[\/\\])+/, "");
+    const absolutePath = import_path.default.join(process.cwd(), safePath);
+    if (!import_fs.default.existsSync(absolutePath)) {
+      return res.status(404).json({ success: false, error: "\uBB38\uC11C \uD30C\uC77C\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4." });
+    }
+    const content = import_fs.default.readFileSync(absolutePath, "utf-8");
+    const hash = import_crypto.default.createHash("sha256").update(content).digest("hex");
+    res.json({
+      success: true,
+      filePath: safePath,
+      content,
+      contentHash: hash
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 app.post("/api/agent/docs/sync", async (req, res) => {
   try {
     const docsDir = import_path.default.join(process.cwd(), "docs");
     if (!import_fs.default.existsSync(docsDir)) {
       return res.status(400).json({ success: false, error: "docs directory not found" });
     }
-    const files = import_fs.default.readdirSync(docsDir).filter((f) => f.endsWith(".md"));
+    const localFiles = scanDocsRecursively(docsDir);
     const syncResults = [];
-    for (const file of files) {
-      const filePath = import_path.default.join(docsDir, file);
-      const relativePath = `docs/${file}`;
-      const content = import_fs.default.readFileSync(filePath, "utf-8");
-      const hash = import_crypto.default.createHash("sha256").update(content).digest("hex");
-      const title = content.split("\n")[0].replace(/^#+\s*/, "").trim() || file;
-      const docId = `DOC-${file.replace(/\.md$/, "").toUpperCase()}`;
-      const category = file.startsWith("0") || file.startsWith("1") ? "STANDARD" : "GENERAL";
+    for (const doc of localFiles) {
+      const fullPath = import_path.default.join(process.cwd(), doc.filePath);
+      const content = import_fs.default.readFileSync(fullPath, "utf-8");
+      const hash = doc.contentHash;
+      const title = doc.title;
+      const docId = doc.docId;
+      const category = doc.folder;
       const payload = JSON.stringify({
+        folder: doc.folder,
+        fileName: doc.fileName,
         lines: content.split("\n").length,
-        size: Buffer.byteLength(content)
+        size: doc.sizeBytes
       });
       const upsertSql = `
         INSERT INTO aiagent.agent_docs_meta (
           doc_id, file_path, category, title, content_hash, last_synced_at, doc_payload
         ) VALUES (
           '${docId}',
-          '${relativePath}',
-          '${category}',
+          '${doc.filePath}',
+          '${category.replace(/'/g, "''")}',
           '${title.replace(/'/g, "''")}',
           '${hash}',
           now(),
@@ -279,6 +315,7 @@ app.post("/api/agent/docs/sync", async (req, res) => {
         )
         ON CONFLICT (doc_id) DO UPDATE SET
           file_path = EXCLUDED.file_path,
+          category = EXCLUDED.category,
           title = EXCLUDED.title,
           content_hash = EXCLUDED.content_hash,
           last_synced_at = now(),
@@ -287,11 +324,11 @@ app.post("/api/agent/docs/sync", async (req, res) => {
           version = agent_docs_meta.version + 1;
       `;
       await executeSql(upsertSql);
-      syncResults.push({ file, docId, hash, title, status: "SYNCED" });
+      syncResults.push({ file: doc.fileName, folder: doc.folder, docId, hash, title, status: "SYNCED" });
     }
     res.json({
       success: true,
-      message: `${syncResults.length}\uAC1C\uC758 \uBB38\uC11C\uAC00 \uAC1C\uBC1CDB(purepdfrend_dev)\uC640 100% \uB3D9\uAE30\uD654\uB418\uC5C8\uC2B5\uB2C8\uB2E4.`,
+      message: `${syncResults.length}\uAC1C\uC758 18\uB300 \uBD84\uB958 \uCCB4\uACC4 \uBB38\uC11C\uAC00 \uAC1C\uBC1CDB(purepdfrend_dev)\uC640 100% \uB3D9\uAE30\uD654\uB418\uC5C8\uC2B5\uB2C8\uB2E4.`,
       syncedDocs: syncResults
     });
   } catch (err) {
@@ -305,6 +342,58 @@ app.get("/api/agent/chat/traces", async (req, res) => {
       ORDER BY step_index ASC, created_at ASC;
     `);
     res.json({ success: true, traces: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+app.post("/api/agent/trace/turn", async (req, res) => {
+  try {
+    const {
+      trace_id,
+      session_id = "SESSION-20260917-001",
+      task_id = "TASK-20260917-001",
+      step_index,
+      agent_name = "gemini",
+      model_name = "models/gemini-3.8-flash",
+      user_prompt,
+      agent_response,
+      prompt_tokens = 0,
+      completion_tokens = 0,
+      total_tokens = 0
+    } = req.body;
+    const finalTraceId = trace_id || `TRACE-${Date.now()}`;
+    const escapedPrompt = String(user_prompt || "").replace(/'/g, "''");
+    const escapedResponse = String(agent_response || "").replace(/'/g, "''");
+    const sql = `
+      INSERT INTO aiagent.agent_conversation_trace (
+        trace_id, session_id, task_id, step_index, agent_name, model_name,
+        user_prompt, agent_response, prompt_tokens, completion_tokens, total_tokens, created_at
+      ) VALUES (
+        '${finalTraceId}',
+        '${session_id}',
+        '${task_id}',
+        ${Number(step_index) || 1},
+        '${agent_name}',
+        '${model_name}',
+        '${escapedPrompt}',
+        '${escapedResponse}',
+        ${Number(prompt_tokens)},
+        ${Number(completion_tokens)},
+        ${Number(total_tokens)},
+        now()
+      )
+      ON CONFLICT (trace_id) DO UPDATE SET
+        agent_response = EXCLUDED.agent_response,
+        prompt_tokens = EXCLUDED.prompt_tokens,
+        completion_tokens = EXCLUDED.completion_tokens,
+        total_tokens = EXCLUDED.total_tokens;
+    `;
+    await executeSql(sql);
+    res.json({
+      success: true,
+      message: `\uB300\uD654 \uD134(#${step_index}) \uAE30\uB85D\uC774 \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4.`,
+      traceId: finalTraceId
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

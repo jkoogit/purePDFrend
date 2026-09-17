@@ -42,6 +42,8 @@ export interface HarnessLoop {
 }
 
 export interface AgentDoc {
+  docId: string;
+  folder: string;
   fileName: string;
   filePath: string;
   title: string;
@@ -51,6 +53,7 @@ export interface AgentDoc {
   isSynced: boolean;
   dbHash?: string | null;
   lastSyncedAt?: string | null;
+  content?: string;
 }
 
 export interface ConversationTrace {

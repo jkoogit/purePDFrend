@@ -201,31 +201,45 @@ app.get('/api/agent/loops', async (req, res) => {
   }
 });
 
+// Helper to recursively collect markdown files in docs
+function scanDocsRecursively(dir: string, baseDir: string = dir): any[] {
+  let results: any[] = [];
+  if (!fs.existsSync(dir)) return results;
+  const items = fs.readdirSync(dir, { withFileTypes: true });
+  for (const item of items) {
+    const fullPath = path.join(dir, item.name);
+    if (item.isDirectory()) {
+      results = results.concat(scanDocsRecursively(fullPath, baseDir));
+    } else if (item.isFile() && item.name.endsWith('.md')) {
+      const relativePath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
+      const parts = relativePath.split('/');
+      const folder = parts.length > 1 ? parts[0] : '루트';
+      const content = fs.readFileSync(fullPath, 'utf-8');
+      const hash = crypto.createHash('sha256').update(content).digest('hex');
+      const stat = fs.statSync(fullPath);
+      const title = content.split('\n').find((l) => l.startsWith('#'))?.replace(/^#+\s*/, '') || item.name;
+      const docId = `DOC-${relativePath.replace(/[\/\.]/g, '-').toUpperCase()}`;
+
+      results.push({
+        docId,
+        folder,
+        fileName: item.name,
+        filePath: `docs/${relativePath}`,
+        title,
+        contentHash: hash,
+        sizeBytes: stat.size,
+        updatedAt: stat.mtime.toISOString(),
+      });
+    }
+  }
+  return results;
+}
+
 // 3. Docs Management & SHA-256 DB Sync API
 app.get('/api/agent/docs', async (req, res) => {
   try {
     const docsDir = path.join(process.cwd(), 'docs');
-    const localFiles: any[] = [];
-
-    if (fs.existsSync(docsDir)) {
-      const files = fs.readdirSync(docsDir);
-      for (const file of files) {
-        if (file.endsWith('.md')) {
-          const filePath = path.join(docsDir, file);
-          const content = fs.readFileSync(filePath, 'utf-8');
-          const hash = crypto.createHash('sha256').update(content).digest('hex');
-          const stat = fs.statSync(filePath);
-          localFiles.push({
-            fileName: file,
-            filePath: `docs/${file}`,
-            title: content.split('\n')[0].replace(/^#+\s*/, '') || file,
-            contentHash: hash,
-            sizeBytes: stat.size,
-            updatedAt: stat.mtime.toISOString(),
-          });
-        }
-      }
-    }
+    const localFiles = scanDocsRecursively(docsDir);
 
     // Query DB synced docs
     const dbDocsRes: any = await executeSql(`SELECT * FROM aiagent.agent_docs_meta ORDER BY file_path ASC;`);
@@ -247,6 +261,36 @@ app.get('/api/agent/docs', async (req, res) => {
   }
 });
 
+// 3.1 Get Single Doc Full Content (for Markdown Viewer)
+app.get('/api/agent/docs/content', async (req, res) => {
+  try {
+    const { filePath } = req.query;
+    if (!filePath || typeof filePath !== 'string') {
+      return res.status(400).json({ success: false, error: 'filePath parameter required' });
+    }
+
+    // Safety check: prevent path traversal outside docs
+    const safePath = path.normalize(filePath).replace(/^(\.\.[\/\\])+/, '');
+    const absolutePath = path.join(process.cwd(), safePath);
+
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ success: false, error: '문서 파일을 찾을 수 없습니다.' });
+    }
+
+    const content = fs.readFileSync(absolutePath, 'utf-8');
+    const hash = crypto.createHash('sha256').update(content).digest('hex');
+
+    res.json({
+      success: true,
+      filePath: safePath,
+      content,
+      contentHash: hash,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.post('/api/agent/docs/sync', async (req, res) => {
   try {
     const docsDir = path.join(process.cwd(), 'docs');
@@ -254,21 +298,22 @@ app.post('/api/agent/docs/sync', async (req, res) => {
       return res.status(400).json({ success: false, error: 'docs directory not found' });
     }
 
-    const files = fs.readdirSync(docsDir).filter((f) => f.endsWith('.md'));
+    const localFiles = scanDocsRecursively(docsDir);
     const syncResults: any[] = [];
 
-    for (const file of files) {
-      const filePath = path.join(docsDir, file);
-      const relativePath = `docs/${file}`;
-      const content = fs.readFileSync(filePath, 'utf-8');
-      const hash = crypto.createHash('sha256').update(content).digest('hex');
-      const title = content.split('\n')[0].replace(/^#+\s*/, '').trim() || file;
-      const docId = `DOC-${file.replace(/\.md$/, '').toUpperCase()}`;
-      const category = file.startsWith('0') || file.startsWith('1') ? 'STANDARD' : 'GENERAL';
+    for (const doc of localFiles) {
+      const fullPath = path.join(process.cwd(), doc.filePath);
+      const content = fs.readFileSync(fullPath, 'utf-8');
+      const hash = doc.contentHash;
+      const title = doc.title;
+      const docId = doc.docId;
+      const category = doc.folder;
 
       const payload = JSON.stringify({
+        folder: doc.folder,
+        fileName: doc.fileName,
         lines: content.split('\n').length,
-        size: Buffer.byteLength(content),
+        size: doc.sizeBytes,
       });
 
       const upsertSql = `
@@ -276,8 +321,8 @@ app.post('/api/agent/docs/sync', async (req, res) => {
           doc_id, file_path, category, title, content_hash, last_synced_at, doc_payload
         ) VALUES (
           '${docId}',
-          '${relativePath}',
-          '${category}',
+          '${doc.filePath}',
+          '${category.replace(/'/g, "''")}',
           '${title.replace(/'/g, "''")}',
           '${hash}',
           now(),
@@ -285,6 +330,7 @@ app.post('/api/agent/docs/sync', async (req, res) => {
         )
         ON CONFLICT (doc_id) DO UPDATE SET
           file_path = EXCLUDED.file_path,
+          category = EXCLUDED.category,
           title = EXCLUDED.title,
           content_hash = EXCLUDED.content_hash,
           last_synced_at = now(),
@@ -294,12 +340,12 @@ app.post('/api/agent/docs/sync', async (req, res) => {
       `;
 
       await executeSql(upsertSql);
-      syncResults.push({ file, docId, hash, title, status: 'SYNCED' });
+      syncResults.push({ file: doc.fileName, folder: doc.folder, docId, hash, title, status: 'SYNCED' });
     }
 
     res.json({
       success: true,
-      message: `${syncResults.length}개의 문서가 개발DB(purepdfrend_dev)와 100% 동기화되었습니다.`,
+      message: `${syncResults.length}개의 18대 분류 체계 문서가 개발DB(purepdfrend_dev)와 100% 동기화되었습니다.`,
       syncedDocs: syncResults,
     });
   } catch (err: any) {
@@ -315,6 +361,64 @@ app.get('/api/agent/chat/traces', async (req, res) => {
       ORDER BY step_index ASC, created_at ASC;
     `);
     res.json({ success: true, traces: result.rows });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 4.1 Record Conversation Turn Result
+app.post('/api/agent/trace/turn', async (req, res) => {
+  try {
+    const {
+      trace_id,
+      session_id = 'SESSION-20260917-001',
+      task_id = 'TASK-20260917-001',
+      step_index,
+      agent_name = 'gemini',
+      model_name = 'models/gemini-3.8-flash',
+      user_prompt,
+      agent_response,
+      prompt_tokens = 0,
+      completion_tokens = 0,
+      total_tokens = 0,
+    } = req.body;
+
+    const finalTraceId = trace_id || `TRACE-${Date.now()}`;
+    const escapedPrompt = String(user_prompt || '').replace(/'/g, "''");
+    const escapedResponse = String(agent_response || '').replace(/'/g, "''");
+
+    const sql = `
+      INSERT INTO aiagent.agent_conversation_trace (
+        trace_id, session_id, task_id, step_index, agent_name, model_name,
+        user_prompt, agent_response, prompt_tokens, completion_tokens, total_tokens, created_at
+      ) VALUES (
+        '${finalTraceId}',
+        '${session_id}',
+        '${task_id}',
+        ${Number(step_index) || 1},
+        '${agent_name}',
+        '${model_name}',
+        '${escapedPrompt}',
+        '${escapedResponse}',
+        ${Number(prompt_tokens)},
+        ${Number(completion_tokens)},
+        ${Number(total_tokens)},
+        now()
+      )
+      ON CONFLICT (trace_id) DO UPDATE SET
+        agent_response = EXCLUDED.agent_response,
+        prompt_tokens = EXCLUDED.prompt_tokens,
+        completion_tokens = EXCLUDED.completion_tokens,
+        total_tokens = EXCLUDED.total_tokens;
+    `;
+
+    await executeSql(sql);
+
+    res.json({
+      success: true,
+      message: `대화 턴(#${step_index}) 기록이 저장되었습니다.`,
+      traceId: finalTraceId,
+    });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
