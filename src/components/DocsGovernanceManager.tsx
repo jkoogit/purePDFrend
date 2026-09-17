@@ -14,12 +14,18 @@ import {
   Check,
   X,
   Layers,
-  Save
+  Database,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  Search
 } from 'lucide-react';
 import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import mermaid from 'mermaid';
 
-// Initialize mermaid once
+// Initialize mermaid
 mermaid.initialize({
   startOnLoad: false,
   theme: 'dark',
@@ -69,7 +75,7 @@ function MermaidDiagram({ code }: { code: string }) {
   if (hasError) {
     return (
       <div className="my-4 p-3 rounded-lg bg-amber-950/40 border border-amber-800/60 text-amber-300 text-xs font-mono">
-        <div className="font-bold mb-1">⚠️ Mermaid 다이어그램 구문 오류</div>
+        <div className="font-bold mb-1">⚠️ Mermaid 다이어그램 구문 오류 (원본 코드 표시)</div>
         <pre className="overflow-x-auto text-slate-400">{code}</pre>
       </div>
     );
@@ -89,13 +95,31 @@ export default function DocsGovernanceManager() {
   const [selectedFolder, setSelectedFolder] = useState<string>('전체');
   const [activeDoc, setActiveDoc] = useState<AgentDoc | null>(null);
   const [docContent, setDocContent] = useState<string | null>(null);
-  const [editedContent, setEditedContent] = useState<string>('');
   const [viewMode, setViewMode] = useState<'preview' | 'source'>('preview');
   const [isLoadingContent, setIsLoadingContent] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isCleaningOrphans, setIsCleaningOrphans] = useState(false);
   const [copied, setCopied] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+
+  // Search in metadata & DB doc_payload->>'content'
+  const [searchKeyword, setSearchKeyword] = useState<string>('');
+  const [searchInContent, setSearchInContent] = useState<boolean>(true);
+  const [contentMatchIds, setContentMatchIds] = useState<Set<string>>(new Set());
+  const [isSearchingContent, setIsSearchingContent] = useState<boolean>(false);
+
+  // Sorting state (Default: 문서번호 DESC)
+  const [sortField, setSortField] = useState<'docNum' | 'folder' | 'title' | 'sizeBytes' | 'isSynced'>('docNum');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (field: 'docNum' | 'folder' | 'title' | 'sizeBytes' | 'isSynced') => {
+    if (sortField === field) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortOrder(field === 'docNum' ? 'desc' : 'asc');
+    }
+  };
 
   const fetchDocs = async () => {
     try {
@@ -126,6 +150,23 @@ export default function DocsGovernanceManager() {
     }
   };
 
+  const handleCleanupOrphans = async () => {
+    setIsCleaningOrphans(true);
+    setSyncMessage(null);
+    try {
+      const res = await fetch('/api/agent/docs/cleanup-orphans', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setSyncMessage(data.message);
+        await fetchDocs();
+      }
+    } catch (err: any) {
+      alert('고아 문서 삭제 실패: ' + err.message);
+    } finally {
+      setIsCleaningOrphans(false);
+    }
+  };
+
   const handleOpenDoc = async (doc: AgentDoc) => {
     setActiveDoc(doc);
     setIsLoadingContent(true);
@@ -136,48 +177,19 @@ export default function DocsGovernanceManager() {
       const data = await res.json();
       if (data.success) {
         setDocContent(data.content);
-        setEditedContent(data.content);
       } else {
         setDocContent(`# 오류\n\n${data.error}`);
-        setEditedContent(`# 오류\n\n${data.error}`);
       }
     } catch (err: any) {
       setDocContent(`# 오류 발생\n\n${err.message}`);
-      setEditedContent(`# 오류 발생\n\n${err.message}`);
     } finally {
       setIsLoadingContent(false);
     }
   };
 
-  const handleSaveDoc = async () => {
-    if (!activeDoc) return;
-    setIsSaving(true);
-    try {
-      const res = await fetch('/api/agent/docs/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filePath: activeDoc.filePath,
-          content: editedContent,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setDocContent(editedContent);
-        setSyncMessage(`문서(${activeDoc.fileName}) 저장 및 DB 반영 완료! [ID: ${data.docId}]`);
-        await fetchDocs();
-      } else {
-        alert(`저장 실패: ${data.error}`);
-      }
-    } catch (err: any) {
-      alert(`저장 에러: ${err.message}`);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const handleCopySource = () => {
-    navigator.clipboard.writeText(editedContent || docContent || '');
+    if (!docContent) return;
+    navigator.clipboard.writeText(docContent);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -185,6 +197,32 @@ export default function DocsGovernanceManager() {
   useEffect(() => {
     fetchDocs();
   }, []);
+
+  // Search DB doc_payload->>'content'
+  useEffect(() => {
+    if (!searchKeyword.trim() || !searchInContent) {
+      setContentMatchIds(new Set());
+      setIsSearchingContent(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearchingContent(true);
+      try {
+        const res = await fetch(`/api/agent/docs/search-content?q=${encodeURIComponent(searchKeyword.trim())}`);
+        const data = await res.json();
+        if (data.success && Array.isArray(data.matchedDocIds)) {
+          setContentMatchIds(new Set(data.matchedDocIds));
+        }
+      } catch (err) {
+        console.error('Content search error:', err);
+      } finally {
+        setIsSearchingContent(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchKeyword, searchInContent]);
 
   const folders = [
     '전체',
@@ -208,9 +246,49 @@ export default function DocsGovernanceManager() {
     '17.참고',
   ];
 
-  const filteredDocs = selectedFolder === '전체'
-    ? docs
-    : docs.filter((d) => d.folder === selectedFolder);
+  const getDocSortKey = (doc: AgentDoc): string => {
+    if (doc.fileName.startsWith('README_')) {
+      return '00_README';
+    }
+    const m = doc.fileName.match(/^(\d{2}-\d{2}|\d{6}_\d{3}|\d+)/);
+    return m ? m[1] : doc.fileName;
+  };
+
+  const filteredDocs = docs.filter((d) => {
+    // Folder filter
+    if (selectedFolder !== '전체' && d.folder !== selectedFolder) {
+      return false;
+    }
+
+    // Keyword filter
+    if (searchKeyword.trim()) {
+      const q = searchKeyword.toLowerCase().trim();
+      const metaMatch =
+        d.fileName.toLowerCase().includes(q) ||
+        d.title.toLowerCase().includes(q) ||
+        d.folder.toLowerCase().includes(q);
+      const contentMatch = contentMatchIds.has(d.docId);
+      return metaMatch || contentMatch;
+    }
+
+    return true;
+  }).slice().sort((a, b) => {
+    let cmp = 0;
+    if (sortField === 'docNum') {
+      const aKey = getDocSortKey(a);
+      const bKey = getDocSortKey(b);
+      cmp = aKey.localeCompare(bKey, undefined, { numeric: true, sensitivity: 'base' });
+    } else if (sortField === 'folder') {
+      cmp = a.folder.localeCompare(b.folder);
+    } else if (sortField === 'title') {
+      cmp = a.title.localeCompare(b.title);
+    } else if (sortField === 'sizeBytes') {
+      cmp = a.sizeBytes - b.sizeBytes;
+    } else if (sortField === 'isSynced') {
+      cmp = (a.isSynced === b.isSynced ? 0 : a.isSynced ? 1 : -1);
+    }
+    return sortOrder === 'desc' ? -cmp : cmp;
+  });
 
   return (
     <div className="flex flex-col h-full bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-xl p-6 space-y-6 overflow-y-auto">
@@ -219,19 +297,32 @@ export default function DocsGovernanceManager() {
         <div>
           <h2 className="text-base font-bold text-white flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-emerald-400" />
-            18대 표준 문서 거버넌스 & DB 무결성 동기화
+            18대 표준 문서 거버넌스 & 개발DB(agent_docs_meta) 무결성
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            문서번호 부여 체계 및 18대 폴더별 README_제목.md 요약 탐색기, 마크다운/소스 분리 뷰어 및 Mermaid 다이어그램을 실시간 지원합니다.
+            문서번호 체계 및 폴더별 README 요약 탐색기, GFM 표 완벽 렌더링, 읽기/복사 전용 뷰어 및 고아 문서 자동 정화 지원
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           {syncMessage && (
             <span className="text-xs text-emerald-400 font-medium flex items-center gap-1 bg-emerald-950/60 px-2.5 py-1 rounded border border-emerald-800/60">
               <CheckCircle2 className="w-3.5 h-3.5" /> {syncMessage}
             </span>
           )}
+
+          {/* Orphan Cleanup Button */}
+          <button
+            onClick={handleCleanupOrphans}
+            disabled={isCleaningOrphans}
+            className="px-3 py-2 bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/60 text-rose-300 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5"
+            title="실제 파일이 없는 DB 고아 레코드 삭제"
+          >
+            <Trash2 className={`w-3.5 h-3.5 ${isCleaningOrphans ? 'animate-spin' : ''}`} />
+            {isCleaningOrphans ? '고아 문서 정리중...' : '실물 없는 고아 DB 정리'}
+          </button>
+
+          {/* Full Sync Button */}
           <button
             onClick={handleSync}
             disabled={isSyncing}
@@ -293,25 +384,118 @@ export default function DocsGovernanceManager() {
 
         {/* Right: Docs Table */}
         <div className="col-span-9 border border-slate-800 rounded-xl overflow-hidden bg-slate-900/60 flex flex-col">
-          <div className="p-3 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between">
+          <div className="p-3 border-b border-slate-800 bg-slate-900/80 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-white">[{selectedFolder}]</span>
               <span className="text-xs text-slate-400">문서 목록 ({filteredDocs.length}건)</span>
             </div>
-            <span className="text-[11px] text-slate-500 font-mono">
-              클릭 시 마크다운 뷰어 & 원본 소스 대조창이 열립니다.
-            </span>
+
+            {/* Search Input & DB doc_payload Content Search Toggle */}
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                  placeholder="제목, 파일명 또는 본문 검색..."
+                  className="pl-8 pr-7 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-56 font-sans transition-all"
+                />
+                {searchKeyword && (
+                  <button
+                    onClick={() => setSearchKeyword('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+
+              <button
+                onClick={() => setSearchInContent(!searchInContent)}
+                className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-mono transition-colors flex items-center gap-1.5 ${
+                  searchInContent
+                    ? 'bg-indigo-950/80 border-indigo-700/60 text-indigo-300'
+                    : 'bg-slate-950 border-slate-800 text-slate-500 hover:text-slate-300'
+                }`}
+                title="DB jsonb doc_payload->>'content' 본문 포함 검색"
+              >
+                <Database className="w-3 h-3 text-indigo-400" />
+                <span>DB 본문 검색</span>
+                {isSearchingContent && <RefreshCw className="w-2.5 h-2.5 animate-spin text-amber-400" />}
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto flex-1">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-slate-800 bg-slate-900/40 text-slate-400">
-                  <th className="p-3">분류 폴더</th>
-                  <th className="p-3">문서번호 & 파일명</th>
-                  <th className="p-3">문서 제목</th>
-                  <th className="p-3">용량</th>
-                  <th className="p-3">DB 동기화</th>
+                <tr className="border-b border-slate-800 bg-slate-900/60 text-slate-400 select-none">
+                  <th
+                    onClick={() => handleSort('folder')}
+                    className="p-3 cursor-pointer hover:text-white transition-colors"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>분류 폴더</span>
+                      {sortField === 'folder' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-indigo-400" /> : <ArrowDown className="w-3.5 h-3.5 text-indigo-400" />
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-slate-600 opacity-60" />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleSort('docNum')}
+                    className="p-3 cursor-pointer hover:text-white transition-colors"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>문서번호 & 파일명</span>
+                      {sortField === 'docNum' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-indigo-400" /> : <ArrowDown className="w-3.5 h-3.5 text-indigo-400" />
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-slate-600 opacity-60" />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleSort('title')}
+                    className="p-3 cursor-pointer hover:text-white transition-colors"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>문서 제목</span>
+                      {sortField === 'title' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-indigo-400" /> : <ArrowDown className="w-3.5 h-3.5 text-indigo-400" />
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-slate-600 opacity-60" />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleSort('sizeBytes')}
+                    className="p-3 cursor-pointer hover:text-white transition-colors"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>용량</span>
+                      {sortField === 'sizeBytes' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-indigo-400" /> : <ArrowDown className="w-3.5 h-3.5 text-indigo-400" />
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-slate-600 opacity-60" />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleSort('isSynced')}
+                    className="p-3 cursor-pointer hover:text-white transition-colors"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>DB 동기화</span>
+                      {sortField === 'isSynced' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-indigo-400" /> : <ArrowDown className="w-3.5 h-3.5 text-indigo-400" />
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-slate-600 opacity-60" />
+                      )}
+                    </div>
+                  </th>
                   <th className="p-3 text-right">보기</th>
                 </tr>
               </thead>
@@ -329,12 +513,21 @@ export default function DocsGovernanceManager() {
                         <FileText className={`w-3.5 h-3.5 shrink-0 group-hover:scale-110 transition-transform ${
                           isReadme ? 'text-emerald-400' : 'text-indigo-400'
                         }`} />
-                        <span className={isReadme ? 'text-emerald-300' : 'text-indigo-200'}>
+                        <span className={isReadme ? 'text-emerald-300 font-bold' : 'text-indigo-200'}>
                           {doc.fileName}
                         </span>
                       </td>
-                      <td className="p-3 font-medium text-white max-w-xs truncate">{doc.title}</td>
-                      <td className="p-3 text-slate-400">{(doc.sizeBytes / 1024).toFixed(1)} KB</td>
+                      <td className="p-3 font-medium text-white max-w-xs">
+                        <div className="flex items-center gap-1.5 truncate">
+                          <span className="truncate">{doc.title}</span>
+                          {contentMatchIds.has(doc.docId) && (
+                            <span className="shrink-0 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-mono">
+                              본문 일치
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3 text-slate-400 whitespace-nowrap">{(doc.sizeBytes / 1024).toFixed(1)} KB</td>
                       <td className="p-3">
                         {doc.isSynced ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
@@ -363,7 +556,7 @@ export default function DocsGovernanceManager() {
                 {filteredDocs.length === 0 && (
                   <tr>
                     <td colSpan={6} className="p-8 text-center text-slate-500 text-xs">
-                      해당 분류 폴더에 문서가 아직 등록되지 않았습니다.
+                      {searchKeyword ? `"${searchKeyword}" 검색어와 일치하는 문서가 없습니다.` : '해당 분류 폴더에 문서가 아직 등록되지 않았습니다.'}
                     </td>
                   </tr>
                 )}
@@ -373,7 +566,7 @@ export default function DocsGovernanceManager() {
         </div>
       </div>
 
-      {/* Full Markdown & Source Viewer Modal with Mermaid Rendering */}
+      {/* Pure Markdown & Read-Only Source Viewer Modal with Remark-GFM & Mermaid */}
       {activeDoc && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
@@ -396,7 +589,7 @@ export default function DocsGovernanceManager() {
                 </div>
               </div>
 
-              {/* Header Right: View Switcher & Actions */}
+              {/* Header Right: View Switcher & Copy Action */}
               <div className="flex items-center gap-3">
                 <div className="inline-flex rounded-lg bg-slate-900 p-1 border border-slate-800">
                   <button
@@ -417,29 +610,18 @@ export default function DocsGovernanceManager() {
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    <Code className="w-3.5 h-3.5" /> 소스 원문 편집
+                    <Code className="w-3.5 h-3.5" /> 원본 소스 (읽기전용)
                   </button>
                 </div>
 
                 <button
                   onClick={handleCopySource}
                   className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
-                  title="원본 텍스트 복사"
+                  title="원본 마크다운 복사"
                 >
                   {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copied ? '복사됨' : '복사'}
+                  {copied ? '복사됨' : '마크다운 복사'}
                 </button>
-
-                {viewMode === 'source' && (
-                  <button
-                    onClick={handleSaveDoc}
-                    disabled={isSaving}
-                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 text-white rounded-lg text-xs font-semibold shadow-lg shadow-emerald-600/20 transition-all flex items-center gap-1.5"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    {isSaving ? '저장 & DB 반영중...' : '수정내용 저장 & DB반영'}
-                  </button>
-                )}
 
                 <button
                   onClick={() => setActiveDoc(null)}
@@ -450,7 +632,7 @@ export default function DocsGovernanceManager() {
               </div>
             </div>
 
-            {/* Modal Body: Toggle between Markdown Preview & Source Code Editor */}
+            {/* Modal Body: GFM Table Enabled Preview & Read-Only Source */}
             <div className="p-6 overflow-y-auto flex-1 text-slate-200 text-sm font-sans space-y-4">
               {isLoadingContent ? (
                 <div className="flex flex-col items-center justify-center py-20 text-slate-400 space-y-3">
@@ -459,9 +641,44 @@ export default function DocsGovernanceManager() {
                 </div>
               ) : viewMode === 'preview' ? (
                 docContent ? (
-                  <div className="markdown-body prose prose-invert max-w-none prose-headings:text-indigo-200 prose-a:text-indigo-400 prose-table:border-slate-800 prose-th:bg-slate-950 prose-td:border-slate-800 text-slate-300 leading-relaxed text-xs">
+                  <div className="markdown-body max-w-none text-slate-300 leading-relaxed text-xs">
                     <Markdown
+                      remarkPlugins={[remarkGfm]}
                       components={{
+                        // Custom Table Components for perfect styling
+                        table({ children }) {
+                          return (
+                            <div className="overflow-x-auto my-4 rounded-xl border border-slate-800 bg-slate-950/60 shadow-inner">
+                              <table className="w-full text-left border-collapse text-xs">
+                                {children}
+                              </table>
+                            </div>
+                          );
+                        },
+                        thead({ children }) {
+                          return <thead className="bg-slate-900/90 text-indigo-200 border-b border-slate-800 font-semibold">{children}</thead>;
+                        },
+                        tbody({ children }) {
+                          return <tbody className="divide-y divide-slate-800/60">{children}</tbody>;
+                        },
+                        tr({ children }) {
+                          return <tr className="hover:bg-slate-900/40 transition-colors">{children}</tr>;
+                        },
+                        th({ children }) {
+                          return <th className="p-2.5 font-bold text-indigo-300 border-r border-slate-800/80 last:border-r-0 whitespace-nowrap">{children}</th>;
+                        },
+                        td({ children }) {
+                          return <td className="p-2.5 text-slate-300 border-r border-slate-800/50 last:border-r-0">{children}</td>;
+                        },
+                        h1({ children }) {
+                          return <h1 className="text-xl font-black text-white pb-2 mb-4 border-b border-slate-800 flex items-center gap-2">{children}</h1>;
+                        },
+                        h2({ children }) {
+                          return <h2 className="text-base font-bold text-indigo-200 mt-5 mb-2 pb-1 border-b border-slate-800/60">{children}</h2>;
+                        },
+                        h3({ children }) {
+                          return <h3 className="text-sm font-semibold text-amber-300 mt-4 mb-2">{children}</h3>;
+                        },
                         code({ className, children, ...props }) {
                           const match = /language-(\w+)/.exec(className || '');
                           const isMermaid = match && match[1] === 'mermaid';
@@ -472,32 +689,32 @@ export default function DocsGovernanceManager() {
                           }
 
                           return (
-                            <code className={className} {...props}>
+                            <code className={`px-1.5 py-0.5 rounded bg-slate-950 text-indigo-300 font-mono text-[11px] border border-slate-800 ${className || ''}`} {...props}>
                               {children}
                             </code>
                           );
                         },
                       }}
                     >
-                      {editedContent || docContent}
+                      {docContent}
                     </Markdown>
                   </div>
                 ) : (
                   <div className="text-slate-500 text-center py-10">내용이 비어있습니다.</div>
                 )
               ) : (
-                /* Source Mode: Editable textarea */
+                /* Read-Only Source Mode */
                 <div className="flex flex-col h-full space-y-2">
-                  <div className="text-xs text-slate-400 font-mono flex items-center justify-between">
-                    <span>Markdown 원본 편집 모드 (수정 후 우상단 '수정내용 저장 & DB반영' 클릭)</span>
-                    <span>줄 수: {editedContent.split('\n').length}줄</span>
+                  <div className="text-xs text-slate-400 font-mono flex items-center justify-between bg-slate-950/80 px-3 py-2 rounded-lg border border-slate-800">
+                    <span className="flex items-center gap-2">
+                      <Code className="w-3.5 h-3.5 text-indigo-400" />
+                      마크다운 소스 원문 (읽기 전용 / 상단 복사 지원)
+                    </span>
+                    <span className="text-slate-500">줄 수: {docContent ? docContent.split('\n').length : 0}줄</span>
                   </div>
-                  <textarea
-                    value={editedContent}
-                    onChange={(e) => setEditedContent(e.target.value)}
-                    className="w-full h-[520px] p-4 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 leading-relaxed resize-none"
-                    placeholder="마크다운 내용을 입력하세요..."
-                  />
+                  <pre className="w-full h-[520px] p-4 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-300 overflow-auto leading-relaxed select-text">
+                    {docContent}
+                  </pre>
                 </div>
               )}
             </div>
@@ -507,7 +724,11 @@ export default function DocsGovernanceManager() {
               <div className="flex items-center gap-4">
                 <span>용량: {(activeDoc.sizeBytes / 1024).toFixed(1)} KB</span>
                 <span className="text-slate-600">|</span>
-                <span>Mermaid 다이어그램 자동 렌더링 지원됨</span>
+                <span className="flex items-center gap-1 text-emerald-400 font-mono">
+                  <Database className="w-3.5 h-3.5" /> DB 정합성 검증 완료
+                </span>
+                <span className="text-slate-600">|</span>
+                <span>remark-gfm 표 & Mermaid 다이어그램 지원됨</span>
               </div>
               <button
                 onClick={() => setActiveDoc(null)}

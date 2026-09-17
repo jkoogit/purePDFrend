@@ -60,11 +60,13 @@ export interface ConversationTrace {
   trace_id: string;
   session_id: string;
   task_id?: string;
+  loop_id?: string;
   step_index: number;
   agent_name: string;
   model_name: string;
   user_prompt: string;
   agent_response: string;
+  response_summary?: string;
   tool_calls?: any;
   prompt_tokens: number;
   completion_tokens: number;

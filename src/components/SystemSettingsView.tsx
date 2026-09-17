@@ -29,6 +29,12 @@ export default function SystemSettingsView({
 
   // Sub Tab inside 'ai-agent': 'graph' | 'task-search' | 'usage'
   const [agentSubTab, setAgentSubTab] = useState<'graph' | 'task-search' | 'usage'>('graph');
+  const [traceFilter, setTraceFilter] = useState<string>('');
+
+  const handleNavigateToTrace = (keyword: string) => {
+    setTraceFilter(keyword);
+    setAgentSubTab('usage');
+  };
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] p-4 max-w-7xl mx-auto w-full gap-4">
@@ -138,11 +144,11 @@ export default function SystemSettingsView({
         )}
 
         {mainTab === 'ai-agent' && agentSubTab === 'task-search' && (
-          <TaskInfoManager />
+          <TaskInfoManager onNavigateToTrace={handleNavigateToTrace} />
         )}
 
         {mainTab === 'ai-agent' && agentSubTab === 'usage' && (
-          <AgentUsageViewer />
+          <AgentUsageViewer initialFilter={traceFilter} />
         )}
 
         {mainTab === 'ocr-engine' && (
