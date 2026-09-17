@@ -291,6 +291,83 @@ app.get('/api/agent/docs/content', async (req, res) => {
   }
 });
 
+// 3.2 Save / Edit Doc with Unique Doc ID and Sync to DB
+app.post('/api/agent/docs/save', async (req, res) => {
+  try {
+    const { filePath, content, title } = req.body;
+    if (!filePath || typeof filePath !== 'string' || content === undefined) {
+      return res.status(400).json({ success: false, error: 'filePath and content are required' });
+    }
+
+    const safePath = path.normalize(filePath).replace(/^(\.\.[\/\\])+/, '');
+    const absolutePath = path.join(process.cwd(), safePath);
+
+    // Write file to filesystem
+    const dir = path.dirname(absolutePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(absolutePath, content, 'utf-8');
+
+    // Calculate metadata
+    const hash = crypto.createHash('sha256').update(content).digest('hex');
+    const stat = fs.statSync(absolutePath);
+    const fileName = path.basename(safePath);
+    const parts = safePath.replace(/^docs[\/\\]/, '').split(/[\/\\]/);
+    const folder = parts.length > 1 ? parts[0] : '루트';
+    const finalTitle = title || content.split('\n').find((l: string) => l.startsWith('#'))?.replace(/^#+\s*/, '') || fileName;
+
+    // Generate unique doc_id: deterministic base + random uuid suffix if needed, or normalized path
+    const normalizedKey = safePath.replace(/[\/\.]/g, '-').toUpperCase();
+    const docId = `DOC-${normalizedKey}`;
+
+    const payload = JSON.stringify({
+      folder,
+      fileName,
+      lines: content.split('\n').length,
+      size: stat.size,
+      lastModified: new Date().toISOString(),
+    });
+
+    const upsertSql = `
+      INSERT INTO aiagent.agent_docs_meta (
+        doc_id, file_path, category, title, content_hash, last_synced_at, doc_payload
+      ) VALUES (
+        '${docId}',
+        '${safePath}',
+        '${folder.replace(/'/g, "''")}',
+        '${finalTitle.replace(/'/g, "''")}',
+        '${hash}',
+        now(),
+        '${payload}'::jsonb
+      )
+      ON CONFLICT (doc_id) DO UPDATE SET
+        file_path = EXCLUDED.file_path,
+        category = EXCLUDED.category,
+        title = EXCLUDED.title,
+        content_hash = EXCLUDED.content_hash,
+        last_synced_at = now(),
+        doc_payload = EXCLUDED.doc_payload,
+        updated_at = now(),
+        version = agent_docs_meta.version + 1;
+    `;
+
+    await executeSql(upsertSql);
+
+    res.json({
+      success: true,
+      message: `문서(${fileName})가 파일시스템 및 DB(aiagent.agent_docs_meta)에 성공적으로 저장되었습니다.`,
+      docId,
+      contentHash: hash,
+      sizeBytes: stat.size,
+      updatedAt: stat.mtime.toISOString(),
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 3.3 Docs Management & SHA-256 DB Sync API
 app.post('/api/agent/docs/sync', async (req, res) => {
   try {
     const docsDir = path.join(process.cwd(), 'docs');
@@ -531,6 +608,55 @@ app.get('/api/agent/graph', async (req, res) => {
         tasks: tasksRes.rows.length,
         loops: loopsRes.rows.length,
       },
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 5.1 Graph View State Persistence API (Settings & Filters in DB)
+app.get('/api/agent/graph/view-state', async (req, res) => {
+  try {
+    const { sessionId = 'SESSION-20260917-001' } = req.query;
+    const sessionRes: any = await executeSql(`
+      SELECT doc_payload FROM aiagent.harness_session_meta WHERE session_id = '${String(sessionId).replace(/'/g, "''")}';
+    `);
+    const payload = sessionRes.rows[0]?.doc_payload || {};
+    res.json({
+      success: true,
+      viewState: payload.graphViewState || systemSettings.graphView,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/agent/graph/view-state', async (req, res) => {
+  try {
+    const { sessionId = 'SESSION-20260917-001', viewState } = req.body;
+    if (!viewState) {
+      return res.status(400).json({ success: false, error: 'viewState is required' });
+    }
+
+    // Update in-memory fallback
+    systemSettings.graphView = { ...systemSettings.graphView, ...viewState };
+
+    // Persist into session doc_payload
+    const safeSessionId = String(sessionId).replace(/'/g, "''");
+    const escapedState = JSON.stringify(viewState).replace(/'/g, "''");
+
+    await executeSql(`
+      UPDATE aiagent.harness_session_meta
+      SET doc_payload = jsonb_set(COALESCE(doc_payload, '{}'::jsonb), '{graphViewState}', '${escapedState}'::jsonb),
+          updated_at = now(),
+          version = version + 1
+      WHERE session_id = '${safeSessionId}';
+    `);
+
+    res.json({
+      success: true,
+      message: '그래프 뷰 설정(간격/상태필터)이 개발DB(harness_session_meta)에 영속화되었습니다.',
+      viewState,
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });

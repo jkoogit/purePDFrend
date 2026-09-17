@@ -280,6 +280,69 @@ app.get("/api/agent/docs/content", async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+app.post("/api/agent/docs/save", async (req, res) => {
+  try {
+    const { filePath, content, title } = req.body;
+    if (!filePath || typeof filePath !== "string" || content === void 0) {
+      return res.status(400).json({ success: false, error: "filePath and content are required" });
+    }
+    const safePath = import_path.default.normalize(filePath).replace(/^(\.\.[\/\\])+/, "");
+    const absolutePath = import_path.default.join(process.cwd(), safePath);
+    const dir = import_path.default.dirname(absolutePath);
+    if (!import_fs.default.existsSync(dir)) {
+      import_fs.default.mkdirSync(dir, { recursive: true });
+    }
+    import_fs.default.writeFileSync(absolutePath, content, "utf-8");
+    const hash = import_crypto.default.createHash("sha256").update(content).digest("hex");
+    const stat = import_fs.default.statSync(absolutePath);
+    const fileName = import_path.default.basename(safePath);
+    const parts = safePath.replace(/^docs[\/\\]/, "").split(/[\/\\]/);
+    const folder = parts.length > 1 ? parts[0] : "\uB8E8\uD2B8";
+    const finalTitle = title || content.split("\n").find((l) => l.startsWith("#"))?.replace(/^#+\s*/, "") || fileName;
+    const normalizedKey = safePath.replace(/[\/\.]/g, "-").toUpperCase();
+    const docId = `DOC-${normalizedKey}`;
+    const payload = JSON.stringify({
+      folder,
+      fileName,
+      lines: content.split("\n").length,
+      size: stat.size,
+      lastModified: (/* @__PURE__ */ new Date()).toISOString()
+    });
+    const upsertSql = `
+      INSERT INTO aiagent.agent_docs_meta (
+        doc_id, file_path, category, title, content_hash, last_synced_at, doc_payload
+      ) VALUES (
+        '${docId}',
+        '${safePath}',
+        '${folder.replace(/'/g, "''")}',
+        '${finalTitle.replace(/'/g, "''")}',
+        '${hash}',
+        now(),
+        '${payload}'::jsonb
+      )
+      ON CONFLICT (doc_id) DO UPDATE SET
+        file_path = EXCLUDED.file_path,
+        category = EXCLUDED.category,
+        title = EXCLUDED.title,
+        content_hash = EXCLUDED.content_hash,
+        last_synced_at = now(),
+        doc_payload = EXCLUDED.doc_payload,
+        updated_at = now(),
+        version = agent_docs_meta.version + 1;
+    `;
+    await executeSql(upsertSql);
+    res.json({
+      success: true,
+      message: `\uBB38\uC11C(${fileName})\uAC00 \uD30C\uC77C\uC2DC\uC2A4\uD15C \uBC0F DB(aiagent.agent_docs_meta)\uC5D0 \uC131\uACF5\uC801\uC73C\uB85C \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4.`,
+      docId,
+      contentHash: hash,
+      sizeBytes: stat.size,
+      updatedAt: stat.mtime.toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 app.post("/api/agent/docs/sync", async (req, res) => {
   try {
     const docsDir = import_path.default.join(process.cwd(), "docs");
@@ -490,6 +553,46 @@ app.get("/api/agent/graph", async (req, res) => {
         tasks: tasksRes.rows.length,
         loops: loopsRes.rows.length
       }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+app.get("/api/agent/graph/view-state", async (req, res) => {
+  try {
+    const { sessionId = "SESSION-20260917-001" } = req.query;
+    const sessionRes = await executeSql(`
+      SELECT doc_payload FROM aiagent.harness_session_meta WHERE session_id = '${String(sessionId).replace(/'/g, "''")}';
+    `);
+    const payload = sessionRes.rows[0]?.doc_payload || {};
+    res.json({
+      success: true,
+      viewState: payload.graphViewState || systemSettings.graphView
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+app.post("/api/agent/graph/view-state", async (req, res) => {
+  try {
+    const { sessionId = "SESSION-20260917-001", viewState } = req.body;
+    if (!viewState) {
+      return res.status(400).json({ success: false, error: "viewState is required" });
+    }
+    systemSettings.graphView = { ...systemSettings.graphView, ...viewState };
+    const safeSessionId = String(sessionId).replace(/'/g, "''");
+    const escapedState = JSON.stringify(viewState).replace(/'/g, "''");
+    await executeSql(`
+      UPDATE aiagent.harness_session_meta
+      SET doc_payload = jsonb_set(COALESCE(doc_payload, '{}'::jsonb), '{graphViewState}', '${escapedState}'::jsonb),
+          updated_at = now(),
+          version = version + 1
+      WHERE session_id = '${safeSessionId}';
+    `);
+    res.json({
+      success: true,
+      message: "\uADF8\uB798\uD504 \uBDF0 \uC124\uC815(\uAC04\uACA9/\uC0C1\uD0DC\uD544\uD130)\uC774 \uAC1C\uBC1CDB(harness_session_meta)\uC5D0 \uC601\uC18D\uD654\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+      viewState
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
