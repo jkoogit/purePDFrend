@@ -1,0 +1,6 @@
+{
+  "name": "purePDFrend - PDF 제작 & OCR 교정 스튜디오",
+  "description": "스캔 도서 및 이미지 페이지 편집, 고정밀 다국어 OCR 및 바운딩 박스 교정, 표준 목차(TOC)와 PDF 호환 주석 관리",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
