@@ -8,6 +8,7 @@ import {
   Terminal,
   Code,
   CheckCircle2,
+  Database,
   PlayCircle,
   Clock,
   MessageSquare,
@@ -26,11 +27,12 @@ import remarkGfm from 'remark-gfm';
 
 interface TaskInfoManagerProps {
   onNavigateToTrace?: (keyword: string) => void;
+  dbStatus?: string;
 }
 
 type SortOrder = 'asc' | 'desc' | 'init';
 
-export default function TaskInfoManager({ onNavigateToTrace }: TaskInfoManagerProps) {
+export default function TaskInfoManager({ onNavigateToTrace, dbStatus = 'CONNECTED' }: TaskInfoManagerProps) {
   const [activeTab, setActiveTab] = useState<'session' | 'task' | 'loop'>('task');
   const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -469,8 +471,16 @@ export default function TaskInfoManager({ onNavigateToTrace }: TaskInfoManagerPr
               ))}
               {sortedSessions.length === 0 && !isLoading && (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-500">
-                    검색 조건과 일치하는 세션 정보가 없습니다.
+                  <td colSpan={7} className="p-8 text-center text-slate-400">
+                    {dbStatus !== 'CONNECTED' ? (
+                      <div className="flex flex-col items-center justify-center gap-1.5">
+                        <Database className="w-5 h-5 text-amber-500/80 animate-pulse" />
+                        <span className="font-medium text-amber-300">조회된 결과가 없습니다.</span>
+                        <span className="text-[11px] text-slate-500">DB 연결 상태 확인 필요 (영속화 상태 점검필요)</span>
+                      </div>
+                    ) : (
+                      <span>{keyword ? '조회된 결과가 없습니다. (검색 조건 불일치)' : '조회된 결과가 없습니다.'}</span>
+                    )}
                   </td>
                 </tr>
               )}
@@ -576,8 +586,16 @@ export default function TaskInfoManager({ onNavigateToTrace }: TaskInfoManagerPr
               ))}
               {sortedTasks.length === 0 && !isLoading && (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-500">
-                    검색 조건과 일치하는 태스크 정보가 없습니다.
+                  <td colSpan={7} className="p-8 text-center text-slate-400">
+                    {dbStatus !== 'CONNECTED' ? (
+                      <div className="flex flex-col items-center justify-center gap-1.5">
+                        <Database className="w-5 h-5 text-amber-500/80 animate-pulse" />
+                        <span className="font-medium text-amber-300">조회된 결과가 없습니다.</span>
+                        <span className="text-[11px] text-slate-500">DB 연결 상태 확인 필요 (영속화 상태 점검필요)</span>
+                      </div>
+                    ) : (
+                      <span>{keyword ? '조회된 결과가 없습니다. (검색 조건 불일치)' : '조회된 결과가 없습니다.'}</span>
+                    )}
                   </td>
                 </tr>
               )}
@@ -669,8 +687,16 @@ export default function TaskInfoManager({ onNavigateToTrace }: TaskInfoManagerPr
               ))}
               {sortedLoops.length === 0 && !isLoading && (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-500">
-                    검색 조건과 일치하는 루프 정보가 없습니다.
+                  <td colSpan={6} className="p-8 text-center text-slate-400">
+                    {dbStatus !== 'CONNECTED' ? (
+                      <div className="flex flex-col items-center justify-center gap-1.5">
+                        <Database className="w-5 h-5 text-amber-500/80 animate-pulse" />
+                        <span className="font-medium text-amber-300">조회된 결과가 없습니다.</span>
+                        <span className="text-[11px] text-slate-500">DB 연결 상태 확인 필요 (영속화 상태 점검필요)</span>
+                      </div>
+                    ) : (
+                      <span>{keyword ? '조회된 결과가 없습니다. (검색 조건 불일치)' : '조회된 결과가 없습니다.'}</span>
+                    )}
                   </td>
                 </tr>
               )}

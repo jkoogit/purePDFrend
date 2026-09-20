@@ -28,6 +28,7 @@ interface WorkGraphViewerProps {
   edges: GraphEdge[];
   onRefresh: () => void;
   isLoading: boolean;
+  dbStatus?: string;
 }
 
 export type SpacingPreset = 'compact' | 'normal' | 'wide' | 'custom';
@@ -43,7 +44,7 @@ interface ConnectorLine {
   isFocused: boolean;
 }
 
-export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoading }: WorkGraphViewerProps) {
+export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoading, dbStatus = 'CONNECTED' }: WorkGraphViewerProps) {
   // 1. Hierarchy view filters (Session, Task, Loop)
   const [viewModes, setViewModes] = useState({
     session: true,
@@ -123,6 +124,12 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
 
   // Save current view state to DB and localStorage
   const handleSaveViewState = async () => {
+    // 🛑 Policy 2.3: DB연결이 안된 상태면 수정기능 이벤트 발생시 안내메시지 표시 "영속화 상태 점검필요"
+    if (dbStatus !== 'CONNECTED') {
+      alert('영속화 상태 점검필요 (DB 연결이 원활하지 않아 원격 저장을 수행할 수 없습니다)');
+      return;
+    }
+
     setIsSavingViewState(true);
     setSaveMessage(null);
     const viewState = {
@@ -150,9 +157,11 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
       if (data.success) {
         setSaveMessage('뷰설정(비율/간격) DB저장 완료');
         setTimeout(() => setSaveMessage(null), 2500);
+      } else {
+        alert('영속화 상태 점검필요: ' + (data.error || '저장 실패'));
       }
     } catch (err: any) {
-      alert('뷰 설정 저장 실패: ' + err.message);
+      alert('영속화 상태 점검필요: ' + err.message);
     } finally {
       setIsSavingViewState(false);
     }
@@ -717,8 +726,14 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
         {filteredNodes.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-500 py-16">
             <Layers className="w-12 h-12 mb-3 text-slate-700" />
-            <p className="text-sm font-semibold text-slate-400">선택된 조건에 일치하는 작업 노드가 없습니다.</p>
-            <p className="text-xs text-slate-500 mt-1">상단의 계층 필터 또는 완료/진행/대기 상태 필터를 활성화해 주세요.</p>
+            <p className="text-sm font-semibold text-slate-300">
+              {dbStatus !== 'CONNECTED' ? '조회된 결과가 없습니다. (DB 연결 점검 필요)' : '조회된 결과가 없습니다.'}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">
+              {dbStatus !== 'CONNECTED'
+                ? 'DB 접속이 원활하지 않아 작업 노드 목록을 조회할 수 없습니다.'
+                : '상단의 계층 필터 또는 완료/진행/대기 상태 필터를 활성화해 주세요.'}
+            </p>
           </div>
         ) : (
           <div

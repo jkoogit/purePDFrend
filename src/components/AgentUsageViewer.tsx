@@ -24,12 +24,13 @@ import remarkGfm from 'remark-gfm';
 
 interface AgentUsageViewerProps {
   initialFilter?: string;
+  dbStatus?: string;
 }
 
 type SortField = 'step_index' | 'trace_id' | 'loop_id' | 'model_name' | 'user_prompt' | 'agent_response' | 'created_at';
 type SortOrder = 'asc' | 'desc' | 'init';
 
-export default function AgentUsageViewer({ initialFilter }: AgentUsageViewerProps = {}) {
+export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED' }: AgentUsageViewerProps = {}) {
   const [traces, setTraces] = useState<ConversationTrace[]>([]);
   const [activeModel, setActiveModel] = useState('models/gemini-3.8-flash');
   const [isLoading, setIsLoading] = useState(false);
@@ -387,10 +388,18 @@ export default function AgentUsageViewer({ initialFilter }: AgentUsageViewerProp
                 );
               })}
 
-              {filteredTraces.length === 0 && !isLoading && (
+              {displayTraces.length === 0 && !isLoading && (
                 <tr>
-                  <td colSpan={8} className="p-12 text-center text-slate-500 text-xs">
-                    {searchKeyword ? '검색어와 일치하는 대화 추적 기록이 없습니다.' : '기록된 대화 추적 내역이 없습니다.'}
+                  <td colSpan={8} className="p-12 text-center text-slate-400 text-xs">
+                    {dbStatus !== 'CONNECTED' ? (
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <Database className="w-6 h-6 text-amber-500/80 animate-pulse" />
+                        <span className="font-medium text-amber-300">조회된 결과가 없습니다.</span>
+                        <span className="text-[11px] text-slate-500">DB 연결이 원활하지 않아 원격 데이터를 조회할 수 없습니다. (영속화 상태 점검필요)</span>
+                      </div>
+                    ) : (
+                      <span>{searchKeyword ? '조회된 결과가 없습니다. (검색 조건 불일치)' : '조회된 결과가 없습니다.'}</span>
+                    )}
                   </td>
                 </tr>
               )}
