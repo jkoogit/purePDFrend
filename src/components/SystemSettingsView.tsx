@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SystemSettings, GraphNode, GraphEdge } from '../types';
 import WorkGraphViewer from './WorkGraphViewer';
 import TaskInfoManager from './TaskInfoManager';
@@ -14,6 +14,8 @@ interface SystemSettingsViewProps {
   graphEdges: GraphEdge[];
   onRefreshGraph: () => void;
   isLoadingGraph: boolean;
+  initialMainTab?: 'ai-agent' | 'ocr-engine' | 'docs-sync';
+  dbStatus?: string;
 }
 
 export default function SystemSettingsView({
@@ -23,9 +25,18 @@ export default function SystemSettingsView({
   graphEdges,
   onRefreshGraph,
   isLoadingGraph,
+  initialMainTab = 'ai-agent',
+  dbStatus = 'CONNECTED',
 }: SystemSettingsViewProps) {
   // Main Tab: 'ai-agent' | 'ocr-engine' | 'docs-sync'
-  const [mainTab, setMainTab] = useState<'ai-agent' | 'ocr-engine' | 'docs-sync'>('ai-agent');
+  const [mainTab, setMainTab] = useState<'ai-agent' | 'ocr-engine' | 'docs-sync'>(initialMainTab);
+
+  // Sync when initialMainTab changes from parent
+  useEffect(() => {
+    if (initialMainTab) {
+      setMainTab(initialMainTab);
+    }
+  }, [initialMainTab]);
 
   // Sub Tab inside 'ai-agent': 'graph' | 'task-search' | 'usage'
   const [agentSubTab, setAgentSubTab] = useState<'graph' | 'task-search' | 'usage'>('graph');
@@ -140,26 +151,28 @@ export default function SystemSettingsView({
             edges={graphEdges}
             onRefresh={onRefreshGraph}
             isLoading={isLoadingGraph}
+            dbStatus={dbStatus}
           />
         )}
 
         {mainTab === 'ai-agent' && agentSubTab === 'task-search' && (
-          <TaskInfoManager onNavigateToTrace={handleNavigateToTrace} />
+          <TaskInfoManager onNavigateToTrace={handleNavigateToTrace} dbStatus={dbStatus} />
         )}
 
         {mainTab === 'ai-agent' && agentSubTab === 'usage' && (
-          <AgentUsageViewer initialFilter={traceFilter} />
+          <AgentUsageViewer initialFilter={traceFilter} dbStatus={dbStatus} />
         )}
 
         {mainTab === 'ocr-engine' && (
           <OcrEngineManager
             settings={settings}
             onUpdateSettings={onUpdateSettings}
+            dbStatus={dbStatus}
           />
         )}
 
         {mainTab === 'docs-sync' && (
-          <DocsGovernanceManager />
+          <DocsGovernanceManager dbStatus={dbStatus} />
         )}
       </div>
     </div>

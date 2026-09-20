@@ -90,7 +90,11 @@ function MermaidDiagram({ code }: { code: string }) {
   );
 }
 
-export default function DocsGovernanceManager() {
+interface DocsGovernanceManagerProps {
+  dbStatus?: string;
+}
+
+export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGovernanceManagerProps = {}) {
   const [docs, setDocs] = useState<AgentDoc[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<string>('전체');
   const [activeDoc, setActiveDoc] = useState<AgentDoc | null>(null);
@@ -134,6 +138,12 @@ export default function DocsGovernanceManager() {
   };
 
   const handleSync = async () => {
+    // 🛑 Policy 2.3: DB연결이 안된 상태면 수정기능 이벤트 발생시 안내메시지 표시 "영속화 상태 점검필요"
+    if (dbStatus !== 'CONNECTED') {
+      alert('영속화 상태 점검필요 (DB 연결이 원활하지 않아 문서 동기화를 수행할 수 없습니다)');
+      return;
+    }
+
     setIsSyncing(true);
     setSyncMessage(null);
     try {
@@ -142,15 +152,23 @@ export default function DocsGovernanceManager() {
       if (data.success) {
         setSyncMessage(data.message);
         await fetchDocs();
+      } else {
+        alert('영속화 상태 점검필요: ' + (data.error || '동기화 실패'));
       }
     } catch (err: any) {
-      alert('문서 동기화 실패: ' + err.message);
+      alert('영속화 상태 점검필요: ' + err.message);
     } finally {
       setIsSyncing(false);
     }
   };
 
   const handleCleanupOrphans = async () => {
+    // 🛑 Policy 2.3: DB연결이 안된 상태면 수정기능 이벤트 발생시 안내메시지 표시 "영속화 상태 점검필요"
+    if (dbStatus !== 'CONNECTED') {
+      alert('영속화 상태 점검필요 (DB 연결이 원활하지 않아 고아 문서 정리를 수행할 수 없습니다)');
+      return;
+    }
+
     setIsCleaningOrphans(true);
     setSyncMessage(null);
     try {
@@ -159,9 +177,11 @@ export default function DocsGovernanceManager() {
       if (data.success) {
         setSyncMessage(data.message);
         await fetchDocs();
+      } else {
+        alert('영속화 상태 점검필요: ' + (data.error || '정리 실패'));
       }
     } catch (err: any) {
-      alert('고아 문서 삭제 실패: ' + err.message);
+      alert('영속화 상태 점검필요: ' + err.message);
     } finally {
       setIsCleaningOrphans(false);
     }
@@ -555,8 +575,16 @@ export default function DocsGovernanceManager() {
                 })}
                 {filteredDocs.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-slate-500 text-xs">
-                      {searchKeyword ? `"${searchKeyword}" 검색어와 일치하는 문서가 없습니다.` : '해당 분류 폴더에 문서가 아직 등록되지 않았습니다.'}
+                    <td colSpan={6} className="p-8 text-center text-slate-400 text-xs">
+                      {dbStatus !== 'CONNECTED' ? (
+                        <div className="flex flex-col items-center justify-center gap-1.5">
+                          <Database className="w-5 h-5 text-amber-500/80 animate-pulse" />
+                          <span className="font-medium text-amber-300">조회된 결과가 없습니다.</span>
+                          <span className="text-[11px] text-slate-500">DB 연결 상태 확인 필요 (영속화 상태 점검필요)</span>
+                        </div>
+                      ) : (
+                        <span>{searchKeyword ? `"${searchKeyword}" 조회된 결과가 없습니다.` : '조회된 결과가 없습니다.'}</span>
+                      )}
                     </td>
                   </tr>
                 )}
