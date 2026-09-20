@@ -9,12 +9,16 @@ import {
   Server,
   ShieldCheck,
   Radio,
-  Layers
+  Layers,
+  Bot,
+  AlertTriangle
 } from 'lucide-react';
 
+export type AppTab = 'agent' | 'scenarios' | 'system' | 'viewer' | 'ocr';
+
 interface NavbarProps {
-  currentTab: 'scenarios' | 'system' | 'viewer' | 'ocr';
-  onSelectTab: (tab: 'scenarios' | 'system' | 'viewer' | 'ocr') => void;
+  currentTab: AppTab;
+  onSelectTab: (tab: AppTab) => void;
   dbStatus: string;
 }
 
@@ -45,6 +49,20 @@ export default function Navbar({ currentTab, onSelectTab, dbStatus }: NavbarProp
         {/* Global Nav Tabs */}
         <nav className="flex items-center gap-1.5 ml-6 border-l border-slate-800 pl-6">
           <button
+            id="nav-tab-agent"
+            onClick={() => onSelectTab('agent')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+              currentTab === 'agent'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+            }`}
+          >
+            <Bot className="w-3.5 h-3.5 text-indigo-300" />
+            에이전트 정보 (하네스/그래프/토큰)
+          </button>
+
+          <button
+            id="nav-tab-scenarios"
             onClick={() => onSelectTab('scenarios')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
               currentTab === 'scenarios'
@@ -57,6 +75,7 @@ export default function Navbar({ currentTab, onSelectTab, dbStatus }: NavbarProp
           </button>
 
           <button
+            id="nav-tab-system"
             onClick={() => onSelectTab('system')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
               currentTab === 'system'
@@ -65,7 +84,7 @@ export default function Navbar({ currentTab, onSelectTab, dbStatus }: NavbarProp
             }`}
           >
             <Settings className="w-3.5 h-3.5" />
-            시스템 관리 (AI에이전트 / OCR / DB)
+            시스템 관리 (OCR / DB)
           </button>
         </nav>
       </div>
@@ -86,7 +105,9 @@ export default function Navbar({ currentTab, onSelectTab, dbStatus }: NavbarProp
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> 정상 연결
               </span>
             ) : (
-              <span className="text-amber-400 font-semibold text-[11px]">연결 확인중</span>
+              <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> 로컬 폴백 (점검필요)
+              </span>
             )}
           </div>
 
@@ -108,9 +129,15 @@ export default function Navbar({ currentTab, onSelectTab, dbStatus }: NavbarProp
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">연결 상태:</span>
-                  <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> 정상 작동 (Bridge OK)
-                  </span>
+                  {dbStatus === 'CONNECTED' ? (
+                    <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> 정상 작동 (Bridge OK)
+                    </span>
+                  ) : (
+                    <span className="text-amber-400 font-semibold flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" /> 로컬 캐시 모드 (영속화 점검필요)
+                    </span>
+                  )}
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">동기화 테이블:</span>
