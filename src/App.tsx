@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import Navbar from './components/Navbar';
+import Navbar, { AppTab } from './components/Navbar';
 import ScenarioDesignView from './components/ScenarioDesignView';
 import SystemSettingsView from './components/SystemSettingsView';
+import ErrorBoundary from './components/ErrorBoundary';
 import { SystemSettings, GraphNode, GraphEdge } from './types';
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState<'scenarios' | 'system' | 'viewer' | 'ocr'>('system');
+  const [currentTab, setCurrentTab] = useState<AppTab>('agent');
   const [dbStatus, setDbStatus] = useState<string>('CHECKING');
   const [settings, setSettings] = useState<SystemSettings | null>(null);
 
@@ -85,22 +86,39 @@ export default function App() {
         dbStatus={dbStatus}
       />
 
-      {/* Main Content Area */}
+      {/* Main Content Area Protected by ErrorBoundary */}
       <main className="flex-1 min-h-0 overflow-hidden">
-        {currentTab === 'scenarios' && (
-          <ScenarioDesignView />
-        )}
+        <ErrorBoundary fallbackTitle="에이전트 화면 로딩 중 오류가 발생했습니다.">
+          {currentTab === 'scenarios' && (
+            <ScenarioDesignView />
+          )}
 
-        {currentTab === 'system' && (
-          <SystemSettingsView
-            settings={settings}
-            onUpdateSettings={handleUpdateSettings}
-            graphNodes={graphNodes}
-            graphEdges={graphEdges}
-            onRefreshGraph={fetchGraph}
-            isLoadingGraph={isLoadingGraph}
-          />
-        )}
+          {currentTab === 'agent' && (
+            <SystemSettingsView
+              settings={settings}
+              onUpdateSettings={handleUpdateSettings}
+              graphNodes={graphNodes}
+              graphEdges={graphEdges}
+              onRefreshGraph={fetchGraph}
+              isLoadingGraph={isLoadingGraph}
+              initialMainTab="ai-agent"
+              dbStatus={dbStatus}
+            />
+          )}
+
+          {currentTab === 'system' && (
+            <SystemSettingsView
+              settings={settings}
+              onUpdateSettings={handleUpdateSettings}
+              graphNodes={graphNodes}
+              graphEdges={graphEdges}
+              onRefreshGraph={fetchGraph}
+              isLoadingGraph={isLoadingGraph}
+              initialMainTab="ocr-engine"
+              dbStatus={dbStatus}
+            />
+          )}
+        </ErrorBoundary>
       </main>
     </div>
   );

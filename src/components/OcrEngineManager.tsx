@@ -5,9 +5,10 @@ import { Cpu, Zap, Check, Play, RefreshCw, HardDrive, DollarSign, Globe, Award }
 interface OcrEngineManagerProps {
   settings: SystemSettings | null;
   onUpdateSettings: (newSettings: SystemSettings) => Promise<void>;
+  dbStatus?: string;
 }
 
-export default function OcrEngineManager({ settings, onUpdateSettings }: OcrEngineManagerProps) {
+export default function OcrEngineManager({ settings, onUpdateSettings, dbStatus = 'CONNECTED' }: OcrEngineManagerProps) {
   const [localSettings, setLocalSettings] = useState<SystemSettings | null>(settings);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -81,6 +82,13 @@ export default function OcrEngineManager({ settings, onUpdateSettings }: OcrEngi
 
   const handleSave = async () => {
     if (!localSettings) return;
+
+    // 🛑 Policy 2.3: DB연결이 안된 상태면 수정기능 이벤트 발생시 안내메시지 표시 "영속화 상태 점검필요"
+    if (dbStatus !== 'CONNECTED') {
+      alert('영속화 상태 점검필요 (DB 연결이 원활하지 않아 설정 영속화를 수행할 수 없습니다)');
+      return;
+    }
+
     setIsSaving(true);
     setSaveMessage(null);
     try {
@@ -88,7 +96,7 @@ export default function OcrEngineManager({ settings, onUpdateSettings }: OcrEngi
       setSaveMessage('OCR 엔진 설정이 성공적으로 적용되었습니다.');
       setTimeout(() => setSaveMessage(null), 3500);
     } catch (err: any) {
-      alert('설정 저장 실패: ' + err.message);
+      alert('영속화 상태 점검필요: ' + err.message);
     } finally {
       setIsSaving(false);
     }
