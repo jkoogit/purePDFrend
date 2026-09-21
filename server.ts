@@ -4,7 +4,7 @@ import fs from 'fs';
 import crypto from 'crypto';
 import https from 'https';
 import { createServer as createViteServer } from 'vite';
-import { TokenQuotaDetectionService } from './src/domain/token-quota';
+import { TokenQuotaDetectionService } from './src/aiagent/domain/token-quota';
 
 const app = express();
 const PORT = 3000;
