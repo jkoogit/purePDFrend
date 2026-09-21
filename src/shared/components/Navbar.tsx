@@ -11,7 +11,10 @@ import {
   Radio,
   Layers,
   Bot,
-  AlertTriangle
+  AlertTriangle,
+  Stethoscope,
+  RefreshCw,
+  X,
 } from 'lucide-react';
 
 export type AppTab = 'agent' | 'scenarios' | 'system' | 'viewer' | 'ocr';
@@ -22,10 +25,40 @@ interface NavbarProps {
   dbStatus: string;
 }
 
+interface CheckResultItem {
+  step: string;
+  name: string;
+  passed: boolean;
+  message: string;
+  durationMs: number;
+}
+
 export default function Navbar({ currentTab, onSelectTab, dbStatus }: NavbarProps) {
   const [hoveredBadge, setHoveredBadge] = useState<'db' | 'branch' | 'status' | null>(null);
-  const [activeSessionId, setActiveSessionId] = useState<string>('SESSION-20260920-002');
-  const [activeBranch, setActiveBranch] = useState<string>('task/세션스토어격리_동적DB영속화');
+  const [activeSessionId, setActiveSessionId] = useState<string>('SESSION-20260921-003');
+  const [activeBranch, setActiveBranch] = useState<string>('task/db-index-turn-sync_gemini');
+  
+  // Service Health Check state
+  const [isCheckModalOpen, setIsCheckModalOpen] = useState<boolean>(false);
+  const [checking, setChecking] = useState<boolean>(false);
+  const [checkResults, setCheckResults] = useState<CheckResultItem[] | null>(null);
+  const [allPassed, setAllPassed] = useState<boolean | null>(null);
+
+  const runServiceCheck = async () => {
+    setChecking(true);
+    try {
+      const res = await fetch('/api/agent/check/service');
+      const data = await res.json();
+      if (data.success) {
+        setCheckResults(data.results);
+        setAllPassed(data.allPassed);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setChecking(false);
+    }
+  };
 
   useEffect(() => {
     fetch('/api/agent/sessions')
@@ -256,7 +289,138 @@ export default function Navbar({ currentTab, onSelectTab, dbStatus }: NavbarProp
             </div>
           )}
         </div>
+
+        {/* 4. Comprehensive Service Health Check Button */}
+        <button
+          id="btn-service-health-check"
+          onClick={() => {
+            setIsCheckModalOpen(true);
+            if (!checkResults) runServiceCheck();
+          }}
+          className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/50 border border-emerald-700/60 hover:border-emerald-400 hover:bg-emerald-900/40 cursor-pointer transition-all text-emerald-300 text-xs font-semibold shadow-sm"
+          title="서비스 전수 점검 및 가드레일 진단"
+        >
+          <Stethoscope className="w-3.5 h-3.5 text-emerald-400" />
+          <span className="hidden lg:inline">서비스 정밀점검</span>
+          {allPassed === true && <span className="w-2 h-2 rounded-full bg-emerald-400" />}
+          {allPassed === false && <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />}
+        </button>
       </div>
+
+      {/* Service Health Check Modal */}
+      {isCheckModalOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                  <Stethoscope className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    서비스 전수 점검 & 상시 가드레일 진단
+                    {allPassed === true && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                        100% ALL PASSED
+                      </span>
+                    )}
+                    {allPassed === false && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                        점검필요
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    인프라/DB, 데이터 정합성, 거버넌스 100점 감사, 문서 및 GIN 검색 4단계 종합 검증
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={runServiceCheck}
+                  disabled={checking}
+                  className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-slate-400 ${checking ? 'animate-spin text-emerald-400' : ''}`} />
+                  <span>{checking ? '점검 실행중...' : '재점검'}</span>
+                </button>
+                <button
+                  onClick={() => setIsCheckModalOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-3">
+              {checking && !checkResults ? (
+                <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-400">
+                  <RefreshCw className="w-8 h-8 text-emerald-400 animate-spin" />
+                  <p className="text-xs">4단계 서비스 전수 점검을 수행하고 있습니다...</p>
+                </div>
+              ) : checkResults && checkResults.length > 0 ? (
+                <div className="space-y-2.5">
+                  {checkResults.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className={`p-3 rounded-xl border transition-all flex items-start justify-between gap-3 ${
+                        item.passed
+                          ? 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700'
+                          : 'bg-rose-950/20 border-rose-900/60'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <div className="mt-0.5">
+                          {item.passed ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                          ) : (
+                            <AlertTriangle className="w-4 h-4 text-rose-400" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300">
+                              {item.step}
+                            </span>
+                            <span className="text-xs font-bold text-white">{item.name}</span>
+                          </div>
+                          <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
+                            {item.message}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono text-slate-500 whitespace-nowrap mt-0.5">
+                        {item.durationMs}ms
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 text-center text-xs text-slate-400">
+                  점검 결과가 없습니다. 재점검을 실행해 주세요.
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-3 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between text-[11px] text-slate-400">
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>정기 CLI 점검 명령어: <code className="text-slate-200 font-mono px-1 py-0.5 bg-slate-800 rounded">npm run check:service</code></span>
+              </div>
+              <button
+                onClick={() => setIsCheckModalOpen(false)}
+                className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-colors shadow-md"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

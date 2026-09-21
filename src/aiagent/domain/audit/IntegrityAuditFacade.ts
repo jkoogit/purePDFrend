@@ -31,6 +31,7 @@ export interface AuditIndicatorStoreDbParity {
   tracesLocalCount: number;
   tracesDbCount: number;
   parityPercentage: number;
+  activeSessionTracesMissing?: boolean;
 }
 
 export interface AuditIndicatorDocsHashIntegrity {
@@ -78,6 +79,7 @@ export class IntegrityAuditFacade {
     if (indicators.orphanRecords.orphanDocsInDbCount > 0) deductions += 10;
     if (indicators.docsHashIntegrity.hashMismatches > 0) deductions += 15;
     if (indicators.policyQuotaGovernance.violationCount > 0) deductions += 20;
+    if (indicators.storeDbParity.activeSessionTracesMissing) deductions += 15;
     if (indicators.storeDbParity.parityPercentage < 100) {
       deductions += (100 - indicators.storeDbParity.parityPercentage) * 0.5;
     }

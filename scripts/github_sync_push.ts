@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import https from 'https';
+import { runComprehensiveServiceCheck } from './service_health_check';
 
 const OWNER = 'jkoogit';
 const REPO = 'purePDFrend';
@@ -116,6 +117,14 @@ async function mergeBranch(base: string, head: string, commitMessage: string) {
 
 async function syncAndPush(targetBranch = 'dev', commitMessage: string) {
   console.log(`=== Starting GitHub Sync & Push to '${targetBranch}' ===`);
+
+  // 0. Pre-flight Service Health Check Guardrail
+  console.log('0. Running Pre-flight Comprehensive Service Health Check...');
+  const { allPassed } = await runComprehensiveServiceCheck();
+  if (!allPassed) {
+    throw new Error('❌ Pre-flight Service Health Check FAILED. GitHub Push aborted to protect remote branches.');
+  }
+  console.log('✅ Pre-flight Service Health Check PASSED (100% Integrity). Proceeding to Git Push...\n');
 
   // 1. Get current branch ref
   console.log(`1. Fetching current reference for branch '${targetBranch}'...`);

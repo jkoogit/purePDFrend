@@ -2251,6 +2251,9 @@ app.get('/api/agent/audit/integrity', async (req, res) => {
       quotaViolationCount = 0;
     }
 
+    // Active session traces missing check
+    const activeSessionTracesMissing = sessionParity.tasksDbCount > 0 && sessionParity.tracesDbCount === 0;
+
     // 5. Total Score Calculation
     let deductions = 0;
     if (orphanTasks.length > 0) deductions += 15;
@@ -2259,6 +2262,7 @@ app.get('/api/agent/audit/integrity', async (req, res) => {
     if (docHashMismatches > 0) deductions += 15;
     if (orphanDocsInDb.length > 0) deductions += 10;
     if (quotaViolationCount > 0) deductions += 20;
+    if (activeSessionTracesMissing) deductions += 15;
     if (sessionParity.parityPercentage < 100) deductions += (100 - sessionParity.parityPercentage) * 0.5;
 
     const integrityScore = Math.max(0, Math.min(100, Math.round(100 - deductions)));
@@ -2316,6 +2320,16 @@ app.get('/api/agent/audit/integrity', async (req, res) => {
 });
 
 // 6. Settings & OCR Engine Management
+app.get('/api/agent/check/service', async (req, res) => {
+  try {
+    const { runComprehensiveServiceCheck } = await import('./scripts/service_health_check');
+    const checkResult = await runComprehensiveServiceCheck();
+    res.json({ success: true, ...checkResult });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.get('/api/settings', (req, res) => {
   res.json({ success: true, settings: systemSettings });
 });
