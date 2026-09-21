@@ -56,8 +56,9 @@ stateDiagram-v2
 
 - **대화 턴 자동 영속화 원칙**:
   - 하네스를 포함한 모든 대화 턴의 요청 프롬프트와 응답 내용은 하네스 도메인 서비스(`TokenQuotaDetectionService` 및 `POST /api/agent/trace/turn` API)를 통해 토큰 한도 초과 오류(429, RESOURCE_EXHAUSTED)를 자동 배제한 후 `aiagent.agent_conversation_trace` 테이블(DB 미연결 시 `data/local_agent_store.json`)에 안전하게 자동 영속화합니다.
-- **원격 Git 제어 기술 원칙**:
-  - 샌드박스(컨테이너) 환경의 특성상 로컬 `.git` 및 `gh` CLI 부재 시, 기 발급된 `GITHUB_TOKEN`을 기반으로 **GitHub REST API (`curl` 또는 Node.js `fetch`)**를 직접 호출하여 이슈 조회/등록, PR 생성, 브랜치 머지(`POST /repos/:owner/:repo/merges`)를 수행합니다.
+- **원격 Git 제어 기술 원칙 (Git Data API Commit & Push Mandate)**:
+  - 샌드박스(컨테이너) 환경의 특성상 로컬 `.git` 및 `gh` CLI 부재 시, 기 발급된 `GITHUB_TOKEN`을 기반으로 **GitHub REST API (`curl` 또는 Node.js `fetch`)**를 직접 호출하여 이슈 조회/등록을 수행합니다.
+  - **[필수 원칙] 원격 커밋 푸시 선행 의무**: 파일 변경 사항이 원격에 누락되는 것을 원천 방지하기 위해, 단순 머지 API 호출 전 반드시 **GitHub Git Database API (`/git/blobs`, `/git/trees`, `/git/commits`, `/git/refs`)**를 통해 로컬 변경 파일을 신규 트리 및 커밋으로 생성하여 대상 브랜치(`dev` 등)에 Push(`npx tsx scripts/github_sync_push.ts`)해야 합니다. 커밋 푸시 없는 단순 브랜치 머지 호출은 엄격히 금지됩니다.
 
 ---
 
@@ -112,13 +113,14 @@ stateDiagram-v2
     1. 테스트 및 서비스 점검 후 오류 확인 시 피드백 안내.
     2. `docs/10.리뷰/`에 완료 코드리뷰 문서를 발행하고 인덱스(`README_리뷰.md`)를 현행화.
     3. 작업한 태스크 정보를 하네스 스토어(`data/local_agent_store.json` 및 DB)에 반영하여 등록 후 현행화.
-    4. GitHub REST API를 통해 작업 브랜치 변경 내용에 대한 PR을 작성(`POST /repos/:owner/:repo/pulls`)하고 `dev` 브랜치에 머지(`POST /repos/:owner/:repo/merges`, PR 템플릿 준수).
-    5. `#태스크정리` 이후 입력되는 프롬프트는 `#태스크승급`으로 제한합니다.
+    4. **원격 커밋 생성 및 푸시 (Git Data API Push Mandate)**: `npx tsx scripts/github_sync_push.ts` 스크립트를 호출하여 로컬 변경 파일 전체를 GitHub Git Database API(`POST /git/blobs`, `POST /git/trees`, `POST /git/commits`, `PATCH /git/refs`)를 통해 원격 `dev` 브랜치에 실제 신규 커밋으로 생성(Push)합니다.
+    5. PR 작성 및 머지 필요 시 `POST /repos/:owner/:repo/pulls` 및 `POST /repos/:owner/:repo/merges`를 수행합니다.
+    6. `#태스크정리` 이후 입력되는 프롬프트는 `#태스크승급`으로 제한합니다.
 
 ### [규칙 2.4] `#태스크승급` 명시 시: READ-ONLY (원격 브랜치 배포 승급 및 상태 마감)
 - 소스 및 문서 수정을 엄격히 제한하고 상태 승급 및 원격 브랜치 배포를 처리합니다.
   - **수행 사항**:
-    1. **원격 브랜치 배포 승급**: GitHub REST API(`POST /repos/:owner/:repo/merges`)를 호출하여 `dev` 브랜치 내용을 `stg` 브랜치에 머지하고, 이어 `stg` 브랜치를 `main` 브랜치에 즉시 배포 승급합니다.
+    1. **원격 브랜치 배포 승급**: GitHub REST API(`POST /repos/:owner/:repo/merges`)를 호출하여 최신 커밋이 반영된 `dev` 브랜치 내용을 `stg` 브랜치에 머지하고, 이어 `stg` 브랜치를 `main` 브랜치에 즉시 배포 승급합니다. 3개 브랜치의 커밋 SHA 일치 여부를 검증합니다.
     2. **하네스 스토어 동기화**: 작업한 태스크 정보를 하네스 스토어(`data/local_agent_store.json` 및 DB)에 반영하여 상태를 `완료`로 최종 수정합니다.
     3. 승급 이후 입력되는 프롬프트는 `#태스크시작` 또는 `#세션정리`로 제한합니다.
 
@@ -134,7 +136,7 @@ stateDiagram-v2
   4. **세션 상태 완료 승급**: 하네스 스토어(`local_agent_store.json` 및 DB)에 반영하여 세션 상태를 `완료`로 수정 및 현행화.
   5. **미해결 백로그 정리**: 세션 내 누적된 백로그 항목 검토 및 분류.
   6. **회고 문서 작성**: `docs/13.회고/`에 이번 세션 회고 문서 작성 (회고 템플릿 준수).
-  7. **최종 머지 및 배포 승급**: 잔여 소스 및 회고 문서를 포함한 PR 작성 ➔ `dev` 머지 ➔ `stg` 및 `main` 승급 머지 진행.
+  7. **원격 최종 커밋 푸시 및 배포 승급**: 잔여 소스 및 회고 문서를 포함하여 `scripts/github_sync_push.ts`를 통해 원격 `dev` 브랜치에 최종 신규 커밋을 생성(Push)하고, 이어 `stg` 및 `main` 승급 머지를 완결하여 3대 브랜치 최신 커밋을 100% 동기화합니다.
   8. **다음 세션 프롬프트 제안**: 다음 세션에서 착수할 작업 대상을 선별하여 코드 블록으로 제시.
 
 ---

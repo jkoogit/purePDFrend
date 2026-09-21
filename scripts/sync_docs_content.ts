@@ -1,6 +1,7 @@
 import https from 'https';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 const DB_BRIDGE_URL = 'https://ptype.pdfrend.com';
 const DB_BRIDGE_SECRET = 'jkadh-secure-secret-token-2026';
@@ -48,9 +49,11 @@ function scanDocs(dir: string, baseDir = dir): any[] {
     } else if (entry.isFile() && entry.name.endsWith('.md')) {
       const rel = path.relative(baseDir, full).replace(/\\/g, '/');
       const content = fs.readFileSync(full, 'utf-8');
+      const hash = crypto.createHash('sha256').update(content).digest('hex');
       const stat = fs.statSync(full);
       const parts = rel.split('/');
       const folder = parts.length > 1 ? parts[0] : '루트';
+      const title = content.split('\n').find((l) => l.startsWith('#'))?.replace(/^#+\s*/, '') || entry.name;
       const docId = `DOC-${rel.replace(/[\/\.]/g, '-').toUpperCase()}`;
 
       list.push({
@@ -58,6 +61,8 @@ function scanDocs(dir: string, baseDir = dir): any[] {
         filePath: `docs/${rel}`,
         folder,
         fileName: entry.name,
+        title,
+        contentHash: hash,
         sizeBytes: stat.size,
         lines: content.split('\n').length,
         content,
@@ -81,18 +86,38 @@ async function main() {
       content: doc.content,
     });
     const escapedPayload = payload.replace(/'/g, "''");
+    const escapedTitle = doc.title.replace(/'/g, "''");
+    const escapedFolder = doc.folder.replace(/'/g, "''");
+    const escapedPath = doc.filePath.replace(/'/g, "''");
 
     const sql = `
-      UPDATE aiagent.agent_docs_meta
-      SET doc_payload = '${escapedPayload}'::jsonb,
-          updated_at = now()
-      WHERE doc_id = '${doc.docId}';
+      INSERT INTO aiagent.agent_docs_meta (
+        doc_id, file_path, category, title, content_hash, last_synced_at, doc_payload,
+        created_sys, created_by, updated_sys, updated_by, version
+      ) VALUES (
+        '${doc.docId}',
+        '${escapedPath}',
+        '${escapedFolder}',
+        '${escapedTitle}',
+        '${doc.contentHash}',
+        now(),
+        '${escapedPayload}'::jsonb,
+        'agent-service', 'system', 'agent-service', 'system', 1
+      )
+      ON CONFLICT (doc_id) DO UPDATE SET
+        file_path = EXCLUDED.file_path,
+        content_hash = EXCLUDED.content_hash,
+        category = EXCLUDED.category,
+        title = EXCLUDED.title,
+        last_synced_at = now(),
+        doc_payload = EXCLUDED.doc_payload,
+        updated_at = now();
     `;
     const res = await executeSql(sql);
-    console.log(`Updated ${doc.docId}: ${res.rowCount || 1} rows affected.`);
+    console.log(`Upserted ${doc.docId}: ${res.rowCount || 1} rows affected.`);
   }
 
-  console.log('All documents updated with full markdown content.');
+  console.log('All documents updated and hashed with full markdown content.');
 }
 
 main().catch(console.error);

@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import Navbar, { AppTab } from './components/Navbar';
-import ScenarioDesignView from './components/ScenarioDesignView';
-import SystemSettingsView from './components/SystemSettingsView';
-import ErrorBoundary from './components/ErrorBoundary';
+import { Navbar, AppTab, ErrorBoundary } from './shared';
+import { ScenarioDesignView } from './ppdf';
+import { SystemSettingsView } from './aiagent';
 import { SystemSettings, GraphNode, GraphEdge } from './types';
 
 export default function App() {

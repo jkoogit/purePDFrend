@@ -1,14 +1,7 @@
 /**
  * @file index.ts
- * @description Token Quota Domain Module Exports
+ * @description Token Quota Domain Module Exports (Forwarding to @aiagent/domain/token-quota)
  */
 
-export * from './types';
-export * from './strategies/TokenQuotaStrategy';
-export * from './strategies/GeminiQuotaDetectionStrategy';
-export * from './strategies/OpenAIQuotaDetectionStrategy';
-export * from './strategies/ClaudeQuotaDetectionStrategy';
-export * from './strategies/DeepSeekQuotaDetectionStrategy';
-export * from './strategies/GenericQuotaDetectionStrategy';
-export * from './TokenQuotaStrategyRegistry';
-export * from './TokenQuotaDetectionService';
+export * from '../../aiagent/domain/token-quota';
+

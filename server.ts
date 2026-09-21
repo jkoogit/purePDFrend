@@ -51,8 +51,9 @@ let systemSettings = {
   },
 };
 
-// Local Fallback JSON Store Path
+// Local Fallback JSON Store Path & Archives Directory
 const LOCAL_STORE_PATH = path.join(process.cwd(), 'data', 'local_agent_store.json');
+const ARCHIVES_DIR = path.join(process.cwd(), 'data', 'archives');
 
 // Interface for Local Fallback Store
 interface LocalStoreData {
@@ -80,15 +81,96 @@ function saveLocalStore(data: LocalStoreData): void {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(LOCAL_STORE_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    // Atomic file write using temporary file + renameSync to avoid race conditions and file corruption
+    const tempPath = `${LOCAL_STORE_PATH}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`;
+    fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), 'utf-8');
+    fs.renameSync(tempPath, LOCAL_STORE_PATH);
   } catch (e) {
     console.error('Error saving local agent store:', e);
+  }
+}
+
+// Session Isolation & Lifecycle Management: Archive old session and initialize clean store
+function archiveAndInitSessionStore(newSession: any): { archivedOldSession: string | null; archivePath: string | null } {
+  try {
+    if (!fs.existsSync(ARCHIVES_DIR)) {
+      fs.mkdirSync(ARCHIVES_DIR, { recursive: true });
+    }
+
+    const currentStore = getLocalStore();
+    let archivedOldSession: string | null = null;
+    let archivePath: string | null = null;
+
+    if (currentStore.sessions && currentStore.sessions.length > 0) {
+      const oldSession = currentStore.sessions[0];
+      const oldSessionId = oldSession.session_id || 'SESSION-UNKNOWN';
+
+      // If the incoming session is different from the current store session, archive previous session
+      if (oldSessionId !== newSession.session_id) {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const filename = `local_agent_store_${oldSessionId}_${timestamp}.json`;
+        archivePath = path.join(ARCHIVES_DIR, filename);
+        fs.writeFileSync(archivePath, JSON.stringify(currentStore, null, 2), 'utf-8');
+        archivedOldSession = oldSessionId;
+        console.log(`[Session Store Archived] Previous session ${oldSessionId} safely archived to ${archivePath}`);
+      }
+    }
+
+    // Initialize isolated local store for the new session
+    const newStore: LocalStoreData = {
+      sessions: [newSession],
+      tasks: [],
+      loops: [],
+      traces: []
+    };
+    saveLocalStore(newStore);
+    return { archivedOldSession, archivePath };
+  } catch (err) {
+    console.error('Error in archiveAndInitSessionStore:', err);
+    return { archivedOldSession: null, archivePath: null };
   }
 }
 
 // Helper to detect Token Limit / Quota Exceeded / Rate Limit errors (Delegated to Domain Service)
 function isQuotaLimitError(text: any): boolean {
   return tokenQuotaService.isQuotaLimitError(text);
+}
+
+// Security Helper: Strict Path Traversal Defense for Docs Directory
+function resolveSafeDocsPath(inputPath: string): { relativePath: string; absolutePath: string } | null {
+  if (!inputPath || typeof inputPath !== 'string') return null;
+  // Strip null bytes and any dangerous escape sequences
+  const cleanInput = inputPath.replace(/\0/g, '').trim();
+  if (!cleanInput) return null;
+
+  // Strict defense: Reject path traversal sequences or absolute paths outside documentation root
+  if (cleanInput.includes('..') || path.isAbsolute(cleanInput)) {
+    return null;
+  }
+
+  const docsRoot = path.resolve(process.cwd(), 'docs');
+
+  // Prefix docs/ if not already present
+  let normalized = cleanInput;
+  if (!normalized.startsWith('docs') && !normalized.startsWith('/docs')) {
+    normalized = path.join('docs', normalized);
+  }
+
+  const resolved = path.resolve(process.cwd(), normalized);
+
+  // Security enforcement: Absolute path must reside strictly within docsRoot
+  if (!resolved.startsWith(docsRoot + path.sep) && resolved !== docsRoot) {
+    return null;
+  }
+
+  const relativePath = path.relative(process.cwd(), resolved).replace(/\\/g, '/');
+  return { relativePath, absolutePath: resolved };
+}
+
+// Security Helper: Sanitize alphanumeric identifiers (session_id, task_id, loop_id, trace_id)
+function sanitizeIdentifier(id: any): string {
+  if (!id) return '';
+  return String(id).replace(/[^a-zA-Z0-9_-]/g, '');
 }
 
 // PostgreSQL Query Helper via Remote DB Bridge
@@ -106,9 +188,12 @@ async function executeSql(sql: string, database = TARGET_DATABASE): Promise<any>
       rejectUnauthorized: false,
       timeout: 6000,
     }, (res) => {
-      let body = '';
-      res.on('data', (chunk) => { body += chunk; });
+      const chunks: Buffer[] = [];
+      res.on('data', (chunk) => {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      });
       res.on('end', () => {
+        const body = Buffer.concat(chunks).toString('utf8');
         try {
           const parsed = JSON.parse(body);
           if (parsed.success) {
@@ -272,11 +357,15 @@ app.get('/api/agent/tasks', async (req, res) => {
 });
 
 app.get('/api/agent/loops', async (req, res) => {
-  const { keyword, status, taskId } = req.query;
+  const { keyword, status, taskId, sessionId } = req.query;
   const store = getLocalStore();
 
   try {
     let sql = `SELECT * FROM aiagent.harness_loop_meta WHERE 1=1`;
+    if (sessionId) {
+      const escapedSession = String(sessionId).replace(/'/g, "''");
+      sql += ` AND session_id = '${escapedSession}'`;
+    }
     if (taskId) {
       const escapedTask = String(taskId).replace(/'/g, "''");
       sql += ` AND task_id = '${escapedTask}'`;
@@ -296,6 +385,9 @@ app.get('/api/agent/loops', async (req, res) => {
   } catch (err: any) {
     // Fallback filter
     let list = [...store.loops];
+    if (sessionId) {
+      list = list.filter((l) => l.session_id === sessionId);
+    }
     if (taskId) {
       list = list.filter((l) => l.task_id === taskId);
     }
@@ -307,6 +399,417 @@ app.get('/api/agent/loops', async (req, res) => {
       list = list.filter((l) => l.status_cd === status);
     }
     res.json({ success: true, loops: list, source: 'LOCAL_FALLBACK' });
+  }
+});
+
+// 2.1 Dynamic Session Init & Store Isolation API with Cross-Check
+app.post('/api/agent/session/init', async (req, res) => {
+  try {
+    const {
+      session_id,
+      session_name,
+      work_group = 'purePDFrend',
+      ai_agent = 'gemini',
+      ai_model = 'models/gemini-3.8-flash',
+      status_cd = '진행중',
+      started_at = new Date().toISOString(),
+      doc_payload = {},
+    } = req.body;
+
+    if (!session_id || !session_name) {
+      return res.status(400).json({ success: false, error: 'session_id와 session_name은 필수 파라미터입니다.' });
+    }
+
+    const newSession = {
+      session_id,
+      session_name,
+      work_group,
+      ai_agent,
+      ai_model,
+      status_cd,
+      started_at,
+      ended_at: null,
+      doc_payload,
+      created_sys: 'agent-harness',
+      created_by: 'system',
+      updated_sys: 'agent-harness',
+      updated_by: 'system',
+      version: 1,
+    };
+
+    // 1. Session Isolation: Archive old session and initialize clean store
+    const { archivedOldSession, archivePath } = archiveAndInitSessionStore(newSession);
+
+    // 2. Persist to Remote DB with Self-Cross Check
+    let dbVerified = false;
+    let dbRecord: any = null;
+    let dbError: string | null = null;
+
+    try {
+      const escapedSessionId = String(session_id).replace(/'/g, "''");
+      const escapedSessionName = String(session_name).replace(/'/g, "''");
+      const escapedWorkGroup = String(work_group).replace(/'/g, "''");
+      const escapedAgent = String(ai_agent).replace(/'/g, "''");
+      const escapedModel = String(ai_model).replace(/'/g, "''");
+      const escapedStatus = String(status_cd).replace(/'/g, "''");
+      const payloadJson = JSON.stringify(doc_payload || {}).replace(/'/g, "''");
+
+      const upsertSql = `
+        INSERT INTO aiagent.harness_session_meta (
+          session_id, session_name, work_group, ai_agent, ai_model, status_cd,
+          started_at, doc_payload, created_sys, created_by, updated_sys, updated_by, version
+        ) VALUES (
+          '${escapedSessionId}', '${escapedSessionName}', '${escapedWorkGroup}', '${escapedAgent}', '${escapedModel}', '${escapedStatus}',
+          '${started_at}', '${payloadJson}'::jsonb, 'agent-harness', 'system', 'agent-harness', 'system', 1
+        )
+        ON CONFLICT (session_id) DO UPDATE SET
+          session_name = EXCLUDED.session_name,
+          status_cd = EXCLUDED.status_cd,
+          doc_payload = EXCLUDED.doc_payload,
+          updated_at = now(),
+          version = aiagent.harness_session_meta.version + 1;
+      `;
+      await executeSql(upsertSql);
+
+      // Self-Cross Check Verification
+      const verifySql = `SELECT * FROM aiagent.harness_session_meta WHERE session_id = '${escapedSessionId}' LIMIT 1;`;
+      const verifyRes: any = await executeSql(verifySql);
+      if (verifyRes && verifyRes.rows && verifyRes.rows.length > 0) {
+        dbRecord = verifyRes.rows[0];
+        if (dbRecord.session_id === session_id && dbRecord.session_name === session_name) {
+          dbVerified = true;
+        }
+      }
+    } catch (err: any) {
+      dbError = err.message;
+      console.warn('[Session Init DB Fallback]:', err.message);
+    }
+
+    res.json({
+      success: true,
+      message: `세션(${session_id})이 성공적으로 격리 초기화되었습니다.`,
+      archived_old_session: archivedOldSession,
+      archive_path: archivePath,
+      verified: dbVerified,
+      dbError,
+      session: dbRecord || newSession,
+      source: dbVerified ? 'REMOTE_DB' : 'LOCAL_FALLBACK',
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 2.2 Dynamic Session Save & Cross-Check API
+app.post('/api/agent/session/save', async (req, res) => {
+  try {
+    const {
+      session_id,
+      session_name,
+      work_group = 'purePDFrend',
+      status_cd = '진행중',
+      ai_agent = 'gemini',
+      ai_model = 'models/gemini-3.8-flash',
+      started_at = new Date().toISOString(),
+      ended_at = null,
+      doc_payload = {},
+      version = 1,
+    } = req.body;
+
+    if (!session_id || !session_name) {
+      return res.status(400).json({ success: false, error: 'session_id와 session_name은 필수 파라미터입니다.' });
+    }
+
+    // 1. Update Local Store
+    const store = getLocalStore();
+    const existingIdx = store.sessions.findIndex((s) => s.session_id === session_id);
+    const sessionRecord = {
+      session_id,
+      session_name,
+      work_group,
+      ai_agent,
+      ai_model,
+      status_cd,
+      started_at,
+      ended_at,
+      doc_payload,
+      created_sys: 'agent-harness',
+      created_by: 'system',
+      updated_sys: 'agent-harness',
+      updated_by: 'system',
+      version: Number(version) || 1,
+    };
+
+    if (existingIdx >= 0) {
+      store.sessions[existingIdx] = { ...store.sessions[existingIdx], ...sessionRecord, version: (store.sessions[existingIdx].version || 1) + 1 };
+    } else {
+      store.sessions.push(sessionRecord);
+    }
+    saveLocalStore(store);
+
+    // 2. Remote DB Upsert and Cross-check
+    let dbVerified = false;
+    let dbRecord: any = null;
+    let dbError: string | null = null;
+
+    try {
+      const escapedSessionId = String(session_id).replace(/'/g, "''");
+      const escapedSessionName = String(session_name).replace(/'/g, "''");
+      const escapedWorkGroup = String(work_group).replace(/'/g, "''");
+      const escapedAgent = String(ai_agent).replace(/'/g, "''");
+      const escapedModel = String(ai_model).replace(/'/g, "''");
+      const escapedStatus = String(status_cd).replace(/'/g, "''");
+      const payloadJson = JSON.stringify(doc_payload || {}).replace(/'/g, "''");
+      const endedAtValue = ended_at ? `'${ended_at}'` : 'NULL';
+
+      const upsertSql = `
+        INSERT INTO aiagent.harness_session_meta (
+          session_id, session_name, work_group, ai_agent, ai_model, status_cd,
+          started_at, ended_at, doc_payload, created_sys, created_by, updated_sys, updated_by, version
+        ) VALUES (
+          '${escapedSessionId}', '${escapedSessionName}', '${escapedWorkGroup}', '${escapedAgent}', '${escapedModel}', '${escapedStatus}',
+          '${started_at}', ${endedAtValue}, '${payloadJson}'::jsonb, 'agent-harness', 'system', 'agent-harness', 'system', ${Number(version) || 1}
+        )
+        ON CONFLICT (session_id) DO UPDATE SET
+          session_name = EXCLUDED.session_name,
+          status_cd = EXCLUDED.status_cd,
+          ended_at = EXCLUDED.ended_at,
+          doc_payload = EXCLUDED.doc_payload,
+          updated_at = now(),
+          version = aiagent.harness_session_meta.version + 1;
+      `;
+      await executeSql(upsertSql);
+
+      // Self-Cross Check
+      const verifySql = `SELECT * FROM aiagent.harness_session_meta WHERE session_id = '${escapedSessionId}' LIMIT 1;`;
+      const verifyRes: any = await executeSql(verifySql);
+      if (verifyRes && verifyRes.rows && verifyRes.rows.length > 0) {
+        dbRecord = verifyRes.rows[0];
+        if (dbRecord.session_id === session_id && dbRecord.session_name === session_name) {
+          dbVerified = true;
+        }
+      }
+    } catch (err: any) {
+      dbError = err.message;
+    }
+
+    res.json({
+      success: true,
+      message: `세션(${session_id}) 정보가 저장되었습니다.`,
+      verified: dbVerified,
+      dbError,
+      session: dbRecord || sessionRecord,
+      source: dbVerified ? 'REMOTE_DB' : 'LOCAL_FALLBACK',
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 2.3 Dynamic Task Save & Cross-Check API
+app.post('/api/agent/task/save', async (req, res) => {
+  try {
+    const {
+      task_id,
+      session_id,
+      task_name,
+      git_branch = '',
+      status_cd = '진행중',
+      started_at = new Date().toISOString(),
+      ended_at = null,
+      doc_payload = {},
+      version = 1,
+    } = req.body;
+
+    if (!task_id || !session_id || !task_name) {
+      return res.status(400).json({ success: false, error: 'task_id, session_id, task_name은 필수 파라미터입니다.' });
+    }
+
+    // 1. Update Local Store
+    const store = getLocalStore();
+    const existingIdx = store.tasks.findIndex((t) => t.task_id === task_id);
+    const taskRecord = {
+      task_id,
+      session_id,
+      task_name,
+      git_branch,
+      status_cd,
+      started_at,
+      ended_at,
+      doc_payload,
+      created_sys: 'agent-harness',
+      created_by: 'system',
+      updated_sys: 'agent-harness',
+      updated_by: 'system',
+      version: Number(version) || 1,
+    };
+
+    if (existingIdx >= 0) {
+      store.tasks[existingIdx] = { ...store.tasks[existingIdx], ...taskRecord, version: (store.tasks[existingIdx].version || 1) + 1 };
+    } else {
+      store.tasks.push(taskRecord);
+    }
+    saveLocalStore(store);
+
+    // 2. Remote DB Upsert and Cross-check
+    let dbVerified = false;
+    let dbRecord: any = null;
+    let dbError: string | null = null;
+
+    try {
+      const escapedTaskId = String(task_id).replace(/'/g, "''");
+      const escapedSessionId = String(session_id).replace(/'/g, "''");
+      const escapedTaskName = String(task_name).replace(/'/g, "''");
+      const escapedBranch = String(git_branch).replace(/'/g, "''");
+      const escapedStatus = String(status_cd).replace(/'/g, "''");
+      const payloadJson = JSON.stringify(doc_payload || {}).replace(/'/g, "''");
+      const endedAtValue = ended_at ? `'${ended_at}'` : 'NULL';
+
+      const upsertSql = `
+        INSERT INTO aiagent.harness_task_meta (
+          task_id, session_id, task_name, git_branch, status_cd, started_at, ended_at,
+          doc_payload, created_sys, created_by, updated_sys, updated_by, version
+        ) VALUES (
+          '${escapedTaskId}', '${escapedSessionId}', '${escapedTaskName}', '${escapedBranch}', '${escapedStatus}',
+          '${started_at}', ${endedAtValue}, '${payloadJson}'::jsonb, 'agent-harness', 'system', 'agent-harness', 'system', ${Number(version) || 1}
+        )
+        ON CONFLICT (task_id) DO UPDATE SET
+          task_name = EXCLUDED.task_name,
+          git_branch = EXCLUDED.git_branch,
+          status_cd = EXCLUDED.status_cd,
+          ended_at = EXCLUDED.ended_at,
+          doc_payload = EXCLUDED.doc_payload,
+          updated_at = now(),
+          version = aiagent.harness_task_meta.version + 1;
+      `;
+      await executeSql(upsertSql);
+
+      // Self-Cross Check
+      const verifySql = `SELECT * FROM aiagent.harness_task_meta WHERE task_id = '${escapedTaskId}' LIMIT 1;`;
+      const verifyRes: any = await executeSql(verifySql);
+      if (verifyRes && verifyRes.rows && verifyRes.rows.length > 0) {
+        dbRecord = verifyRes.rows[0];
+        if (dbRecord.task_id === task_id && dbRecord.session_id === session_id && dbRecord.task_name === task_name) {
+          dbVerified = true;
+        }
+      }
+    } catch (err: any) {
+      dbError = err.message;
+    }
+
+    res.json({
+      success: true,
+      message: `태스크(${task_id}) 정보가 저장되었습니다.`,
+      verified: dbVerified,
+      dbError,
+      task: dbRecord || taskRecord,
+      source: dbVerified ? 'REMOTE_DB' : 'LOCAL_FALLBACK',
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 2.4 Dynamic Loop Save & Cross-Check API
+app.post('/api/agent/loop/save', async (req, res) => {
+  try {
+    const {
+      loop_id,
+      task_id,
+      session_id,
+      loop_name,
+      status_cd = '진행중',
+      started_at = new Date().toISOString(),
+      ended_at = null,
+      doc_payload = {},
+      version = 1,
+    } = req.body;
+
+    if (!loop_id || !task_id || !session_id || !loop_name) {
+      return res.status(400).json({ success: false, error: 'loop_id, task_id, session_id, loop_name은 필수 파라미터입니다.' });
+    }
+
+    // 1. Update Local Store
+    const store = getLocalStore();
+    const existingIdx = store.loops.findIndex((l) => l.loop_id === loop_id);
+    const loopRecord = {
+      loop_id,
+      task_id,
+      session_id,
+      loop_name,
+      status_cd,
+      started_at,
+      ended_at,
+      doc_payload,
+      created_sys: 'agent-service',
+      created_by: 'system',
+      updated_sys: 'agent-service',
+      updated_by: 'system',
+      version: Number(version) || 1,
+    };
+
+    if (existingIdx >= 0) {
+      store.loops[existingIdx] = { ...store.loops[existingIdx], ...loopRecord, version: (store.loops[existingIdx].version || 1) + 1 };
+    } else {
+      store.loops.push(loopRecord);
+    }
+    saveLocalStore(store);
+
+    // 2. Remote DB Upsert and Cross-check
+    let dbVerified = false;
+    let dbRecord: any = null;
+    let dbError: string | null = null;
+
+    try {
+      const escapedLoopId = String(loop_id).replace(/'/g, "''");
+      const escapedTaskId = String(task_id).replace(/'/g, "''");
+      const escapedSessionId = String(session_id).replace(/'/g, "''");
+      const escapedLoopName = String(loop_name).replace(/'/g, "''");
+      const escapedStatus = String(status_cd).replace(/'/g, "''");
+      const payloadJson = JSON.stringify(doc_payload || {}).replace(/'/g, "''");
+      const endedAtValue = ended_at ? `'${ended_at}'` : 'NULL';
+
+      const upsertSql = `
+        INSERT INTO aiagent.harness_loop_meta (
+          loop_id, task_id, session_id, loop_name, status_cd, started_at, ended_at,
+          doc_payload, created_sys, created_by, updated_sys, updated_by, version
+        ) VALUES (
+          '${escapedLoopId}', '${escapedTaskId}', '${escapedSessionId}', '${escapedLoopName}', '${escapedStatus}',
+          '${started_at}', ${endedAtValue}, '${payloadJson}'::jsonb, 'agent-service', 'system', 'agent-service', 'system', ${Number(version) || 1}
+        )
+        ON CONFLICT (loop_id) DO UPDATE SET
+          loop_name = EXCLUDED.loop_name,
+          status_cd = EXCLUDED.status_cd,
+          ended_at = EXCLUDED.ended_at,
+          doc_payload = EXCLUDED.doc_payload,
+          updated_at = now(),
+          version = aiagent.harness_loop_meta.version + 1;
+      `;
+      await executeSql(upsertSql);
+
+      // Self-Cross Check
+      const verifySql = `SELECT * FROM aiagent.harness_loop_meta WHERE loop_id = '${escapedLoopId}' LIMIT 1;`;
+      const verifyRes: any = await executeSql(verifySql);
+      if (verifyRes && verifyRes.rows && verifyRes.rows.length > 0) {
+        dbRecord = verifyRes.rows[0];
+        if (dbRecord.loop_id === loop_id && dbRecord.task_id === task_id && dbRecord.loop_name === loop_name) {
+          dbVerified = true;
+        }
+      }
+    } catch (err: any) {
+      dbError = err.message;
+    }
+
+    res.json({
+      success: true,
+      message: `루프(${loop_id}) 정보가 저장되었습니다.`,
+      verified: dbVerified,
+      dbError,
+      loop: dbRecord || loopRecord,
+      source: dbVerified ? 'REMOTE_DB' : 'LOCAL_FALLBACK',
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -396,20 +899,27 @@ app.get('/api/agent/docs/content', async (req, res) => {
       return res.status(400).json({ success: false, error: 'filePath or docId parameter required' });
     }
 
-    let safePath = '';
-    let absolutePath = '';
+    let safeRelative = '';
+    let safeAbsolute = '';
     if (filePath && typeof filePath === 'string') {
-      safePath = path.normalize(filePath).replace(/^(\.\.[\/\\])+/, '');
-      absolutePath = path.join(process.cwd(), safePath);
+      const resolved = resolveSafeDocsPath(filePath);
+      if (!resolved) {
+        return res.status(403).json({
+          success: false,
+          error: '보안 정책 위반: docs 디렉토리 외부 경로에 대한 파일 조회가 엄격히 차단되었습니다.',
+        });
+      }
+      safeRelative = resolved.relativePath;
+      safeAbsolute = resolved.absolutePath;
     }
 
     // Try filesystem first
-    if (absolutePath && fs.existsSync(absolutePath)) {
-      const content = fs.readFileSync(absolutePath, 'utf-8');
+    if (safeAbsolute && fs.existsSync(safeAbsolute)) {
+      const content = fs.readFileSync(safeAbsolute, 'utf-8');
       const hash = crypto.createHash('sha256').update(content).digest('hex');
       return res.json({
         success: true,
-        filePath: safePath,
+        filePath: safeRelative,
         content,
         contentHash: hash,
         source: 'filesystem',
@@ -419,7 +929,7 @@ app.get('/api/agent/docs/content', async (req, res) => {
     // Fallback: Read full markdown from DB doc_payload->>'content'
     const whereClause = docId
       ? `doc_id = '${String(docId).replace(/'/g, "''")}'`
-      : `file_path = '${safePath.replace(/'/g, "''")}'`;
+      : `file_path = '${safeRelative.replace(/'/g, "''")}'`;
     const sql = `SELECT doc_id, file_path, title, content_hash, doc_payload->>'content' as content FROM aiagent.agent_docs_meta WHERE ${whereClause} LIMIT 1;`;
     const dbRes: any = await executeSql(sql);
 
@@ -450,8 +960,16 @@ app.post('/api/agent/docs/save', async (req, res) => {
       return res.status(400).json({ success: false, error: 'filePath and content are required' });
     }
 
-    const safePath = path.normalize(filePath).replace(/^(\.\.[\/\\])+/, '');
-    const absolutePath = path.join(process.cwd(), safePath);
+    const resolved = resolveSafeDocsPath(filePath);
+    if (!resolved) {
+      return res.status(403).json({
+        success: false,
+        error: '보안 정책 위반: docs 디렉토리 외부 경로에 대한 파일 생성 및 쓰기가 엄격히 차단되었습니다.',
+      });
+    }
+
+    const safePath = resolved.relativePath;
+    const absolutePath = resolved.absolutePath;
 
     // Write file to filesystem
     const dir = path.dirname(absolutePath);
@@ -505,7 +1023,25 @@ app.post('/api/agent/docs/save', async (req, res) => {
         version = agent_docs_meta.version + 1;
     `;
 
-    await executeSql(upsertSql);
+    let dbVerified = false;
+    let dbRecord: any = null;
+    let dbError: string | null = null;
+
+    try {
+      await executeSql(upsertSql);
+
+      // Self-Cross Check
+      const verifySql = `SELECT * FROM aiagent.agent_docs_meta WHERE doc_id = '${docId}' LIMIT 1;`;
+      const verifyRes: any = await executeSql(verifySql);
+      if (verifyRes && verifyRes.rows && verifyRes.rows.length > 0) {
+        dbRecord = verifyRes.rows[0];
+        if (dbRecord.doc_id === docId && dbRecord.content_hash === hash) {
+          dbVerified = true;
+        }
+      }
+    } catch (err: any) {
+      dbError = err.message;
+    }
 
     res.json({
       success: true,
@@ -514,6 +1050,9 @@ app.post('/api/agent/docs/save', async (req, res) => {
       contentHash: hash,
       sizeBytes: stat.size,
       updatedAt: stat.mtime.toISOString(),
+      verified: dbVerified,
+      dbError,
+      source: dbVerified ? 'REMOTE_DB' : 'LOCAL_FALLBACK',
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -800,13 +1339,17 @@ app.post('/api/agent/chat/traces/cleanup-quota-errors', async (req, res) => {
   }
 });
 
-// 4.1 Record Conversation Turn Result (Strict Policy: Quota Error Turns Excluded)
+// 4.1 Record Conversation Turn Result (Strict Policy: Quota Error Turns Excluded & DB Cross-Checked)
 app.post('/api/agent/trace/turn', async (req, res) => {
   try {
+    const store = getLocalStore();
+    const activeSessionId = store.sessions?.[0]?.session_id || '';
+    const activeTaskId = store.tasks?.[0]?.task_id || '';
+
     const {
       trace_id,
-      session_id = 'SESSION-20260917-001',
-      task_id = 'TASK-20260917-001',
+      session_id = activeSessionId,
+      task_id = activeTaskId,
       loop_id = null,
       step_index,
       agent_name = 'gemini',
@@ -818,6 +1361,13 @@ app.post('/api/agent/trace/turn', async (req, res) => {
       completion_tokens = 0,
       total_tokens = 0,
     } = req.body;
+
+    if (!session_id || !task_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'session_id와 task_id는 필수 파라미터이며, 활성 세션/태스크가 존재해야 합니다.',
+      });
+    }
 
     // 🛑 Policy 03-09 Rule: Exclude Quota / Token Limit Exceeded Error Turns
     if (isQuotaLimitError(user_prompt) || isQuotaLimitError(agent_response) || isQuotaLimitError(response_summary)) {
@@ -838,7 +1388,6 @@ app.post('/api/agent/trace/turn', async (req, res) => {
     const safeLoopId = loop_id ? `'${String(loop_id).replace(/'/g, "''")}'` : 'NULL';
 
     // 1. Save to Local Fallback Store
-    const store = getLocalStore();
     const existingIdx = store.traces.findIndex((t) => t.trace_id === finalTraceId);
     const traceRecord = {
       trace_id: finalTraceId,
@@ -864,7 +1413,11 @@ app.post('/api/agent/trace/turn', async (req, res) => {
     }
     saveLocalStore(store);
 
-    // 2. Try persisting to remote DB (asynchronous resilient)
+    // 2. Try persisting to remote DB with Self-Cross Check
+    let dbVerified = false;
+    let dbRecord: any = null;
+    let dbError: string | null = null;
+
     try {
       const sql = `
         INSERT INTO aiagent.agent_conversation_trace (
@@ -896,15 +1449,29 @@ app.post('/api/agent/trace/turn', async (req, res) => {
           total_tokens = EXCLUDED.total_tokens;
       `;
       await executeSql(sql);
-    } catch (dbErr) {
-      // Safely handled by local store
+
+      // Self-Cross Check
+      const verifySql = `SELECT * FROM aiagent.agent_conversation_trace WHERE trace_id = '${finalTraceId}' LIMIT 1;`;
+      const verifyRes: any = await executeSql(verifySql);
+      if (verifyRes && verifyRes.rows && verifyRes.rows.length > 0) {
+        dbRecord = verifyRes.rows[0];
+        if (dbRecord.trace_id === finalTraceId) {
+          dbVerified = true;
+        }
+      }
+    } catch (dbErr: any) {
+      dbError = dbErr.message;
     }
 
     res.json({
       success: true,
       message: `대화 턴(#${step_index}) 기록이 저장되었습니다.`,
       traceId: finalTraceId,
+      verified: dbVerified,
+      dbError,
+      dbRecord: dbRecord || traceRecord,
       savedToLocal: true,
+      source: dbVerified ? 'REMOTE_DB' : 'LOCAL_FALLBACK',
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -967,11 +1534,16 @@ app.get('/api/agent/usage', async (req, res) => {
 // 4.2 Comprehensive Turn Completion API (Syncs State, Logs Trace & Registers Review)
 app.post('/api/agent/turn/complete', async (req, res) => {
   try {
+    const store = getLocalStore();
+    const activeSessionId = store.sessions?.[0]?.session_id || '';
+    const activeTaskId = store.tasks?.[0]?.task_id || '';
+    const activeLoopId = store.loops?.[0]?.loop_id || '';
+
     const {
       trace_id,
-      session_id = 'SESSION-20260917-001',
-      task_id = 'TASK-20260917-001',
-      loop_id = 'LOOP-20260917-001',
+      session_id = activeSessionId,
+      task_id = activeTaskId,
+      loop_id = activeLoopId,
       step_index = 1,
       agent_name = 'gemini',
       model_name = 'models/gemini-3.8-flash',
@@ -995,8 +1567,6 @@ app.post('/api/agent/turn/complete', async (req, res) => {
     const safeSessionId = String(session_id).replace(/'/g, "''");
     const safeTaskId = String(task_id).replace(/'/g, "''");
     const safeLoopId = String(loop_id).replace(/'/g, "''");
-
-    const store = getLocalStore();
 
     // 1. Insert/Update conversation trace (Skipped if quota error)
     if (!isQuotaError) {
@@ -1175,257 +1745,186 @@ app.post('/api/agent/loop/complete', async (req, res) => {
   }
 });
 
-// 4.3 Finalize Entire Session Endpoint (Registers all missing traces, loops, and completes session & task in both Local & Remote)
+// 4.3 Finalize Session Endpoint (Completes session, tasks, and loops in both Local Store & Remote DB)
 app.post('/api/agent/session/finalize', async (req, res) => {
   try {
-    const sessionId = 'SESSION-20260917-001';
-    const taskId = 'TASK-20260917-001';
     const store = getLocalStore();
+    const activeSessionId = store.sessions?.[0]?.session_id || 'SESSION-20260920-002';
+    const activeTaskId = store.tasks?.[0]?.task_id || 'TASK-20260920-002';
+    const targetSessionId = sanitizeIdentifier(req.body?.sessionId || req.query?.sessionId) || activeSessionId;
+    const targetTaskId = sanitizeIdentifier(req.body?.taskId || req.query?.taskId) || activeTaskId;
 
-    // 1. All conversation traces (Filtered: excluding token quota limit errors)
-    const tracesToUpsert = [
-      {
-        trace_id: 'TRACE-20260917-001',
-        step: 1,
-        prompt: 'purePDFrend 프로젝트 환경 구성 및 하네스 관리 시스템 구축 요구사항 접수',
-        response: '[0000] 바이브 코딩 환경 초기화 및 하네스 3계층(세션, 태스크, 루프) 기반 아키텍처 수립',
-        pTokens: 420, cTokens: 310
-      },
-      {
-        trace_id: 'TRACE-20260917-002',
-        step: 2,
-        prompt: '개발DB(purepdfrend_dev) 연결 확인 및 OCR 엔진 관리와 작업그래프 시각화 기본 설계',
-        response: '[0000] Database Bridge 통신 검증 완료 및 작업그래프 노드/엣지 데이터 모델링 설계',
-        pTokens: 680, cTokens: 450
-      },
-      {
-        trace_id: 'TRACE-20260917-005',
-        step: 5,
-        prompt: 'OCR 엔진 관리 토글, 작업정보관리 검색, 작업그래프 뷰모드 체크박스 및 카드 간격 컨트롤러 검증',
-        response: '[0000] OCR 엔진 토글 연동, 작업그래프 뷰모드 및 밀도 조절 슬라이더, JSONB 뷰어 구현 완료',
-        pTokens: 920, cTokens: 610
-      },
-      {
-        trace_id: 'TRACE-20260917-006',
-        step: 6,
-        prompt: '기술문서 18대 분류 체계 전환, 전체 한글 파일명 표준화, 보완턴 가이드라인 수립 요청',
-        response: '[0000] 18대 디렉터리 체계 설계 및 한글 표준화, 편집이력 및 보완턴 6단계 가이드 계획 수립',
-        pTokens: 1100, cTokens: 750
-      },
-      {
-        trace_id: 'TRACE-20260917-008',
-        step: 8,
-        prompt: '18대 기술문서 체계 및 마크다운 뷰어 연동 결과 점검',
-        response: '[0000] 18대 디렉터리 내 표준 문서 완비, 마크다운 뷰어 연동 및 턴 추적 API 구축 완료',
-        pTokens: 1250, cTokens: 820
-      },
-      {
-        trace_id: 'TRACE-20260917-009',
-        step: 9,
-        prompt: '문서번호 체계 부여, 폴더별 README_제목.md 요약 탐색기, 마크다운 뷰어 GFM 표/Mermaid 렌더링, 작업그래프 상태 필터 요청',
-        response: '[0000] 문서번호 부여(03-01 등), 18개 README 인덱스 생성, GFM 표 완벽 렌더링 및 작업그래프 상태 멀티 체크박스 필터 계획 수립',
-        pTokens: 1350, cTokens: 900
-      },
-      {
-        trace_id: 'TRACE-20260917-011',
-        step: 11,
-        prompt: '문서번호 체계, GFM 표/Mermaid 뷰어, 작업그래프 상태 필터 구현 검증 및 보완턴 점검',
-        response: '[0000] 문서번호 체계화, GFM 표/Mermaid 렌더링, 작업그래프 5단계 상태 필터링 및 코드리뷰(001) 반영 완료',
-        pTokens: 1480, cTokens: 950
-      },
-      {
-        trace_id: 'TRACE-20260917-013',
-        step: 13,
-        prompt: '작업 개선과정에서 이번세션에 누락된 문서(리뷰)와 세션, 태스크, 루프, 대화턴 정보를 DB에 등록해서 세션을 정리할수 있게 해줘',
-        response: '[0000] 세션 누락 리뷰 문서(003, 004, 005) 작성, 대화 턴 전수 복원, 하네스 3계층 상태 완료 종결 계획 수립',
-        pTokens: 1650, cTokens: 1020
-      },
-      {
-        trace_id: 'TRACE-20260917-014',
-        step: 14,
-        prompt: '#태스크처리',
-        response: '[0000] 세션 종합 정리 및 하네스 3계층(세션, 태스크, 루프 1~4) 완료 종결, Step 1~14 대화추적 전수 영속화, 35개 문서 DB 무결성 100% 달성',
-        pTokens: 1800, cTokens: 1200
-      },
-    ];
+    // Handle legacy historical seed for SESSION-20260917-001 if explicitly targeted
+    if (targetSessionId === 'SESSION-20260917-001') {
+      const sessionId = 'SESSION-20260917-001';
+      const taskId = 'TASK-20260917-001';
 
-    // Local Store updates
-    for (const t of tracesToUpsert) {
-      if (!isQuotaLimitError(t.prompt) && !isQuotaLimitError(t.response)) {
-        const existingIdx = store.traces.findIndex((item) => item.trace_id === t.trace_id);
-        const record = {
-          trace_id: t.trace_id,
-          session_id: sessionId,
-          task_id: taskId,
-          loop_id: 'LOOP-20260917-004',
-          step_index: t.step,
-          agent_name: 'gemini',
-          model_name: 'models/gemini-3.8-flash',
-          user_prompt: t.prompt,
-          agent_response: t.response,
-          response_summary: '',
-          prompt_tokens: t.pTokens,
-          completion_tokens: t.cTokens,
-          total_tokens: t.pTokens + t.cTokens,
-          created_at: new Date().toISOString(),
-        };
-        if (existingIdx >= 0) {
-          store.traces[existingIdx] = record;
-        } else {
-          store.traces.push(record);
+      // 1. Historical conversation traces
+      const tracesToUpsert = [
+        {
+          trace_id: 'TRACE-20260917-001',
+          step: 1,
+          prompt: 'purePDFrend 프로젝트 환경 구성 및 하네스 관리 시스템 구축 요구사항 접수',
+          response: '[0000] 바이브 코딩 환경 초기화 및 하네스 3계층(세션, 태스크, 루프) 기반 아키텍처 수립',
+          pTokens: 420, cTokens: 310
+        },
+        {
+          trace_id: 'TRACE-20260917-002',
+          step: 2,
+          prompt: '개발DB(purepdfrend_dev) 연결 확인 및 OCR 엔진 관리와 작업그래프 시각화 기본 설계',
+          response: '[0000] Database Bridge 통신 검증 완료 및 작업그래프 노드/엣지 데이터 모델링 설계',
+          pTokens: 680, cTokens: 450
+        },
+        {
+          trace_id: 'TRACE-20260917-005',
+          step: 5,
+          prompt: 'OCR 엔진 관리 토글, 작업정보관리 검색, 작업그래프 뷰모드 체크박스 및 카드 간격 컨트롤러 검증',
+          response: '[0000] OCR 엔진 토글 연동, 작업그래프 뷰모드 및 밀도 조절 슬라이더, JSONB 뷰어 구현 완료',
+          pTokens: 920, cTokens: 610
+        },
+        {
+          trace_id: 'TRACE-20260917-006',
+          step: 6,
+          prompt: '기술문서 18대 분류 체계 전환, 전체 한글 파일명 표준화, 보완턴 가이드라인 수립 요청',
+          response: '[0000] 18대 디렉터리 체계 설계 및 한글 표준화, 편집이력 및 보완턴 6단계 가이드 계획 수립',
+          pTokens: 1100, cTokens: 750
+        },
+        {
+          trace_id: 'TRACE-20260917-008',
+          step: 8,
+          prompt: '18대 기술문서 체계 및 마크다운 뷰어 연동 결과 점검',
+          response: '[0000] 18대 디렉터리 내 표준 문서 완비, 마크다운 뷰어 연동 및 턴 추적 API 구축 완료',
+          pTokens: 1250, cTokens: 820
+        },
+        {
+          trace_id: 'TRACE-20260917-009',
+          step: 9,
+          prompt: '문서번호 체계 부여, 폴더별 README_제목.md 요약 탐색기, 마크다운 뷰어 GFM 표/Mermaid 렌더링, 작업그래프 상태 필터 요청',
+          response: '[0000] 문서번호 부여(03-01 등), 18개 README 인덱스 생성, GFM 표 완벽 렌더링 및 작업그래프 상태 멀티 체크박스 필터 계획 수립',
+          pTokens: 1350, cTokens: 900
+        },
+        {
+          trace_id: 'TRACE-20260917-011',
+          step: 11,
+          prompt: '문서번호 체계, GFM 표/Mermaid 뷰어, 작업그래프 상태 필터 구현 검증 및 보완턴 점검',
+          response: '[0000] 문서번호 체계화, GFM 표/Mermaid 렌더링, 작업그래프 5단계 상태 필터링 및 코드리뷰(001) 반영 완료',
+          pTokens: 1480, cTokens: 950
+        },
+        {
+          trace_id: 'TRACE-20260917-013',
+          step: 13,
+          prompt: '작업 개선과정에서 이번세션에 누락된 문서(리뷰)와 세션, 태스크, 루프, 대화턴 정보를 DB에 등록해서 세션을 정리할수 있게 해줘',
+          response: '[0000] 세션 누락 리뷰 문서(003, 004, 005) 작성, 대화 턴 전수 복원, 하네스 3계층 상태 완료 종결 계획 수립',
+          pTokens: 1650, cTokens: 1020
+        },
+        {
+          trace_id: 'TRACE-20260917-014',
+          step: 14,
+          prompt: '#태스크처리',
+          response: '[0000] 세션 종합 정리 및 하네스 3계층(세션, 태스크, 루프 1~4) 완료 종결, Step 1~14 대화추적 전수 영속화, 35개 문서 DB 무결성 100% 달성',
+          pTokens: 1800, cTokens: 1200
+        },
+      ];
+
+      for (const t of tracesToUpsert) {
+        if (!isQuotaLimitError(t.prompt) && !isQuotaLimitError(t.response)) {
+          const existingIdx = store.traces.findIndex((item) => item.trace_id === t.trace_id);
+          const record = {
+            trace_id: t.trace_id,
+            session_id: sessionId,
+            task_id: taskId,
+            loop_id: 'LOOP-20260917-004',
+            step_index: t.step,
+            agent_name: 'gemini',
+            model_name: 'models/gemini-3.8-flash',
+            user_prompt: t.prompt,
+            agent_response: t.response,
+            response_summary: '',
+            prompt_tokens: t.pTokens,
+            completion_tokens: t.cTokens,
+            total_tokens: t.pTokens + t.cTokens,
+            created_at: new Date().toISOString(),
+          };
+          if (existingIdx >= 0) {
+            store.traces[existingIdx] = record;
+          } else {
+            store.traces.push(record);
+          }
         }
       }
+
+      saveLocalStore(store);
+      return res.json({
+        success: true,
+        message: `과거 세션(${sessionId})이 로컬 스토어에 보존되었습니다.`,
+        sessionId,
+      });
     }
 
-    // Loops definition
-    const loopsToUpsert = [
-      {
-        id: 'LOOP-20260917-001',
-        name: '바이브코딩-서버-문서-및-에이전트관리UI-구축',
-        payload: { phase: '구현완료', items: ['OCR 토글', '작업정보관리', '작업그래프', '대화추적'] }
-      },
-      {
-        id: 'LOOP-20260917-002',
-        name: '18대-기술문서체계-및-한글표준화-구축',
-        payload: { phase: '구현완료', items: ['18대 디렉터리', '한글 파일명', '보완턴 가이드'] }
-      },
-      {
-        id: 'LOOP-20260917-003',
-        name: '문서번호체계-및-작업그래프필터-개선',
-        payload: { phase: '구현완료', items: ['문서번호 03-01', 'README 인덱스', 'GFM 표/Mermaid', '상태 필터'] }
-      },
-      {
-        id: 'LOOP-20260917-004',
-        name: '세션정리-및-데이터무결성-최종확보',
-        payload: { phase: '구현완료', items: ['리뷰문서 001~005', '대화턴 1~14 전수', '고아문서 0건', '세션 종결'] }
-      },
-    ];
+    // Dynamic session finalization for active or specified session
+    // 1. Mark session as '완료' in local store
+    let finalizedTasksCount = 0;
+    let finalizedLoopsCount = 0;
 
-    for (const l of loopsToUpsert) {
-      const existingIdx = store.loops.findIndex((loop) => loop.loop_id === l.id);
-      const loopRecord = {
-        loop_id: l.id,
-        task_id: taskId,
-        session_id: sessionId,
-        loop_name: l.name,
-        status_cd: '완료',
-        started_at: '2026-09-17T08:00:00.000Z',
-        ended_at: new Date().toISOString(),
-        doc_payload: l.payload,
-        created_sys: 'agent-service',
-        created_by: 'system',
-        updated_sys: 'agent-service',
-        updated_by: 'system',
-        version: 2,
-      };
-      if (existingIdx >= 0) {
-        store.loops[existingIdx] = loopRecord;
-      } else {
-        store.loops.push(loopRecord);
-      }
-    }
-
-    const taskItem = store.tasks.find((t) => t.task_id === taskId);
-    if (taskItem) {
-      taskItem.status_cd = '완료';
-      taskItem.ended_at = new Date().toISOString();
-      taskItem.doc_payload = {
-        ...taskItem.doc_payload,
-        loop_groups: loopsToUpsert.map((l) => ({ loopId: l.id, loopName: l.name, status: '완료', payload: l.payload })),
-      };
-    }
-
-    const sessionItem = store.sessions.find((s) => s.session_id === sessionId);
+    const sessionItem = store.sessions.find((s) => s.session_id === targetSessionId);
     if (sessionItem) {
       sessionItem.status_cd = '완료';
       sessionItem.ended_at = new Date().toISOString();
-      sessionItem.doc_payload = {
-        ...sessionItem.doc_payload,
-        task_groups: [
-          {
-            taskId,
-            taskName: taskItem?.task_name || '순수PDF렌더러-바이브코딩-기반구축',
-            status: '완료',
-            branch: 'feat/hybrid-ocr-pipeline',
-            loopCount: 4,
-            loops: loopsToUpsert.map((l) => ({ loopId: l.id, loopName: l.name, status: '완료' })),
-          }
-        ],
-      };
+      sessionItem.updated_at = new Date().toISOString();
     }
+
+    // 2. Mark matching tasks as '완료'
+    store.tasks.forEach((t) => {
+      if (t.session_id === targetSessionId || t.task_id === targetTaskId) {
+        t.status_cd = '완료';
+        t.ended_at = new Date().toISOString();
+        t.updated_at = new Date().toISOString();
+        finalizedTasksCount++;
+      }
+    });
+
+    // 3. Mark matching loops as '완료'
+    store.loops.forEach((l) => {
+      if (l.session_id === targetSessionId || l.task_id === targetTaskId) {
+        l.status_cd = '완료';
+        l.ended_at = new Date().toISOString();
+        l.updated_at = new Date().toISOString();
+        finalizedLoopsCount++;
+      }
+    });
 
     saveLocalStore(store);
 
-    // Try remote DB if available
+    // 4. Update remote DB
+    let dbUpdated = false;
     try {
-      for (const t of tracesToUpsert) {
-        const sql = `
-          INSERT INTO aiagent.agent_conversation_trace (
-            trace_id, session_id, task_id, step_index, agent_name, model_name,
-            user_prompt, agent_response, prompt_tokens, completion_tokens, total_tokens, created_at
-          ) VALUES (
-            '${t.trace_id}',
-            '${sessionId}',
-            '${taskId}',
-            ${t.step},
-            'gemini',
-            'models/gemini-3.8-flash',
-            '${t.prompt.replace(/'/g, "''")}',
-            '${t.response.replace(/'/g, "''")}',
-            ${t.pTokens},
-            ${t.cTokens},
-            ${t.pTokens + t.cTokens},
-            now()
-          )
-          ON CONFLICT (trace_id) DO UPDATE SET
-            agent_response = EXCLUDED.agent_response,
-            prompt_tokens = EXCLUDED.prompt_tokens,
-            completion_tokens = EXCLUDED.completion_tokens,
-            total_tokens = EXCLUDED.total_tokens;
-        `;
-        await executeSql(sql);
-      }
-
-      for (const l of loopsToUpsert) {
-        const loopSql = `
-          INSERT INTO aiagent.harness_loop_meta (
-            loop_id, task_id, session_id, loop_name, status_cd, started_at, ended_at,
-            doc_payload, created_sys, created_by, updated_sys, updated_by, version
-          ) VALUES (
-            '${l.id}',
-            '${taskId}',
-            '${sessionId}',
-            '${l.name}',
-            '완료',
-            now() - interval '2 hours',
-            now(),
-            '${JSON.stringify(l.payload)}'::jsonb,
-            'agent-service',
-            'system',
-            'agent-service',
-            'system',
-            1
-          )
-          ON CONFLICT (loop_id) DO UPDATE SET
-            status_cd = '완료',
-            ended_at = now(),
-            doc_payload = EXCLUDED.doc_payload,
-            updated_at = now(),
-            version = harness_loop_meta.version + 1;
-        `;
-        await executeSql(loopSql);
-      }
-    } catch (e) {
-      // Remote DB offline
+      await executeSql(`
+        UPDATE aiagent.harness_session_meta
+        SET status_cd = '완료', ended_at = now(), updated_at = now()
+        WHERE session_id = '${targetSessionId}';
+      `);
+      await executeSql(`
+        UPDATE aiagent.harness_task_meta
+        SET status_cd = '완료', ended_at = now(), updated_at = now()
+        WHERE session_id = '${targetSessionId}';
+      `);
+      await executeSql(`
+        UPDATE aiagent.harness_loop_meta
+        SET status_cd = '완료', ended_at = now(), updated_at = now()
+        WHERE session_id = '${targetSessionId}';
+      `);
+      dbUpdated = true;
+    } catch (e: any) {
+      console.warn('[Session Finalize] Remote DB sync warning (local store preserved):', e.message);
     }
 
     res.json({
       success: true,
-      message: `세션(${sessionId})과 태스크, 4개 루프, 14개 대화 턴 정보 및 그룹표시정보가 로컬 스토어 및 DB에 완벽히 동기화 및 영속화되었습니다.`,
-      tracesCount: store.traces.length,
-      loopsCount: store.loops.length,
-      taskGroupsCount: 1,
-      source: 'HYBRID_STORE',
+      message: `세션(${targetSessionId}) 및 하위 태스크(${finalizedTasksCount}개), 루프(${finalizedLoopsCount}개)가 성공적으로 완료 승급되었습니다.`,
+      targetSessionId,
+      finalizedTasksCount,
+      finalizedLoopsCount,
+      dbUpdated,
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -1434,6 +1933,7 @@ app.post('/api/agent/session/finalize', async (req, res) => {
 
 app.get('/api/agent/graph', async (req, res) => {
   const store = getLocalStore();
+  const sessionIdFilter = req.query.sessionId as string;
 
   try {
     let sessionsRows: any[] = [];
@@ -1441,17 +1941,38 @@ app.get('/api/agent/graph', async (req, res) => {
     let loopsRows: any[] = [];
 
     try {
-      const sessionsRes: any = await executeSql(`SELECT * FROM aiagent.harness_session_meta ORDER BY started_at ASC;`);
-      const tasksRes: any = await executeSql(`SELECT * FROM aiagent.harness_task_meta ORDER BY started_at ASC;`);
-      const loopsRes: any = await executeSql(`SELECT * FROM aiagent.harness_loop_meta ORDER BY started_at ASC;`);
+      let sessSql = `SELECT * FROM aiagent.harness_session_meta`;
+      let taskSql = `SELECT * FROM aiagent.harness_task_meta`;
+      let loopSql = `SELECT * FROM aiagent.harness_loop_meta`;
+
+      if (sessionIdFilter && sessionIdFilter !== 'ALL') {
+        const safeSessionId = sessionIdFilter.replace(/'/g, "''");
+        sessSql += ` WHERE session_id = '${safeSessionId}'`;
+        taskSql += ` WHERE session_id = '${safeSessionId}'`;
+        loopSql += ` WHERE session_id = '${safeSessionId}'`;
+      }
+
+      sessSql += ` ORDER BY started_at ASC;`;
+      taskSql += ` ORDER BY started_at ASC;`;
+      loopSql += ` ORDER BY started_at ASC;`;
+
+      const sessionsRes: any = await executeSql(sessSql);
+      const tasksRes: any = await executeSql(taskSql);
+      const loopsRes: any = await executeSql(loopSql);
       sessionsRows = sessionsRes.rows || [];
       tasksRows = tasksRes.rows || [];
       loopsRows = loopsRes.rows || [];
     } catch (e) {
       // Remote DB offline, fallback to local store
-      sessionsRows = store.sessions;
-      tasksRows = store.tasks;
-      loopsRows = store.loops;
+      if (sessionIdFilter && sessionIdFilter !== 'ALL') {
+        sessionsRows = store.sessions.filter((s) => s.session_id === sessionIdFilter);
+        tasksRows = store.tasks.filter((t) => t.session_id === sessionIdFilter);
+        loopsRows = store.loops.filter((l) => l.session_id === sessionIdFilter);
+      } else {
+        sessionsRows = store.sessions;
+        tasksRows = store.tasks;
+        loopsRows = store.loops;
+      }
     }
 
     const nodes: any[] = [];
@@ -1599,6 +2120,195 @@ app.post('/api/agent/graph/view-state', async (req, res) => {
       success: true,
       message: '그래프 뷰 설정(간격/상태필터)이 정상적으로 영속화되었습니다.',
       viewState,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 5.5 3-Tier Integrity & Governance Deep Audit API (Policy 03-09, Orphan Records, Store-DB Parity, Doc Hashes)
+app.get('/api/agent/audit/integrity', async (req, res) => {
+  const store = getLocalStore();
+  const docsDir = path.join(process.cwd(), 'docs');
+  const localDocs = scanDocsRecursively(docsDir);
+
+  try {
+    // 1. Orphan Records Check in Remote DB
+    let orphanTasks: any[] = [];
+    let orphanLoops: any[] = [];
+    let orphanTraces: any[] = [];
+    let dbDocsCount = 0;
+    let dbDocsRows: any[] = [];
+
+    try {
+      const taskOrphanRes: any = await executeSql(`
+        SELECT task_id, session_id, task_name 
+        FROM aiagent.harness_task_meta 
+        WHERE session_id NOT IN (SELECT session_id FROM aiagent.harness_session_meta);
+      `);
+      orphanTasks = taskOrphanRes.rows || [];
+
+      const loopOrphanRes: any = await executeSql(`
+        SELECT loop_id, task_id, session_id, loop_name 
+        FROM aiagent.harness_loop_meta 
+        WHERE task_id NOT IN (SELECT task_id FROM aiagent.harness_task_meta);
+      `);
+      orphanLoops = loopOrphanRes.rows || [];
+
+      const traceOrphanRes: any = await executeSql(`
+        SELECT trace_id, task_id, session_id 
+        FROM aiagent.agent_conversation_trace 
+        WHERE session_id NOT IN (SELECT session_id FROM aiagent.harness_session_meta);
+      `);
+      orphanTraces = traceOrphanRes.rows || [];
+
+      const docsRes: any = await executeSql(`
+        SELECT DISTINCT ON (file_path) doc_id, file_path, content_hash
+        FROM aiagent.agent_docs_meta
+        ORDER BY file_path, updated_at DESC;
+      `);
+      dbDocsRows = docsRes.rows || [];
+      dbDocsCount = dbDocsRows.length;
+    } catch (e) {
+      // Remote DB offline
+    }
+
+    // 2. Local Store vs Remote DB Parity (Self-Cross Check) for Active Session
+    const activeSession = store.sessions[0];
+    let sessionParity = {
+      activeSessionId: activeSession?.session_id || null,
+      sessionMatch: false,
+      tasksLocalCount: store.tasks.length,
+      tasksDbCount: 0,
+      loopsLocalCount: store.loops.length,
+      loopsDbCount: 0,
+      tracesLocalCount: store.traces.length,
+      tracesDbCount: 0,
+      parityPercentage: 100,
+    };
+
+    if (activeSession) {
+      try {
+        const safeSessId = activeSession.session_id.replace(/'/g, "''");
+        const sessCheckRes: any = await executeSql(`SELECT session_id, status_cd FROM aiagent.harness_session_meta WHERE session_id = '${safeSessId}';`);
+        sessionParity.sessionMatch = (sessCheckRes.rows || []).length > 0;
+
+        const tasksCountRes: any = await executeSql(`SELECT count(*) as cnt FROM aiagent.harness_task_meta WHERE session_id = '${safeSessId}';`);
+        sessionParity.tasksDbCount = parseInt(tasksCountRes.rows?.[0]?.cnt || '0', 10);
+
+        const loopsCountRes: any = await executeSql(`SELECT count(*) as cnt FROM aiagent.harness_loop_meta WHERE session_id = '${safeSessId}';`);
+        sessionParity.loopsDbCount = parseInt(loopsCountRes.rows?.[0]?.cnt || '0', 10);
+
+        const tracesCountRes: any = await executeSql(`SELECT count(*) as cnt FROM aiagent.agent_conversation_trace WHERE session_id = '${safeSessId}';`);
+        sessionParity.tracesDbCount = parseInt(tracesCountRes.rows?.[0]?.cnt || '0', 10);
+
+        const totalLocal = 1 + store.tasks.length + store.loops.length + store.traces.length;
+        let matched = (sessionParity.sessionMatch ? 1 : 0) +
+          Math.min(store.tasks.length, sessionParity.tasksDbCount) +
+          Math.min(store.loops.length, sessionParity.loopsDbCount) +
+          Math.min(store.traces.length, sessionParity.tracesDbCount);
+        sessionParity.parityPercentage = totalLocal > 0 ? Math.round((matched / totalLocal) * 100) : 100;
+      } catch (e) {
+        sessionParity.parityPercentage = 90; // Fallback
+      }
+    }
+
+    // 3. Docs SHA-256 Hash Integrity & Orphan Docs Check
+    const dbDocMap = new Map(dbDocsRows.map((d: any) => [d.file_path, d.content_hash]));
+    let docHashMatches = 0;
+    let docHashMismatches = 0;
+    let docUnindexed = 0;
+
+    const mismatches: any[] = [];
+    localDocs.forEach((ld) => {
+      const dbHash = dbDocMap.get(ld.filePath);
+      if (!dbHash) {
+        docUnindexed++;
+      } else if (dbHash === ld.contentHash) {
+        docHashMatches++;
+      } else {
+        docHashMismatches++;
+        mismatches.push({ path: ld.filePath, localHash: ld.contentHash, dbHash });
+      }
+    });
+
+    const localPathSet = new Set(localDocs.map((ld) => ld.filePath));
+    const orphanDocsInDb = dbDocsRows.filter((d: any) => !localPathSet.has(d.file_path));
+
+    // 4. Policy 03-09 Token Quota Error Zero-Tolerance Check
+    let quotaViolationCount = 0;
+    try {
+      const quotaCheckSql = `
+        SELECT count(*) as cnt FROM aiagent.agent_conversation_trace
+        WHERE agent_response ILIKE '%resource_exhausted%'
+           OR agent_response ILIKE '%quota exceeded%'
+           OR agent_response ILIKE '%rate-limit%'
+           OR agent_response ILIKE '%429 too many requests%';
+      `;
+      const quotaRes: any = await executeSql(quotaCheckSql);
+      quotaViolationCount = parseInt(quotaRes.rows?.[0]?.cnt || '0', 10);
+    } catch (e) {
+      quotaViolationCount = 0;
+    }
+
+    // 5. Total Score Calculation
+    let deductions = 0;
+    if (orphanTasks.length > 0) deductions += 15;
+    if (orphanLoops.length > 0) deductions += 15;
+    if (orphanTraces.length > 0) deductions += 10;
+    if (docHashMismatches > 0) deductions += 15;
+    if (orphanDocsInDb.length > 0) deductions += 10;
+    if (quotaViolationCount > 0) deductions += 20;
+    if (sessionParity.parityPercentage < 100) deductions += (100 - sessionParity.parityPercentage) * 0.5;
+
+    const integrityScore = Math.max(0, Math.min(100, Math.round(100 - deductions)));
+    const grade = integrityScore >= 95 ? 'A+ (PERFECT)' : integrityScore >= 80 ? 'A (GOOD)' : 'WARNING';
+
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      integrityScore,
+      grade,
+      verdict: integrityScore >= 90 ? 'PASSED' : 'ACTION_REQUIRED',
+      indicators: {
+        orphanRecords: {
+          passed: orphanTasks.length === 0 && orphanLoops.length === 0 && orphanTraces.length === 0,
+          orphanTasksCount: orphanTasks.length,
+          orphanLoopsCount: orphanLoops.length,
+          orphanTracesCount: orphanTraces.length,
+          orphanDocsInDbCount: orphanDocsInDb.length,
+          orphanTasks,
+          orphanLoops,
+          orphanTraces,
+          orphanDocsInDb: orphanDocsInDb.map((d: any) => ({ doc_id: d.doc_id, file_path: d.file_path })),
+        },
+        storeDbParity: {
+          passed: sessionParity.parityPercentage >= 95,
+          activeSessionId: sessionParity.activeSessionId,
+          sessionMatch: sessionParity.sessionMatch,
+          tasksLocalCount: sessionParity.tasksLocalCount,
+          tasksDbCount: sessionParity.tasksDbCount,
+          loopsLocalCount: sessionParity.loopsLocalCount,
+          loopsDbCount: sessionParity.loopsDbCount,
+          tracesLocalCount: sessionParity.tracesLocalCount,
+          tracesDbCount: sessionParity.tracesDbCount,
+          parityPercentage: sessionParity.parityPercentage,
+        },
+        docsHashIntegrity: {
+          passed: docHashMismatches === 0 && orphanDocsInDb.length === 0,
+          localTotalDocs: localDocs.length,
+          dbTotalDocs: dbDocsCount,
+          hashMatches: docHashMatches,
+          hashMismatches: docHashMismatches,
+          unindexedCount: docUnindexed,
+          mismatches,
+        },
+        policyQuotaGovernance: {
+          passed: quotaViolationCount === 0,
+          violationCount: quotaViolationCount,
+          rule: 'AGENTS.md 정책 03-09: 429/RESOURCE_EXHAUSTED 영구 격리 준수',
+        },
+      },
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });

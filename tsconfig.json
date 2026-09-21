@@ -13,6 +13,12 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@ppdf/*": ["src/ppdf/*"],
+      "@aiagent/*": ["src/aiagent/*"],
+      "@shared/*": ["src/shared/*"]
+    },
 
     /* Linting */
     "strict": true,

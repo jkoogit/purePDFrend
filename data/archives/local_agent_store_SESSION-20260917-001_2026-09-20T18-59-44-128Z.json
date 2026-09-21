@@ -1,0 +1,712 @@
+{
+  "sessions": [
+    {
+      "session_id": "SESSION-20260917-001",
+      "session_name": "purePDFrend-바이브코딩환경구축-및-에이전트거버넌스설계",
+      "ai_agent": "gemini",
+      "ai_model": "models/gemini-3.8-flash",
+      "status_cd": "완료",
+      "started_at": "2026-09-17T12:00:00.000Z",
+      "ended_at": "2026-09-17T16:00:00.000Z",
+      "doc_payload": {
+        "description": "purePDFrend 대용량 스캔 PDF & OCR 교정 하네스 스튜디오 초기 환경 구성 및 거버넌스 수립",
+        "task_groups": [
+          {
+            "taskId": "TASK-20260917-001",
+            "taskName": "바이브 코딩 환경 구축 및 에이전트 하네스 거버넌스 설계",
+            "status": "완료",
+            "branch": "task/바이브코딩환경구축-및-에이전트관리설계_gemini",
+            "loopCount": 4
+          },
+          {
+            "taskId": "TASK-20260918-002",
+            "taskName": "에이전트 정보 접속 오류 해결 및 토큰 한도 초과 턴 저장 제외 정책 수립",
+            "status": "완료",
+            "branch": "task/에이전트정보-오류조치-및-토큰한도제외정책_gemini",
+            "loopCount": 2
+          },
+          {
+            "taskId": "TASK-20260918-003",
+            "taskName": "OOP 및 도메인기반 토큰감지 아키텍처 구축 및 화면 오류 2차 완전 보완",
+            "status": "완료",
+            "branch": "task/OOP도메인토큰감지-및-화면오류완전보완_gemini",
+            "loopCount": 3
+          },
+          {
+            "taskId": "TASK-20260920-004",
+            "taskName": "DB 장애 대응 처리 정책(2.1~2.5) UI 반영 및 AGENTS.md v2.0 거버넌스 승급",
+            "status": "완료",
+            "branch": "task/DB장애대응정책-및-AGENTS_v2거버넌스_gemini",
+            "loopCount": 2
+          },
+          {
+            "taskId": "TASK-20260920-005",
+            "taskName": "AGENTS.md v2.1 통합 거버넌스 규약 제정 및 3계층 상태머신 수립",
+            "status": "완료",
+            "branch": "task/AGENTS_v2_1통합거버넌스_규약제정_gemini",
+            "loopCount": 1
+          }
+        ]
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 8
+    }
+  ],
+  "tasks": [
+    {
+      "task_id": "TASK-20260917-001",
+      "session_id": "SESSION-20260917-001",
+      "task_name": "바이브 코딩 환경 구축 및 에이전트 하네스 거버넌스 설계",
+      "git_branch": "task/바이브코딩환경구축-및-에이전트관리설계_gemini",
+      "status_cd": "완료",
+      "started_at": "2026-09-17T12:00:00.000Z",
+      "ended_at": "2026-09-17T16:00:00.000Z",
+      "doc_payload": {
+        "issue_number": 1,
+        "pr_number": 2,
+        "phase": "종결완료",
+        "loop_groups": [
+          {
+            "loopId": "LOOP-20260917-001",
+            "loopName": "바이브코딩-서버-문서-및-에이전트관리UI-구축",
+            "status": "완료"
+          },
+          {
+            "loopId": "LOOP-20260917-002",
+            "loopName": "18대-기술문서체계-및-한글표준화-구축",
+            "status": "완료"
+          },
+          {
+            "loopId": "LOOP-20260917-003",
+            "loopName": "문서번호체계-및-작업그래프필터-개선",
+            "status": "완료"
+          },
+          {
+            "loopId": "LOOP-20260917-004",
+            "loopName": "세션정리-및-데이터무결성-최종확보",
+            "status": "완료"
+          }
+        ]
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 4
+    },
+    {
+      "task_id": "TASK-20260918-002",
+      "session_id": "SESSION-20260917-001",
+      "task_name": "에이전트 정보 접속 오류 해결 및 토큰 한도 초과 턴 저장 제외 정책 수립",
+      "git_branch": "task/에이전트정보-오류조치-및-토큰한도제외정책_gemini",
+      "status_cd": "완료",
+      "started_at": "2026-09-18T02:30:00.000Z",
+      "ended_at": "2026-09-18T02:40:00.000Z",
+      "doc_payload": {
+        "issue_number": 3,
+        "pr_number": 4,
+        "phase": "종결완료",
+        "target_items": [
+          "에이전트 정보 화면 접속 오류 해결 (로컬 폴백 고신뢰 스토어)",
+          "토큰 한도 초과 턴(resource_exhausted, 429) 저장 자동 제외",
+          "점검 폴더 내 12-01 조치 결과서 작성",
+          "정책 폴더 내 03-09 거버넌스 정책 작성",
+          "태스크 승급 및 리뷰 문서 10-10 작성"
+        ],
+        "loop_groups": [
+          {
+            "loopId": "LOOP-20260918-005",
+            "loopName": "에이전트정보화면-접속오류조치-및-로컬폴백스토어구축",
+            "status": "완료"
+          },
+          {
+            "loopId": "LOOP-20260918-006",
+            "loopName": "토큰한도초과오류-저장제외-및-거버넌스정책반영",
+            "status": "완료"
+          }
+        ]
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 2
+    },
+    {
+      "task_id": "TASK-20260918-003",
+      "session_id": "SESSION-20260917-001",
+      "task_name": "OOP 및 도메인기반 토큰감지 아키텍처 구축 및 화면 오류 2차 완전 보완",
+      "git_branch": "task/OOP도메인토큰감지-및-화면오류완전보완_gemini",
+      "status_cd": "완료",
+      "started_at": "2026-09-18T03:00:00.000Z",
+      "ended_at": "2026-09-18T03:20:00.000Z",
+      "doc_payload": {
+        "issue_number": 4,
+        "pr_number": 5,
+        "phase": "종결완료",
+        "target_items": [
+          "에이전트 정보 화면 AgentUsageViewer ReferenceError 수정",
+          "ErrorBoundary 컴포넌트 신설 및 전역 래핑",
+          "Navbar 최상단 에이전트 정보 1급 탭 신설",
+          "OOP & DDD 기반 TokenQuotaDetectionService 및 공급자별 전략 구현",
+          "15-02 초보 개발자용 기술 학습 문서 작성",
+          "12-01 점검 보고서 v1.1.0 최신화",
+          "AGENTS.md 2단계 안전 실행 게이트(태스크시작 vs 태스크처리) 수립"
+        ],
+        "loop_groups": [
+          {
+            "loopId": "LOOP-20260918-007",
+            "loopName": "에이전트화면-크래시해결-및-ErrorBoundary-네비게이션1급탭신설",
+            "status": "완료"
+          },
+          {
+            "loopId": "LOOP-20260918-008",
+            "loopName": "토큰쿼터감지-OOP-DDD-전략패턴-및-도메인서비스-구현",
+            "status": "완료"
+          },
+          {
+            "loopId": "LOOP-20260918-009",
+            "loopName": "초보개발자용-15-02-학습가이드작성-및-12-01보고서-v1.1.0갱신",
+            "status": "완료"
+          }
+        ]
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 1
+    },
+    {
+      "task_id": "TASK-20260920-004",
+      "session_id": "SESSION-20260917-001",
+      "task_name": "DB 장애 대응 처리 정책(2.1~2.5) UI 반영 및 AGENTS.md v2.0 거버넌스 승급",
+      "git_branch": "task/DB장애대응정책-및-AGENTS_v2거버넌스_gemini",
+      "status_cd": "완료",
+      "started_at": "2026-09-20T08:00:00.000Z",
+      "ended_at": "2026-09-20T09:10:00.000Z",
+      "doc_payload": {
+        "issue_number": 5,
+        "pr_number": 6,
+        "phase": "종결완료",
+        "items": [
+          "정책 2.1 에이전트 서비스 조회 전용 안전성 보장",
+          "정책 2.2 미연결 시 '조회된 결과가 없습니다.' 안내 전역 반영",
+          "정책 2.3 수정 이벤트 발생 시 '영속화 상태 점검필요' 경고 차단",
+          "정책 2.4 PDF 서비스 오프라인 모드 독립 실행 보장",
+          "정책 2.5 DB 접속 장애에 따른 프리징/먹통 방지 (Zero-Hang)",
+          "AGENTS.md v2.0 안전 실행 게이트 및 [0000] 계획 의무화",
+          "정책 문서 03-10 및 10-12 승급 리뷰 문서 발행"
+        ],
+        "loop_groups": [
+          {
+            "loopId": "LOOP-20260920-010",
+            "loopName": "DB장애대응정책-2.1~2.5-프론트엔드-UI-UX-전면적용",
+            "status": "완료"
+          },
+          {
+            "loopId": "LOOP-20260920-011",
+            "loopName": "AGENTS.md-v2.0-규약제정-및-03-10정책수립-승급",
+            "status": "완료"
+          }
+        ]
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 1
+    },
+    {
+      "task_id": "TASK-20260920-005",
+      "session_id": "SESSION-20260917-001",
+      "task_name": "AGENTS.md v2.1 통합 거버넌스 규약 제정 및 3계층 상태머신 수립",
+      "git_branch": "task/AGENTS_v2_1통합거버넌스_규약제정_gemini",
+      "status_cd": "완료",
+      "started_at": "2026-09-20T11:00:00.000Z",
+      "ended_at": "2026-09-20T11:20:00.000Z",
+      "doc_payload": {
+        "issue_number": 6,
+        "pr_number": 7,
+        "phase": "종결완료",
+        "items": [
+          "AGENTS.md v2.1 개정 및 최상단 3계층 하네스 상태머신(Mermaid) 추가",
+          "GitHub REST API 연동 및 샌드박스 원격 제어 표준화",
+          "대화 턴 추적 및 영속화 기술적 주체(TokenQuotaDetectionService/POST API) 명확화",
+          "세션([0000]) 및 태스크([00]) 채팅 번호 포맷 분리 반영",
+          "READ-ONLY 3단계 게이트 논리적 모순 해소",
+          "03-11 정책 문서 및 10-13 코드리뷰 발행 완료"
+        ],
+        "loop_groups": [
+          {
+            "loopId": "LOOP-20260920-012",
+            "loopName": "AGENTS.md-v2.1-규약제정-및-03-11정책수립-승급",
+            "status": "완료"
+          }
+        ]
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 1
+    }
+  ],
+  "loops": [
+    {
+      "loop_id": "LOOP-20260917-001",
+      "task_id": "TASK-20260917-001",
+      "session_id": "SESSION-20260917-001",
+      "loop_name": "바이브코딩-서버-문서-및-에이전트관리UI-구축",
+      "status_cd": "완료",
+      "started_at": "2026-09-17T12:05:00.000Z",
+      "ended_at": "2026-09-17T13:00:00.000Z",
+      "doc_payload": {
+        "phase": "구현완료",
+        "items": [
+          "OCR 토글",
+          "작업정보관리",
+          "작업그래프",
+          "대화추적"
+        ]
+      },
+      "created_sys": "agent-service",
+      "created_by": "system",
+      "updated_sys": "agent-service",
+      "updated_by": "system",
+      "version": 2
+    },
+    {
+      "loop_id": "LOOP-20260917-002",
+      "task_id": "TASK-20260917-001",
+      "session_id": "SESSION-20260917-001",
+      "loop_name": "18대-기술문서체계-및-한글표준화-구축",
+      "status_cd": "완료",
+      "started_at": "2026-09-17T13:05:00.000Z",
+      "ended_at": "2026-09-17T14:00:00.000Z",
+      "doc_payload": {
+        "phase": "구현완료",
+        "items": [
+          "18대 디렉터리",
+          "한글 파일명",
+          "보완턴 가이드"
+        ]
+      },
+      "created_sys": "agent-service",
+      "created_by": "system",
+      "updated_sys": "agent-service",
+      "updated_by": "system",
+      "version": 2
+    },
+    {
+      "loop_id": "LOOP-20260917-003",
+      "task_id": "TASK-20260917-001",
+      "session_id": "SESSION-20260917-001",
+      "loop_name": "문서번호체계-및-작업그래프필터-개선",
+      "status_cd": "완료",
+      "started_at": "2026-09-17T14:05:00.000Z",
+      "ended_at": "2026-09-17T15:00:00.000Z",
+      "doc_payload": {
+        "phase": "구현완료",
+        "items": [
+          "문서번호 03-01",
+          "README 인덱스",
+          "GFM 표/Mermaid",
+          "상태 필터"
+        ]
+      },
+      "created_sys": "agent-service",
+      "created_by": "system",
+      "updated_sys": "agent-service",
+      "updated_by": "system",
+      "version": 2
+    },
+    {
+      "loop_id": "LOOP-20260917-004",
+      "task_id": "TASK-20260917-001",
+      "session_id": "SESSION-20260917-001",
+      "loop_name": "세션정리-및-데이터무결성-최종확보",
+      "status_cd": "완료",
+      "started_at": "2026-09-17T15:05:00.000Z",
+      "ended_at": "2026-09-17T16:00:00.000Z",
+      "doc_payload": {
+        "phase": "구현완료",
+        "items": [
+          "리뷰문서 001~005",
+          "대화턴 1~14 전수",
+          "고아문서 0건",
+          "세션 종결"
+        ]
+      },
+      "created_sys": "agent-service",
+      "created_by": "system",
+      "updated_sys": "agent-service",
+      "updated_by": "system",
+      "version": 2
+    },
+    {
+      "loop_id": "LOOP-20260918-005",
+      "task_id": "TASK-20260918-002",
+      "session_id": "SESSION-20260917-001",
+      "loop_name": "에이전트정보화면-접속오류조치-및-로컬폴백스토어구축",
+      "status_cd": "완료",
+      "started_at": "2026-09-18T02:30:00.000Z",
+      "ended_at": "2026-09-18T02:35:00.000Z",
+      "doc_payload": {
+        "phase": "구현완료",
+        "items": [
+          "원격 DB 브릿지 1033 장애 우회",
+          "로컬 폴백 고신뢰 스토어",
+          "화면 에러 핸들링 보강"
+        ]
+      },
+      "created_sys": "agent-service",
+      "created_by": "system",
+      "updated_sys": "agent-service",
+      "updated_by": "system",
+      "version": 2
+    },
+    {
+      "loop_id": "LOOP-20260918-006",
+      "task_id": "TASK-20260918-002",
+      "session_id": "SESSION-20260917-001",
+      "loop_name": "토큰한도초과오류-저장제외-및-거버넌스정책반영",
+      "status_cd": "완료",
+      "started_at": "2026-09-18T02:35:00.000Z",
+      "ended_at": "2026-09-18T02:40:00.000Z",
+      "doc_payload": {
+        "phase": "구현완료",
+        "items": [
+          "isQuotaLimitError 판별기",
+          "턴 저장 시 자동 제외",
+          "03-09 거버넌스 문서",
+          "12-01 점검 보고서"
+        ]
+      },
+      "created_sys": "agent-service",
+      "created_by": "system",
+      "updated_sys": "agent-service",
+      "updated_by": "system",
+      "version": 2
+    },
+    {
+      "loop_id": "LOOP-20260918-007",
+      "task_id": "TASK-20260918-003",
+      "session_id": "SESSION-20260917-001",
+      "loop_name": "에이전트화면-크래시해결-및-ErrorBoundary-네비게이션1급탭신설",
+      "status_cd": "완료",
+      "started_at": "2026-09-18T03:00:00.000Z",
+      "ended_at": "2026-09-18T03:08:00.000Z",
+      "doc_payload": {
+        "phase": "구현완료",
+        "items": [
+          "AgentUsageViewer.tsx displayTraces 변수오타 수정",
+          "ErrorBoundary.tsx 신설 및 App.tsx 전역 래핑",
+          "Navbar.tsx 에이전트 정보 1급 탭 신설 및 기본 접속 지정"
+        ]
+      },
+      "created_sys": "agent-service",
+      "created_by": "system",
+      "updated_sys": "agent-service",
+      "updated_by": "system",
+      "version": 1
+    },
+    {
+      "loop_id": "LOOP-20260918-008",
+      "task_id": "TASK-20260918-003",
+      "session_id": "SESSION-20260917-001",
+      "loop_name": "토큰쿼터감지-OOP-DDD-전략패턴-및-도메인서비스-구현",
+      "status_cd": "완료",
+      "started_at": "2026-09-18T03:08:00.000Z",
+      "ended_at": "2026-09-18T03:15:00.000Z",
+      "doc_payload": {
+        "phase": "구현완료",
+        "items": [
+          "ITokenQuotaDetectionStrategy 인터페이스 및 AbstractTokenQuotaStrategy",
+          "Gemini/OpenAI/Claude/DeepSeek/Generic 5대 전략 구현",
+          "TokenQuotaStrategyRegistry 및 TokenQuotaDetectionService 도메인 파사드",
+          "server.ts 및 REST API (/api/agent/quota/*) 통합"
+        ]
+      },
+      "created_sys": "agent-service",
+      "created_by": "system",
+      "updated_sys": "agent-service",
+      "updated_by": "system",
+      "version": 1
+    },
+    {
+      "loop_id": "LOOP-20260918-009",
+      "task_id": "TASK-20260918-003",
+      "session_id": "SESSION-20260917-001",
+      "loop_name": "초보개발자용-15-02-학습가이드작성-및-12-01보고서-v1.1.0갱신",
+      "status_cd": "완료",
+      "started_at": "2026-09-18T03:15:00.000Z",
+      "ended_at": "2026-09-18T03:20:00.000Z",
+      "doc_payload": {
+        "phase": "구현완료",
+        "items": [
+          "15-02 OOP/DDD 토큰 감지 설계 가이드 작성",
+          "12-01 점검 보고서 v1.1.0 보완",
+          "AGENTS.md 2단계 안전 실행 게이트 수립"
+        ]
+      },
+      "created_sys": "agent-service",
+      "created_by": "system",
+      "updated_sys": "agent-service",
+      "updated_by": "system",
+      "version": 1
+    },
+    {
+      "loop_id": "LOOP-20260920-010",
+      "task_id": "TASK-20260920-004",
+      "session_id": "SESSION-20260917-001",
+      "loop_name": "DB장애대응정책-2.1~2.5-프론트엔드-UI-UX-전면적용",
+      "status_cd": "완료",
+      "started_at": "2026-09-20T08:10:00.000Z",
+      "ended_at": "2026-09-20T08:50:00.000Z",
+      "doc_payload": {
+        "phase": "구현완료",
+        "items": [
+          "AgentUsageViewer dbStatus 바인딩 및 '조회된 결과가 없습니다.' 안내",
+          "TaskInfoManager 3대 테이블 empty state 일관 적용",
+          "WorkGraphViewer 저장 버튼 방어 및 '조회된 결과가 없습니다.' 반영",
+          "DocsGovernanceManager 동기화/정리 방어 및 조회결과없음 안내",
+          "OcrEngineManager 저장 방어 및 Navbar DB 상태 뱃지 구분"
+        ]
+      },
+      "created_sys": "agent-service",
+      "created_by": "system",
+      "updated_sys": "agent-service",
+      "updated_by": "system",
+      "version": 1
+    },
+    {
+      "loop_id": "LOOP-20260920-011",
+      "task_id": "TASK-20260920-004",
+      "session_id": "SESSION-20260917-001",
+      "loop_name": "AGENTS.md-v2.0-규약제정-및-03-10정책수립-승급",
+      "status_cd": "완료",
+      "started_at": "2026-09-20T08:50:00.000Z",
+      "ended_at": "2026-09-20T09:10:00.000Z",
+      "doc_payload": {
+        "phase": "구현완료",
+        "items": [
+          "AGENTS.md v2.0 안전 실행 게이트 및 계획 의무화",
+          "03-10 DB 장애 대응 및 무중단 운영 정책 제정",
+          "10-12 승급 리뷰 문서 발행 및 README 인덱스 동기화",
+          "하네스 3계층 상태 전원 '완료' 승급"
+        ]
+      },
+      "created_sys": "agent-service",
+      "created_by": "system",
+      "updated_sys": "agent-service",
+      "updated_by": "system",
+      "version": 1
+    },
+    {
+      "loop_id": "LOOP-20260920-012",
+      "task_id": "TASK-20260920-005",
+      "session_id": "SESSION-20260917-001",
+      "loop_name": "AGENTS.md-v2.1-규약제정-및-03-11정책수립-승급",
+      "status_cd": "완료",
+      "started_at": "2026-09-20T11:00:00.000Z",
+      "ended_at": "2026-09-20T11:20:00.000Z",
+      "doc_payload": {
+        "phase": "구현완료",
+        "items": [
+          "AGENTS.md v2.1 개정 및 3계층 하네스 상태머신 Mermaid 구축",
+          "GitHub REST API 연동 및 샌드박스 원격 제어 경로 정립",
+          "대화 턴 자동 영속화 기술적 주체 명확화",
+          "03-11 정책 문서 및 10-13 코드리뷰 발행 완료",
+          "하네스 3계층 상태 전원 '완료' 승급"
+        ]
+      },
+      "created_sys": "agent-service",
+      "created_by": "system",
+      "updated_sys": "agent-service",
+      "updated_by": "system",
+      "version": 1
+    }
+  ],
+  "traces": [
+    {
+      "trace_id": "TRACE-20260917-001",
+      "session_id": "SESSION-20260917-001",
+      "task_id": "TASK-20260917-001",
+      "loop_id": "LOOP-20260917-001",
+      "step_index": 1,
+      "agent_name": "gemini",
+      "model_name": "models/gemini-3.8-flash",
+      "user_prompt": "purePDFrend 프로젝트 환경 구성 및 하네스 관리 시스템 구축 요구사항 접수",
+      "agent_response": "[0000] 바이브 코딩 환경 초기화 및 하네스 3계층(세션, 태스크, 루프) 기반 아키텍처 수립",
+      "response_summary": "초기 환경 구성 및 3계층 하네스 구조 설계 완료",
+      "prompt_tokens": 420,
+      "completion_tokens": 310,
+      "total_tokens": 730,
+      "created_at": "2026-09-17T12:10:00.000Z"
+    },
+    {
+      "trace_id": "TRACE-20260917-002",
+      "session_id": "SESSION-20260917-001",
+      "task_id": "TASK-20260917-001",
+      "loop_id": "LOOP-20260917-001",
+      "step_index": 2,
+      "agent_name": "gemini",
+      "model_name": "models/gemini-3.8-flash",
+      "user_prompt": "개발DB(purepdfrend_dev) 연결 확인 및 OCR 엔진 관리와 작업그래프 시각화 기본 설계",
+      "agent_response": "[0000] Database Bridge 통신 검증 완료 및 작업그래프 노드/엣지 데이터 모델링 설계",
+      "response_summary": "DB Bridge 통신 검증 및 작업그래프 노드/엣지 모델링 완료",
+      "prompt_tokens": 680,
+      "completion_tokens": 450,
+      "total_tokens": 1130,
+      "created_at": "2026-09-17T12:40:00.000Z"
+    },
+    {
+      "trace_id": "TRACE-20260917-005",
+      "session_id": "SESSION-20260917-001",
+      "task_id": "TASK-20260917-001",
+      "loop_id": "LOOP-20260917-001",
+      "step_index": 5,
+      "agent_name": "gemini",
+      "model_name": "models/gemini-3.8-flash",
+      "user_prompt": "OCR 엔진 관리 토글, 작업정보관리 검색, 작업그래프 뷰모드 체크박스 및 카드 간격 컨트롤러 검증",
+      "agent_response": "[0000] OCR 엔진 토글 연동, 작업그래프 뷰모드 및 밀도 조절 슬라이더, JSONB 뷰어 구현 완료",
+      "response_summary": "OCR 엔진 토글 및 작업그래프 밀도/간격 컨트롤러 구현 완료",
+      "prompt_tokens": 920,
+      "completion_tokens": 610,
+      "total_tokens": 1530,
+      "created_at": "2026-09-17T13:00:00.000Z"
+    },
+    {
+      "trace_id": "TRACE-20260917-006",
+      "session_id": "SESSION-20260917-001",
+      "task_id": "TASK-20260917-001",
+      "loop_id": "LOOP-20260917-002",
+      "step_index": 6,
+      "agent_name": "gemini",
+      "model_name": "models/gemini-3.8-flash",
+      "user_prompt": "기술문서 18대 분류 체계 전환, 전체 한글 파일명 표준화, 보완턴 가이드라인 수립 요청",
+      "agent_response": "[0000] 18대 디렉터리 체계 설계 및 한글 표준화, 편집이력 및 보완턴 6단계 가이드 계획 수립",
+      "response_summary": "18대 디렉터리 및 한글 표준화, 보완턴 6단계 가이드 수립",
+      "prompt_tokens": 1100,
+      "completion_tokens": 750,
+      "total_tokens": 1850,
+      "created_at": "2026-09-17T13:30:00.000Z"
+    },
+    {
+      "trace_id": "TRACE-20260917-008",
+      "session_id": "SESSION-20260917-001",
+      "task_id": "TASK-20260917-001",
+      "loop_id": "LOOP-20260917-002",
+      "step_index": 8,
+      "agent_name": "gemini",
+      "model_name": "models/gemini-3.8-flash",
+      "user_prompt": "18대 기술문서 체계 및 마크다운 뷰어 연동 결과 점검",
+      "agent_response": "[0000] 18대 디렉터리 내 표준 문서 완비, 마크다운 뷰어 연동 및 턴 추적 API 구축 완료",
+      "response_summary": "18대 문서 체계 완비 및 뷰어/턴 추적 API 연동 완료",
+      "prompt_tokens": 1250,
+      "completion_tokens": 820,
+      "total_tokens": 2070,
+      "created_at": "2026-09-17T14:00:00.000Z"
+    },
+    {
+      "trace_id": "TRACE-20260917-009",
+      "session_id": "SESSION-20260917-001",
+      "task_id": "TASK-20260917-001",
+      "loop_id": "LOOP-20260917-003",
+      "step_index": 9,
+      "agent_name": "gemini",
+      "model_name": "models/gemini-3.8-flash",
+      "user_prompt": "문서번호 체계 부여, 폴더별 README_제목.md 요약 탐색기, 마크다운 뷰어 GFM 표/Mermaid 렌더링, 작업그래프 상태 필터 요청",
+      "agent_response": "[0000] 문서번호 부여(03-01 등), 18개 README 인덱스 생성, GFM 표 완벽 렌더링 및 작업그래프 상태 멀티 체크박스 필터 계획 수립",
+      "response_summary": "문서번호 부여 및 GFM 표/Mermaid 렌더링, 상태 멀티필터 계획",
+      "prompt_tokens": 1350,
+      "completion_tokens": 900,
+      "total_tokens": 2250,
+      "created_at": "2026-09-17T14:30:00.000Z"
+    },
+    {
+      "trace_id": "TRACE-20260917-011",
+      "session_id": "SESSION-20260917-001",
+      "task_id": "TASK-20260917-001",
+      "loop_id": "LOOP-20260917-003",
+      "step_index": 11,
+      "agent_name": "gemini",
+      "model_name": "models/gemini-3.8-flash",
+      "user_prompt": "문서번호 체계, GFM 표/Mermaid 뷰어, 작업그래프 상태 필터 구현 검증 및 보완턴 점검",
+      "agent_response": "[0000] 문서번호 체계화, GFM 표/Mermaid 렌더링, 작업그래프 5단계 상태 필터링 및 코드리뷰(001) 반영 완료",
+      "response_summary": "문서번호 체계 및 상태 필터링, 코드리뷰 반영 완료",
+      "prompt_tokens": 1480,
+      "completion_tokens": 950,
+      "total_tokens": 2430,
+      "created_at": "2026-09-17T15:00:00.000Z"
+    },
+    {
+      "trace_id": "TRACE-20260917-013",
+      "session_id": "SESSION-20260917-001",
+      "task_id": "TASK-20260917-001",
+      "loop_id": "LOOP-20260917-004",
+      "step_index": 13,
+      "agent_name": "gemini",
+      "model_name": "models/gemini-3.8-flash",
+      "user_prompt": "작업 개선과정에서 이번세션에 누락된 문서(리뷰)와 세션, 태스크, 루프, 대화턴 정보를 DB에 등록해서 세션을 정리할수 있게 해줘",
+      "agent_response": "[0000] 세션 누락 리뷰 문서(003, 004, 005) 작성, 대화 턴 전수 복원, 하네스 3계층 상태 완료 종결 계획 수립",
+      "response_summary": "누락 리뷰문서 및 하네스 3계층 상태 완료 종결 계획 수립",
+      "prompt_tokens": 1650,
+      "completion_tokens": 1020,
+      "total_tokens": 2670,
+      "created_at": "2026-09-17T15:30:00.000Z"
+    },
+    {
+      "trace_id": "TRACE-20260917-014",
+      "session_id": "SESSION-20260917-001",
+      "task_id": "TASK-20260917-001",
+      "loop_id": "LOOP-20260917-004",
+      "step_index": 14,
+      "agent_name": "gemini",
+      "model_name": "models/gemini-3.8-flash",
+      "user_prompt": "#태스크처리",
+      "agent_response": "[0000] 세션 종합 정리 및 하네스 3계층(세션, 태스크, 루프 1~4) 완료 종결, Step 1~14 대화추적 전수 영속화, 35개 문서 DB 무결성 100% 달성",
+      "response_summary": "하네스 3계층 종결 및 14개 대화 턴 영속화 달성",
+      "prompt_tokens": 1800,
+      "completion_tokens": 1200,
+      "total_tokens": 3000,
+      "created_at": "2026-09-17T16:00:00.000Z"
+    },
+    {
+      "trace_id": "TRACE-20260920-015",
+      "session_id": "SESSION-20260917-001",
+      "task_id": "TASK-20260920-004",
+      "loop_id": "LOOP-20260920-011",
+      "step_index": 15,
+      "agent_name": "gemini",
+      "model_name": "models/gemini-3.8-flash",
+      "user_prompt": "#태스크정리, #태스크승급",
+      "agent_response": "[0000] DB 장애 대응 정책(2.1~2.5) UI 반영, AGENTS.md v2.0 거버넌스 규약 제정, 03-10 정책 수립 및 10-12 승급 리뷰 문서 발행 완료. 하네스 상태 종결",
+      "response_summary": "DB 장애 대응 정책 2.1~2.5 UI/UX 반영 및 AGENTS.md v2.0 거버넌스 승급 종결",
+      "prompt_tokens": 1950,
+      "completion_tokens": 1350,
+      "total_tokens": 3300,
+      "created_at": "2026-09-20T09:10:00.000Z"
+    },
+    {
+      "trace_id": "TRACE-20260920-016",
+      "session_id": "SESSION-20260917-001",
+      "task_id": "TASK-20260920-005",
+      "loop_id": "LOOP-20260920-012",
+      "step_index": 16,
+      "agent_name": "gemini",
+      "model_name": "models/gemini-3.8-flash",
+      "user_prompt": "#태스크정리, 승급 처리해줘",
+      "agent_response": "[00] AGENTS.md v2.1 거버넌스 규약 제정, 03-11 정책 수립, 10-13 승급 리뷰 문서 발행 완료 및 하네스 3계층 상태 '완료' 승급 종결",
+      "response_summary": "AGENTS.md v2.1 통합 거버넌스 제정 및 3계층 상태머신 승급 완료",
+      "prompt_tokens": 2100,
+      "completion_tokens": 1420,
+      "total_tokens": 3520,
+      "created_at": "2026-09-20T11:20:00.000Z"
+    }
+  ]
+}
