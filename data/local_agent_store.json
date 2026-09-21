@@ -2,7 +2,7 @@
   "sessions": [
     {
       "session_id": "SESSION-20260921-003",
-      "session_name": "[0005]에이전트대시보드_모바일반응형UX_및_메뉴체계화",
+      "session_name": "[0005]purePDFrend-대화턴영속화_DB인덱스개선_및_서비스전수점검가드레일완결",
       "work_group": "purePDFrend",
       "ai_agent": "gemini",
       "ai_model": "models/gemini-3.8-flash",
@@ -19,7 +19,7 @@
       "updated_sys": "agent-harness",
       "updated_by": "system",
       "version": 1,
-      "updated_at": "2026-09-21T15:20:13.142Z"
+      "updated_at": "2026-09-21T17:07:21.934Z"
     }
   ],
   "tasks": [
@@ -71,7 +71,7 @@
       "task_id": "TASK-20260921-009",
       "session_id": "SESSION-20260921-003",
       "task_name": "DB_인덱스감사컬럼_개선_및_대화턴_일괄영속화_파이프라인_구축",
-      "status_cd": "진행중",
+      "status_cd": "완료",
       "git_branch": "task/db-index-turn-sync_gemini",
       "started_at": "2026-09-21T09:46:00.000Z",
       "ended_at": null,
@@ -82,7 +82,8 @@
           "LOOP-20260921-017"
         ]
       },
-      "version": 1
+      "version": 1,
+      "end_time": "2026-09-21T17:06:06.840Z"
     }
   ],
   "loops": [
