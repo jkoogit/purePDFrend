@@ -6,9 +6,9 @@
       "work_group": "purePDFrend",
       "ai_agent": "gemini",
       "ai_model": "models/gemini-3.8-flash",
-      "status_cd": "진행중",
+      "status_cd": "완료",
       "started_at": "2026-09-22T10:22:00.000Z",
-      "ended_at": null,
+      "ended_at": "2026-09-22T14:15:00.000Z",
       "doc_payload": {
         "objective": "토큰사용량 계산방법 검토, 사용자(계정)별 관리방안 점검, 토큰소진 시 신규채팅/세션연장 작업연계 프로세스 수립, 토큰복구 후 계정간 세션번호 채번 및 의존성 관리방안 수립",
         "issue_number": 9,
@@ -42,9 +42,9 @@
       "task_id": "TASK-20260922-005-01",
       "session_id": "SESSION-20260922-005",
       "task_name": "[01] 토큰 관리 전략 의사결정 문서화 및 OOP/DDD 리팩토링",
-      "status_cd": "정리",
+      "status_cd": "완료",
       "started_at": "2026-09-22T10:25:00.000Z",
-      "ended_at": null,
+      "ended_at": "2026-09-22T14:09:00.000Z",
       "doc_payload": {
         "review_doc": "docs/10.리뷰/260922_019_토큰소진방지_자가적응형쿼터관리_및_OOP_DDD_리팩토링_리뷰.md",
         "backlogs": [
