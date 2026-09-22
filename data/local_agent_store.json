@@ -53,7 +53,46 @@
       "version": 6
     }
   ],
-  "loops": [],
+  "loops": [
+    {
+      "loop_id": "LOOP-20260921-001",
+      "task_id": "TASK-20260921-001",
+      "loop_name": "모바일 네비게이션 드로어 및 3대 도메인 그룹화 구현",
+      "status_cd": "완료",
+      "started_at": "2026-09-21T17:20:00.000Z",
+      "ended_at": "2026-09-21T18:00:00.000Z",
+      "doc_payload": {
+        "description": "3대 도메인(하네스, 지식창고, PDF 스튜디오) 세그먼트 및 모바일 햄버거 드로어 구현"
+      },
+      "created_sys": "agent-service",
+      "created_at": "2026-09-22T09:56:05.010Z",
+      "created_by": "system",
+      "updated_sys": "agent-service",
+      "updated_at": "2026-09-22T09:56:05.011Z",
+      "updated_by": "system",
+      "version": 2,
+      "session_id": "SESSION-20260921-004"
+    },
+    {
+      "loop_id": "LOOP-20260921-002",
+      "task_id": "TASK-20260921-001",
+      "loop_name": "상단 툴 높이 규격 통일(h-8) 및 대화턴 뷰어 버튼명 표준화",
+      "status_cd": "완료",
+      "started_at": "2026-09-22T09:00:00.000Z",
+      "ended_at": "2026-09-22T09:40:00.000Z",
+      "doc_payload": {
+        "description": "상단 액션 툴 높이 32px(h-8) 통일, 로고/버전 재배치 및 뷰어 버튼명 단일화"
+      },
+      "created_sys": "agent-service",
+      "created_at": "2026-09-22T09:56:05.011Z",
+      "created_by": "system",
+      "updated_sys": "agent-service",
+      "updated_at": "2026-09-22T09:56:05.011Z",
+      "updated_by": "system",
+      "version": 2,
+      "session_id": "SESSION-20260921-004"
+    }
+  ],
   "traces": [
     {
       "trace_id": "TRACE-20260921-034",
