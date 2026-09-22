@@ -311,23 +311,23 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
   });
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-xl p-6 space-y-6 overflow-y-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-slate-800 shrink-0">
-        <div>
-          <h2 className="text-base font-bold text-white flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-emerald-400" />
-            18대 표준 문서 거버넌스 & 개발DB(agent_docs_meta) 무결성
+    <div className="flex flex-col h-full bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-xl p-3.5 sm:p-5 md:p-6 space-y-4 sm:space-y-6 overflow-y-auto">
+      {/* Header: 모바일 및 영역 초과 시 자연스러운 줄바꿈 처리 */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-800 shrink-0 gap-3.5">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-sm sm:text-base font-bold text-white flex flex-wrap items-center gap-2 leading-snug break-keep">
+            <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
+            <span>18대 표준 문서 거버넌스 & 개발DB(agent_docs_meta) 무결성</span>
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-400 mt-1 break-keep leading-relaxed">
             문서번호 체계 및 폴더별 README 요약 탐색기, GFM 표 완벽 렌더링, 읽기/복사 전용 뷰어 및 고아 문서 자동 정화 지원
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 shrink-0 w-full md:w-auto">
           {syncMessage && (
-            <span className="text-xs text-emerald-400 font-medium flex items-center gap-1 bg-emerald-950/60 px-2.5 py-1 rounded border border-emerald-800/60">
-              <CheckCircle2 className="w-3.5 h-3.5" /> {syncMessage}
+            <span className="text-xs text-emerald-400 font-medium flex items-center gap-1 bg-emerald-950/60 px-2.5 py-1 rounded border border-emerald-800/60 break-keep">
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> <span>{syncMessage}</span>
             </span>
           )}
 
@@ -335,21 +335,21 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
           <button
             onClick={handleCleanupOrphans}
             disabled={isCleaningOrphans}
-            className="px-3 py-2 bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/60 text-rose-300 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5"
+            className="flex-1 sm:flex-initial justify-center px-3 py-2 bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/60 text-rose-300 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 break-keep"
             title="실제 파일이 없는 DB 고아 레코드 삭제"
           >
-            <Trash2 className={`w-3.5 h-3.5 ${isCleaningOrphans ? 'animate-spin' : ''}`} />
-            {isCleaningOrphans ? '고아 문서 정리중...' : '실물 없는 고아 DB 정리'}
+            <Trash2 className={`w-3.5 h-3.5 shrink-0 ${isCleaningOrphans ? 'animate-spin' : ''}`} />
+            <span>{isCleaningOrphans ? '고아 정리중...' : '실물 없는 고아 DB 정리'}</span>
           </button>
 
           {/* Full Sync Button */}
           <button
             onClick={handleSync}
             disabled={isSyncing}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 text-white rounded-lg text-xs font-semibold shadow-lg shadow-emerald-600/20 transition-all flex items-center gap-1.5"
+            className="flex-1 sm:flex-initial justify-center px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 text-white rounded-lg text-xs font-semibold shadow-lg shadow-emerald-600/20 transition-all flex items-center gap-1.5 break-keep"
           >
-            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-            {isSyncing ? '18대 문서 DB 동기화 중...' : '18대 문서 DB 일괄 동기화'}
+            <RefreshCw className={`w-4 h-4 shrink-0 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? '18대 문서 동기화중...' : '18대 문서 DB 일괄 동기화'}</span>
           </button>
         </div>
       </div>
@@ -405,9 +405,9 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
         {/* Right: Docs List (Desktop Table + Mobile Cards) */}
         <div className="lg:col-span-9 border border-slate-800 rounded-xl overflow-hidden bg-slate-900/60 flex flex-col">
           <div className="p-3 border-b border-slate-800 bg-slate-900/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-white">[{selectedFolder}]</span>
-              <span className="text-xs text-slate-400">문서 목록 ({filteredDocs.length}건)</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold text-white break-keep">[{selectedFolder}]</span>
+              <span className="text-xs text-slate-400 break-keep">문서 목록 ({filteredDocs.length}건)</span>
             </div>
 
             {/* Search Input & DB doc_payload Content Search Toggle */}
@@ -643,49 +643,49 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
 
       {/* Pure Markdown & Read-Only Source Viewer Modal with Remark-GFM & Mermaid */}
       {activeDoc && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2.5 sm:p-4 md:p-6">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl max-h-[92vh] sm:max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div className="p-4 border-b border-slate-800 bg-slate-950 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+            <div className="p-3 sm:p-4 border-b border-slate-800 bg-slate-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
                   <FileText className="w-4 h-4" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60 font-mono">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    <span className="text-xs px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60 font-mono shrink-0">
                       {activeDoc.folder}
                     </span>
-                    <h3 className="text-sm font-bold text-white">{activeDoc.fileName}</h3>
+                    <h3 className="text-sm font-bold text-white truncate">{activeDoc.fileName}</h3>
                   </div>
-                  <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                  <div className="text-[11px] text-slate-400 font-mono mt-0.5 truncate">
                     {activeDoc.filePath} | SHA-256: {activeDoc.contentHash?.substring(0, 16)}...
                   </div>
                 </div>
               </div>
 
               {/* Header Right: View Switcher & Copy Action */}
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 shrink-0 self-end sm:self-auto">
                 <div className="inline-flex rounded-lg bg-slate-900 p-1 border border-slate-800">
                   <button
                     onClick={() => setViewMode('preview')}
-                    className={`px-3 py-1 rounded text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                    className={`px-2.5 sm:px-3 py-1 rounded text-xs font-semibold flex items-center gap-1.5 transition-colors ${
                       viewMode === 'preview'
                         ? 'bg-indigo-600 text-white shadow-md'
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    <Eye className="w-3.5 h-3.5" /> 마크다운 뷰어
+                    <Eye className="w-3.5 h-3.5" /> <span>마크다운 뷰어</span>
                   </button>
                   <button
                     onClick={() => setViewMode('source')}
-                    className={`px-3 py-1 rounded text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                    className={`px-2.5 sm:px-3 py-1 rounded text-xs font-semibold flex items-center gap-1.5 transition-colors ${
                       viewMode === 'source'
                         ? 'bg-indigo-600 text-white shadow-md'
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    <Code className="w-3.5 h-3.5" /> 원본 소스 (읽기전용)
+                    <Code className="w-3.5 h-3.5" /> <span>원본 소스</span>
                   </button>
                 </div>
 
@@ -695,7 +695,7 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
                   title="원본 마크다운 복사"
                 >
                   {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copied ? '복사됨' : '마크다운 복사'}
+                  <span>{copied ? '복사됨' : '복사'}</span>
                 </button>
 
                 <button
@@ -708,7 +708,7 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
             </div>
 
             {/* Modal Body: GFM Table Enabled Preview & Read-Only Source */}
-            <div className="p-6 overflow-y-auto flex-1 text-slate-200 text-sm font-sans space-y-4">
+            <div className="p-3.5 sm:p-6 overflow-y-auto flex-1 text-slate-200 text-sm font-sans space-y-4">
               {isLoadingContent ? (
                 <div className="flex flex-col items-center justify-center py-20 text-slate-400 space-y-3">
                   <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin" />
@@ -716,7 +716,7 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
                 </div>
               ) : viewMode === 'preview' ? (
                 docContent ? (
-                  <div className="markdown-body max-w-none text-slate-300 leading-relaxed text-xs">
+                  <div className="markdown-body max-w-none text-slate-300 leading-relaxed text-xs break-words">
                     <Markdown
                       remarkPlugins={[remarkGfm]}
                       components={{
@@ -780,14 +780,14 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
               ) : (
                 /* Read-Only Source Mode */
                 <div className="flex flex-col h-full space-y-2">
-                  <div className="text-xs text-slate-400 font-mono flex items-center justify-between bg-slate-950/80 px-3 py-2 rounded-lg border border-slate-800">
+                  <div className="text-xs text-slate-400 font-mono flex flex-wrap items-center justify-between gap-2 bg-slate-950/80 px-3 py-2 rounded-lg border border-slate-800">
                     <span className="flex items-center gap-2">
-                      <Code className="w-3.5 h-3.5 text-indigo-400" />
-                      마크다운 소스 원문 (읽기 전용 / 상단 복사 지원)
+                      <Code className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                      <span>마크다운 소스 원문 (읽기 전용 / 상단 복사 지원)</span>
                     </span>
                     <span className="text-slate-500">줄 수: {docContent ? docContent.split('\n').length : 0}줄</span>
                   </div>
-                  <pre className="w-full h-[520px] p-4 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-300 overflow-auto leading-relaxed select-text">
+                  <pre className="w-full h-[520px] p-4 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-300 overflow-auto leading-relaxed select-text break-words">
                     {docContent}
                   </pre>
                 </div>
@@ -795,19 +795,19 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
             </div>
 
             {/* Modal Footer */}
-            <div className="p-3 border-t border-slate-800 bg-slate-950 flex items-center justify-between text-xs text-slate-400">
-              <div className="flex items-center gap-4">
+            <div className="p-3 border-t border-slate-800 bg-slate-950 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400 shrink-0">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                 <span>용량: {(activeDoc.sizeBytes / 1024).toFixed(1)} KB</span>
-                <span className="text-slate-600">|</span>
+                <span className="text-slate-600 hidden sm:inline">|</span>
                 <span className="flex items-center gap-1 text-emerald-400 font-mono">
-                  <Database className="w-3.5 h-3.5" /> DB 정합성 검증 완료
+                  <Database className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">DB 정합성 검증 완료</span>
                 </span>
-                <span className="text-slate-600">|</span>
-                <span>remark-gfm 표 & Mermaid 다이어그램 지원됨</span>
+                <span className="text-slate-600 hidden sm:inline">|</span>
+                <span className="hidden md:inline">remark-gfm 표 & Mermaid 다이어그램 지원됨</span>
               </div>
               <button
                 onClick={() => setActiveDoc(null)}
-                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold transition-colors"
+                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold transition-colors shrink-0"
               >
                 닫기
               </button>

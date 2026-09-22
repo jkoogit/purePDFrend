@@ -212,9 +212,9 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
   return (
     <div className="flex flex-col h-full bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
       {/* Top Metric Cards */}
-      <div className="p-4 border-b border-slate-800 bg-slate-900/60 grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="p-3 sm:p-4 border-b border-slate-800 bg-slate-900/60 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
         <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+          <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
             <Bot className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div className="min-w-0">
@@ -224,7 +224,7 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
         </div>
 
         <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+          <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
             <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div className="min-w-0">
@@ -236,7 +236,7 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
         </div>
 
         <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
             <Zap className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div className="min-w-0">
@@ -245,19 +245,33 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
           </div>
         </div>
 
-        <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+        <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2">
           <div className="min-w-0">
             <div className="text-[10px] sm:text-[11px] text-slate-400 uppercase tracking-wider font-semibold">연동 데이터베이스</div>
-            <div className="text-xs font-mono font-bold text-indigo-300 truncate">purepdfrend_dev</div>
+            <div className="text-xs font-bold text-slate-200 truncate">
+              {dbStatus === 'CONNECTED' ? 'PostgreSQL' : '로컬 스토어'}
+            </div>
+            <div className="text-[10px] font-mono text-indigo-300 truncate">purepdfrend_dev</div>
           </div>
-          <button
-            onClick={() => fetchUsage(searchKeyword)}
-            disabled={isLoading}
-            className="p-1.5 sm:p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors shrink-0 ml-1"
-            title="새로고침"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span
+              className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold ${
+                dbStatus === 'CONNECTED'
+                  ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/60'
+                  : 'bg-amber-950 text-amber-300 border border-amber-800/60'
+              }`}
+            >
+              {dbStatus}
+            </span>
+            <button
+              onClick={() => fetchUsage(searchKeyword)}
+              disabled={isLoading}
+              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+              title="새로고침"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -519,122 +533,121 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
 
       {/* Trace Detail & Actual Response Format Modal */}
       {selectedTrace && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2.5 sm:p-4 md:p-6">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl max-h-[92vh] sm:max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div className="p-4 border-b border-slate-800 bg-slate-950 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold">
+            <div className="p-3 sm:p-4 border-b border-slate-800 bg-slate-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold shrink-0 text-xs sm:text-sm">
                   #{selectedTrace.step_index}
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-white">대화 턴 감사 추적 전문 (Conversation Trace)</h3>
-                    <span className="text-xs px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60 font-mono">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    <h3 className="text-sm font-bold text-white truncate">대화 턴 감사 추적 전문</h3>
+                    <span className="text-[11px] px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60 font-mono shrink-0">
                       {selectedTrace.trace_id}
                     </span>
                   </div>
-                  <div className="text-[11px] text-slate-400 font-mono mt-0.5 flex items-center gap-3">
-                    <span>세션: {selectedTrace.session_id}</span>
-                    <span>|</span>
-                    <span>태스크: {selectedTrace.task_id || '-'}</span>
+                  <div className="text-[11px] text-slate-400 font-mono mt-1 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800">세션: {selectedTrace.session_id}</span>
+                    <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800">태스크: {selectedTrace.task_id || '-'}</span>
                     {selectedTrace.loop_id && (
-                      <>
-                        <span>|</span>
-                        <span className="text-emerald-300">루프: {selectedTrace.loop_id}</span>
-                      </>
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-800/50 text-emerald-300 font-semibold">
+                        루프: {selectedTrace.loop_id}
+                      </span>
                     )}
-                    <span>|</span>
-                    <span>시각: {new Date(selectedTrace.created_at).toLocaleString('ko-KR')}</span>
+                    <span className="text-slate-500 text-[10px]">
+                      {new Date(selectedTrace.created_at).toLocaleString('ko-KR')}
+                    </span>
                   </div>
                 </div>
               </div>
 
               <button
                 onClick={() => setSelectedTrace(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors self-end sm:self-auto shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Modal Body: Two-Section (Prompt & Actual Model Response Format) */}
-            <div className="p-6 overflow-y-auto flex-1 space-y-6">
+            <div className="p-3.5 sm:p-6 overflow-y-auto flex-1 space-y-4 sm:space-y-6">
               {/* Optional Section: Response Summary banner */}
               {selectedTrace.response_summary && (
-                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-2.5">
-                  <span className="font-bold text-amber-400 whitespace-nowrap">응답 본문 요약:</span>
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex flex-wrap sm:flex-nowrap items-start gap-2 sm:gap-2.5">
+                  <span className="font-bold text-amber-400 whitespace-nowrap shrink-0">응답 본문 요약:</span>
                   <span className="leading-relaxed">{selectedTrace.response_summary}</span>
                 </div>
               )}
 
               {/* Section 1: User Prompt Full Text */}
               <div className="rounded-xl border border-slate-800 bg-slate-950 overflow-hidden shadow-sm">
-                <div className="p-3 border-b border-slate-800/80 bg-slate-900/80 flex items-center justify-between">
+                <div className="p-3 border-b border-slate-800/80 bg-slate-900/80 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-xs font-bold text-indigo-300">
-                    <Send className="w-3.5 h-3.5 text-indigo-400" />
-                    사용자 요청 전문 (User Prompt Text)
+                    <Send className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                    <span>사용자 요청 전문 (User Prompt Text)</span>
                   </div>
                   <button
                     onClick={() => handleCopy(selectedTrace.user_prompt, true)}
-                    className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] text-slate-300 flex items-center gap-1 transition-colors"
+                    className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] text-slate-300 flex items-center gap-1 transition-colors shrink-0"
                   >
                     {copiedPrompt ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                    {copiedPrompt ? '복사됨' : '프롬프트 복사'}
+                    <span>{copiedPrompt ? '복사됨' : '프롬프트 복사'}</span>
                   </button>
                 </div>
-                <div className="p-4 text-xs font-mono text-slate-200 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto selection:bg-indigo-600">
+                <div className="p-3.5 sm:p-4 text-xs font-mono text-slate-200 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto break-words selection:bg-indigo-600">
                   {selectedTrace.user_prompt || '(요청 텍스트 없음)'}
                 </div>
               </div>
 
               {/* Section 2: Actual Agent Response Format Inspector */}
               <div className="rounded-xl border border-indigo-900/40 bg-slate-950 overflow-hidden shadow-lg">
-                <div className="p-3 border-b border-slate-800 bg-slate-900/90 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="p-3 border-b border-slate-800 bg-slate-900/90 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                     <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                      실제 모델 응답 포맷 (Generated Content & Payload)
+                      <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                      <span>실제 모델 응답 포맷 (Generated Content & Payload)</span>
                     </span>
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800/50 text-[10px] font-mono">
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800/50 text-[10px] font-mono shrink-0">
                       {selectedTrace.model_name}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => handleCopy(selectedTrace.agent_response, false)}
                       className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] text-slate-300 flex items-center gap-1 transition-colors"
                     >
                       {copiedResponse ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                      {copiedResponse ? '복사됨' : '응답 복사'}
+                      <span>{copiedResponse ? '복사됨' : '응답 복사'}</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Model Response Header Metadata Bar */}
-                <div className="px-4 py-2 bg-slate-900/50 border-b border-slate-800/80 flex flex-wrap items-center gap-4 text-[11px] font-mono text-slate-400">
-                  <span className="flex items-center gap-1">
+                <div className="px-3 sm:px-4 py-2 bg-slate-900/50 border-b border-slate-800/80 flex flex-wrap items-center gap-2 sm:gap-4 text-[11px] font-mono text-slate-400">
+                  <span className="flex items-center gap-1 shrink-0">
                     <Bot className="w-3 h-3 text-indigo-400" /> 에이전트: <strong className="text-slate-200">{selectedTrace.agent_name}</strong>
                   </span>
-                  <span>|</span>
-                  <span className="flex items-center gap-1">
+                  <span className="hidden sm:inline">|</span>
+                  <span className="flex items-center gap-1 shrink-0">
                     <Zap className="w-3 h-3 text-amber-400" /> 프롬프트 토큰: <strong className="text-slate-200">{selectedTrace.prompt_tokens || 0}</strong>
                   </span>
-                  <span>|</span>
-                  <span className="flex items-center gap-1">
+                  <span className="hidden sm:inline">|</span>
+                  <span className="flex items-center gap-1 shrink-0">
                     <Code className="w-3 h-3 text-emerald-400" /> 생성 토큰: <strong className="text-slate-200">{selectedTrace.completion_tokens || 0}</strong>
                   </span>
-                  <span>|</span>
-                  <span className="flex items-center gap-1">
+                  <span className="hidden sm:inline">|</span>
+                  <span className="flex items-center gap-1 shrink-0">
                     <Layers className="w-3 h-3 text-indigo-400" /> 총 토큰: <strong className="text-slate-200">{selectedTrace.total_tokens || 0}</strong>
                   </span>
                 </div>
 
                 {/* Formatted Markdown Content of the actual response */}
-                <div className="p-5 text-xs text-slate-200 leading-relaxed overflow-y-auto max-h-[380px] bg-slate-950/80">
-                  <div className="markdown-body max-w-none text-slate-300 space-y-2">
+                <div className="p-3.5 sm:p-5 text-xs text-slate-200 leading-relaxed overflow-y-auto max-h-[380px] bg-slate-950/80">
+                  <div className="markdown-body max-w-none text-slate-300 space-y-2 break-words">
                     <Markdown
                       remarkPlugins={[remarkGfm]}
                       components={{
@@ -676,15 +689,16 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
             </div>
 
             {/* Modal Footer */}
-            <div className="p-3 border-t border-slate-800 bg-slate-950 flex items-center justify-between text-xs text-slate-400">
-              <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1 text-emerald-400 font-mono">
-                  <Database className="w-3.5 h-3.5" /> aiagent.agent_conversation_trace 정합성 검증 완료
+            <div className="p-3 border-t border-slate-800 bg-slate-950 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400 shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1 text-emerald-400 font-mono text-[11px] sm:text-xs">
+                  <Database className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">aiagent.agent_conversation_trace 정합성 검증 완료</span>
                 </span>
               </div>
               <button
                 onClick={() => setSelectedTrace(null)}
-                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold transition-colors"
+                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold transition-colors shrink-0"
               >
                 닫기
               </button>
