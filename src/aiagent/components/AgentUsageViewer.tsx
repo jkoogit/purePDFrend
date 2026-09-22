@@ -212,65 +212,65 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
   return (
     <div className="flex flex-col h-full bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
       {/* Top Metric Cards */}
-      <div className="p-4 border-b border-slate-800 bg-slate-900/60 grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="p-3.5 rounded-lg bg-slate-900 border border-slate-800 flex items-center gap-3">
-          <div className="p-2 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-            <Bot className="w-5 h-5" />
+      <div className="p-4 border-b border-slate-800 bg-slate-900/60 grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+            <Bot className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <div>
-            <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">활성 AI 모델</div>
-            <div className="text-xs font-mono font-bold text-white truncate max-w-[160px]">{activeModel}</div>
+          <div className="min-w-0">
+            <div className="text-[10px] sm:text-[11px] text-slate-400 uppercase tracking-wider font-semibold">활성 AI 모델</div>
+            <div className="text-xs font-mono font-bold text-white truncate">{activeModel}</div>
           </div>
         </div>
 
-        <div className="p-3.5 rounded-lg bg-slate-900 border border-slate-800 flex items-center gap-3">
-          <div className="p-2 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20">
-            <MessageSquare className="w-5 h-5" />
+        <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+            <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <div>
-            <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">총 대화 턴 수</div>
-            <div className="text-lg font-bold text-white">
+          <div className="min-w-0">
+            <div className="text-[10px] sm:text-[11px] text-slate-400 uppercase tracking-wider font-semibold">총 대화 턴 수</div>
+            <div className="text-base sm:text-lg font-bold text-white">
               {traces.length} <span className="text-xs text-slate-500 font-normal">Turns</span>
             </div>
           </div>
         </div>
 
-        <div className="p-3.5 rounded-lg bg-slate-900 border border-slate-800 flex items-center gap-3">
-          <div className="p-2 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            <Zap className="w-5 h-5" />
+        <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <Zap className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <div>
-            <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">하네스 거버넌스 규격</div>
-            <div className="text-xs font-bold text-emerald-400">AGENTS.md 준수</div>
+          <div className="min-w-0">
+            <div className="text-[10px] sm:text-[11px] text-slate-400 uppercase tracking-wider font-semibold">하네스 거버넌스</div>
+            <div className="text-xs font-bold text-emerald-400 truncate">AGENTS.md 준수</div>
           </div>
         </div>
 
-        <div className="p-3.5 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between">
-          <div>
-            <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">연동 데이터베이스</div>
-            <div className="text-xs font-mono font-bold text-indigo-300">purepdfrend_dev</div>
+        <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+          <div className="min-w-0">
+            <div className="text-[10px] sm:text-[11px] text-slate-400 uppercase tracking-wider font-semibold">연동 데이터베이스</div>
+            <div className="text-xs font-mono font-bold text-indigo-300 truncate">purepdfrend_dev</div>
           </div>
           <button
             onClick={() => fetchUsage(searchKeyword)}
             disabled={isLoading}
-            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+            className="p-1.5 sm:p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors shrink-0 ml-1"
             title="새로고침"
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
 
-      {/* Search Header Bar (7 Search Targets: trace_id, session_id, task_id, agent, model, title, content) */}
-      <div className="p-3.5 border-b border-slate-800 bg-slate-900/80 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2 flex-1 min-w-[280px] max-w-xl">
-          <div className="relative flex-1">
+      {/* Search Header Bar */}
+      <div className="p-3 sm:p-3.5 border-b border-slate-800 bg-slate-900/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2 flex-1 max-w-xl">
+          <div className="relative flex-1 min-w-[180px]">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchKeyword}
               onChange={(e) => setSearchKeyword(e.target.value)}
-              placeholder="통합 검색 (trace_id, 세션ID, 태스크ID, 에이전트, 모델, 프롬프트, 응답)"
+              placeholder="통합 검색 (trace_id, 세션ID, 에이전트, 프롬프트, 응답)"
               className="w-full pl-9 pr-8 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
             />
             {searchKeyword && (
@@ -286,7 +286,7 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
           <select
             value={sessionFilter}
             onChange={(e) => setSessionFilter(e.target.value)}
-            className="bg-slate-950 border border-slate-800 rounded-lg text-xs text-indigo-300 py-1.5 px-3 focus:outline-none focus:border-indigo-500 font-mono shrink-0"
+            className="bg-slate-950 border border-slate-800 rounded-lg text-xs text-indigo-300 py-1.5 px-2.5 focus:outline-none focus:border-indigo-500 font-mono flex-1 sm:flex-none"
             title="세션 단위 격리 필터"
           >
             <option value="ALL">전체 세션 대상</option>
@@ -298,20 +298,21 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
           </select>
         </div>
 
-        <div className="flex items-center gap-3 text-xs text-slate-400">
+        <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-400">
           <span className="font-mono">
             검색 결과: <strong className="text-indigo-300">{displayTraces.length}</strong> / {traces.length}건
           </span>
-          <span className="text-slate-600">|</span>
-          <span className="text-[11px] text-slate-500">
-            헤더 클릭 시 <span className="text-indigo-400 font-semibold">오름차순(asc) → 내림차순(desc) → 초기화(init)</span> 순환 정렬됩니다.
+          <span className="text-slate-600 hidden sm:inline">|</span>
+          <span className="text-[11px] text-slate-500 hidden sm:inline">
+            헤더 클릭 시 오름차순/내림차순 정렬됩니다.
           </span>
         </div>
       </div>
 
-      {/* Traces List Table: Summary View */}
-      <div className="flex-1 overflow-auto p-4 relative">
-        <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-900/40">
+      {/* Traces List: Desktop Table + Mobile Card View */}
+      <div className="flex-1 overflow-auto p-3 sm:p-4 relative">
+        {/* Desktop Table View */}
+        <div className="hidden md:block border border-slate-800 rounded-xl overflow-hidden bg-slate-900/40">
           <table className="w-full text-left border-collapse text-xs">
             <thead className="sticky top-0 z-20 bg-slate-900 shadow-md">
               <tr className="border-b border-slate-800 text-slate-400 select-none">
@@ -399,7 +400,7 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
                     <td className="p-3 font-mono text-slate-300 text-[11px] truncate">{trace.trace_id}</td>
                     <td className="p-3 font-mono text-[11px]">
                       {trace.loop_id ? (
-                        <span className="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800/40">
+                        <span className="px-1.5 py-0.5 rounded bg-indigo-950/80 text-indigo-300 border border-indigo-800/40">
                           {trace.loop_id}
                         </span>
                       ) : (
@@ -446,12 +447,80 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
             </tbody>
           </table>
         </div>
+
+        {/* Mobile Card List View (< md) */}
+        <div className="block md:hidden space-y-3">
+          {displayTraces.map((trace) => {
+            const promptSummary = trace.user_prompt
+              ? trace.user_prompt.split('\n')[0].substring(0, 70) + (trace.user_prompt.length > 70 ? '...' : '')
+              : '(요청 없음)';
+            const responseSummary = trace.response_summary
+              ? trace.response_summary
+              : trace.agent_response
+              ? trace.agent_response.split('\n')[0].substring(0, 80) + (trace.agent_response.length > 80 ? '...' : '')
+              : '(응답 없음)';
+
+            return (
+              <div
+                key={trace.trace_id}
+                onClick={() => setSelectedTrace(trace)}
+                className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/90 shadow-sm space-y-2 cursor-pointer active:bg-slate-800/60 transition-colors"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/50 font-mono text-[11px] font-bold">
+                      #{trace.step_index}
+                    </span>
+                    <span className="font-mono text-slate-400 text-[11px]">{trace.trace_id}</span>
+                  </div>
+                  <span className="text-[11px] text-slate-500 font-mono">
+                    {new Date(trace.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+
+                <div className="text-xs text-white font-medium line-clamp-2">
+                  <span className="text-indigo-400 font-semibold mr-1.5">[요청]</span>
+                  {promptSummary}
+                </div>
+
+                <div className="text-xs text-slate-400 line-clamp-2 bg-slate-950/60 p-2 rounded-lg border border-slate-800/60">
+                  <span className="text-slate-300 font-semibold mr-1.5">[응답]</span>
+                  {responseSummary}
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-[11px] text-slate-400">
+                  <div className="flex items-center gap-2 truncate">
+                    <span className="font-semibold text-slate-300 truncate">{trace.model_name?.replace('models/', '')}</span>
+                    <span className="text-indigo-400 font-mono">@{trace.agent_name}</span>
+                  </div>
+                  <span className="text-indigo-400 font-semibold flex items-center gap-0.5 shrink-0">
+                    전문보기 <ChevronRight className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+
+          {displayTraces.length === 0 && !isLoading && (
+            <div className="p-8 text-center text-slate-400 text-xs">
+              {dbStatus !== 'CONNECTED' ? (
+                <div className="flex flex-col items-center justify-center gap-2">
+                  <Database className="w-6 h-6 text-amber-500/80 animate-pulse" />
+                  <span className="font-medium text-amber-300">조회된 결과가 없습니다.</span>
+                  <span className="text-[11px] text-slate-500">DB 연결 상태 확인 필요 (영속화 상태 점검필요)</span>
+                </div>
+              ) : (
+                <span>{searchKeyword ? '조회된 결과가 없습니다. (검색 조건 불일치)' : '조회된 결과가 없습니다.'}</span>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Trace Detail & Actual Response Format Modal */}
       {selectedTrace && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
             <div className="p-4 border-b border-slate-800 bg-slate-950 flex items-center justify-between">
               <div className="flex items-center gap-3">

@@ -3,6 +3,7 @@ export { default as WorkGraphViewer } from './components/WorkGraphViewer';
 export { default as IntegrityAuditManager } from './components/IntegrityAuditManager';
 export { default as AgentUsageViewer } from './components/AgentUsageViewer';
 export { default as DocsGovernanceManager } from './components/DocsGovernanceManager';
+export { default as SystemConfigManager } from './components/SystemConfigManager';
 export { default as SystemSettingsView } from './components/SystemSettingsView';
 export { PpdfAuditAdapter } from './adapters/PpdfAuditAdapter';
 export { IntegrityAuditFacade } from './domain/audit/IntegrityAuditFacade';

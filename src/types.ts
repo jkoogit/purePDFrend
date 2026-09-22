@@ -119,3 +119,29 @@ export interface SystemSettings {
     defaultViewModes: { session: boolean; task: boolean; loop: boolean };
   };
 }
+
+export type DomainGroupId = 'harness' | 'knowledge' | 'studio';
+
+export type ActiveViewId =
+  | 'graph'
+  | 'task'
+  | 'usage'
+  | 'audit'
+  | 'docs'
+  | 'settings'
+  | 'ocr'
+  | 'scenarios';
+
+export interface ViewNavItem {
+  id: ActiveViewId;
+  label: string;
+  description: string;
+  iconName: string;
+}
+
+export interface DomainNavGroup {
+  id: DomainGroupId;
+  label: string;
+  description: string;
+  views: ViewNavItem[];
+}

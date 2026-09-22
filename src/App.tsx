@@ -1,11 +1,27 @@
 import { useState, useEffect } from 'react';
-import { Navbar, AppTab, ErrorBoundary } from './shared';
-import { ScenarioDesignView } from './ppdf';
-import { SystemSettingsView } from './aiagent';
-import { SystemSettings, GraphNode, GraphEdge } from './types';
+import { Navbar, ErrorBoundary } from './shared';
+import { ScenarioDesignView, OcrEngineManager } from './ppdf';
+import {
+  WorkGraphViewer,
+  TaskInfoManager,
+  AgentUsageViewer,
+  IntegrityAuditManager,
+  DocsGovernanceManager,
+  SystemConfigManager,
+} from './aiagent';
+import {
+  SystemSettings,
+  GraphNode,
+  GraphEdge,
+  ActiveViewId,
+  DomainGroupId,
+} from './types';
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState<AppTab>('agent');
+  const [activeDomain, setActiveDomain] = useState<DomainGroupId>('harness');
+  const [activeView, setActiveView] = useState<ActiveViewId>('graph');
+  const [traceFilter, setTraceFilter] = useState<string>('');
+
   const [dbStatus, setDbStatus] = useState<string>('CHECKING');
   const [settings, setSettings] = useState<SystemSettings | null>(null);
 
@@ -76,46 +92,95 @@ export default function App() {
     }
   };
 
+  const handleNavigateToTrace = (keyword: string) => {
+    setTraceFilter(keyword);
+    setActiveDomain('harness');
+    setActiveView('usage');
+  };
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
-      {/* Top Navigation */}
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white overflow-x-hidden">
+      {/* Top 3-Domain Global & Mobile Navigation */}
       <Navbar
-        currentTab={currentTab}
-        onSelectTab={setCurrentTab}
+        activeView={activeView}
+        onSelectView={setActiveView}
+        activeDomain={activeDomain}
+        onSelectDomain={setActiveDomain}
         dbStatus={dbStatus}
       />
 
-      {/* Main Content Area Protected by ErrorBoundary */}
-      <main className="flex-1 min-h-0 overflow-hidden">
+      {/* Main Content Area with Strict Overflow Defense & Mobile Responsiveness */}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 overflow-x-hidden min-w-0">
         <ErrorBoundary fallbackTitle="에이전트 화면 로딩 중 오류가 발생했습니다.">
-          {currentTab === 'scenarios' && (
-            <ScenarioDesignView />
+          {/* [1. 하네스 거버넌스 도메인 4대 뷰] */}
+          {activeView === 'graph' && (
+            <div className="w-full space-y-4">
+              <WorkGraphViewer
+                nodes={graphNodes}
+                edges={graphEdges}
+                onRefresh={fetchGraph}
+                isLoading={isLoadingGraph}
+                dbStatus={dbStatus}
+              />
+            </div>
           )}
 
-          {currentTab === 'agent' && (
-            <SystemSettingsView
-              settings={settings}
-              onUpdateSettings={handleUpdateSettings}
-              graphNodes={graphNodes}
-              graphEdges={graphEdges}
-              onRefreshGraph={fetchGraph}
-              isLoadingGraph={isLoadingGraph}
-              initialMainTab="ai-agent"
-              dbStatus={dbStatus}
-            />
+          {activeView === 'task' && (
+            <div className="w-full space-y-4">
+              <TaskInfoManager
+                onNavigateToTrace={handleNavigateToTrace}
+                dbStatus={dbStatus}
+              />
+            </div>
           )}
 
-          {currentTab === 'system' && (
-            <SystemSettingsView
-              settings={settings}
-              onUpdateSettings={handleUpdateSettings}
-              graphNodes={graphNodes}
-              graphEdges={graphEdges}
-              onRefreshGraph={fetchGraph}
-              isLoadingGraph={isLoadingGraph}
-              initialMainTab="ocr-engine"
-              dbStatus={dbStatus}
-            />
+          {activeView === 'usage' && (
+            <div className="w-full space-y-4">
+              <AgentUsageViewer
+                initialFilter={traceFilter}
+                dbStatus={dbStatus}
+              />
+            </div>
+          )}
+
+          {activeView === 'audit' && (
+            <div className="w-full space-y-4">
+              <IntegrityAuditManager dbStatus={dbStatus} />
+            </div>
+          )}
+
+          {/* [2. 추적 및 지식창고 도메인 2대 뷰] */}
+          {activeView === 'docs' && (
+            <div className="w-full space-y-4">
+              <DocsGovernanceManager dbStatus={dbStatus} />
+            </div>
+          )}
+
+          {activeView === 'settings' && (
+            <div className="w-full space-y-4">
+              <SystemConfigManager
+                settings={settings}
+                onUpdateSettings={handleUpdateSettings}
+                dbStatus={dbStatus}
+              />
+            </div>
+          )}
+
+          {/* [3. PDF 스튜디오 도메인 2대 뷰] */}
+          {activeView === 'ocr' && (
+            <div className="w-full space-y-4">
+              <OcrEngineManager
+                settings={settings}
+                onUpdateSettings={handleUpdateSettings}
+                dbStatus={dbStatus}
+              />
+            </div>
+          )}
+
+          {activeView === 'scenarios' && (
+            <div className="w-full space-y-4">
+              <ScenarioDesignView />
+            </div>
           )}
         </ErrorBoundary>
       </main>

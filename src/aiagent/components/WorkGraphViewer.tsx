@@ -366,7 +366,7 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
     switch (cat) {
       case 'inProgress':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
             <PlayCircle className="w-3 h-3 animate-pulse" /> {status}
           </span>
         );
@@ -378,8 +378,8 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/30">
-            <Clock className="w-3 h-3" /> {status}
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+            <Clock className="w-3 h-3 text-slate-400" /> {status}
           </span>
         );
     }
@@ -567,10 +567,10 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
                     return next;
                   })
                 }
-                className="rounded border-slate-700 bg-slate-800 text-amber-500 focus:ring-0 focus:ring-offset-0"
+                className="rounded border-slate-700 bg-slate-800 text-indigo-500 focus:ring-0 focus:ring-offset-0"
               />
-              <span className="px-2 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-800/40 flex items-center gap-1 text-[11px]">
-                <PlayCircle className="w-3 h-3 text-amber-400" /> 진행 ({statusCounts.inProgress})
+              <span className="px-2 py-0.5 rounded bg-indigo-950/60 text-indigo-300 border border-indigo-800/40 flex items-center gap-1 text-[11px]">
+                <PlayCircle className="w-3 h-3 text-indigo-400" /> 진행 ({statusCounts.inProgress})
               </span>
             </label>
 
@@ -585,10 +585,10 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
                     return next;
                   })
                 }
-                className="rounded border-slate-700 bg-slate-800 text-blue-500 focus:ring-0 focus:ring-offset-0"
+                className="rounded border-slate-700 bg-slate-800 text-slate-400 focus:ring-0 focus:ring-offset-0"
               />
-              <span className="px-2 py-0.5 rounded bg-blue-950/60 text-blue-300 border border-blue-800/40 flex items-center gap-1 text-[11px]">
-                <Clock className="w-3 h-3 text-blue-400" /> 대기 ({statusCounts.pending})
+              <span className="px-2 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-700/60 flex items-center gap-1 text-[11px]">
+                <Clock className="w-3 h-3 text-slate-400" /> 대기 ({statusCounts.pending})
               </span>
             </label>
           </div>

@@ -290,8 +290,8 @@ export default function TaskInfoManager({ onNavigateToTrace, dbStatus = 'CONNECT
     switch (status) {
       case '처리':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30">
-            <PlayCircle className="w-3 h-3 animate-pulse" /> 처리중
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+            <PlayCircle className="w-3 h-3 animate-pulse text-indigo-400" /> 처리중
           </span>
         );
       case '정리':
@@ -304,8 +304,8 @@ export default function TaskInfoManager({ onNavigateToTrace, dbStatus = 'CONNECT
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/30">
-            <Clock className="w-3 h-3" /> {status}
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+            <Clock className="w-3 h-3 text-slate-400" /> {status}
           </span>
         );
     }
@@ -314,12 +314,12 @@ export default function TaskInfoManager({ onNavigateToTrace, dbStatus = 'CONNECT
   return (
     <div className="flex flex-col h-full bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
       {/* Header & Sub-Navigation */}
-      <div className="p-4 border-b border-slate-800 bg-slate-900/80 flex flex-wrap items-center justify-between gap-4">
+      <div className="p-4 border-b border-slate-800 bg-slate-900/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
         {/* Tab switchers */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 md:pb-0">
           <button
             onClick={() => setActiveTab('session')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 whitespace-nowrap shrink-0 ${
               activeTab === 'session'
                 ? 'bg-indigo-600 text-white shadow-md'
                 : 'bg-slate-800/80 text-slate-400 hover:text-slate-200 border border-slate-700/60'
@@ -330,9 +330,9 @@ export default function TaskInfoManager({ onNavigateToTrace, dbStatus = 'CONNECT
           </button>
           <button
             onClick={() => setActiveTab('task')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 whitespace-nowrap shrink-0 ${
               activeTab === 'task'
-                ? 'bg-amber-600 text-white shadow-md'
+                ? 'bg-indigo-600 text-white shadow-md'
                 : 'bg-slate-800/80 text-slate-400 hover:text-slate-200 border border-slate-700/60'
             }`}
           >
@@ -341,9 +341,9 @@ export default function TaskInfoManager({ onNavigateToTrace, dbStatus = 'CONNECT
           </button>
           <button
             onClick={() => setActiveTab('loop')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 whitespace-nowrap shrink-0 ${
               activeTab === 'loop'
-                ? 'bg-emerald-600 text-white shadow-md'
+                ? 'bg-indigo-600 text-white shadow-md'
                 : 'bg-slate-800/80 text-slate-400 hover:text-slate-200 border border-slate-700/60'
             }`}
           >
@@ -352,9 +352,9 @@ export default function TaskInfoManager({ onNavigateToTrace, dbStatus = 'CONNECT
           </button>
         </div>
 
-        {/* Search & Filters */}
-        <form onSubmit={handleSearch} className="flex items-center gap-2 flex-1 max-w-md">
-          <div className="relative flex-1">
+        {/* Search & Filters (Fully Responsive Stack / Row) */}
+        <form onSubmit={handleSearch} className="flex flex-wrap items-center gap-2 w-full md:w-auto md:max-w-xl">
+          <div className="relative flex-1 min-w-[180px]">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -369,10 +369,10 @@ export default function TaskInfoManager({ onNavigateToTrace, dbStatus = 'CONNECT
             <select
               value={sessionFilter}
               onChange={(e) => setSessionFilter(e.target.value)}
-              className="bg-slate-900 border border-slate-700 rounded-lg text-xs text-indigo-300 py-1.5 px-3 focus:outline-none focus:border-indigo-500 font-mono"
+              className="bg-slate-900 border border-slate-700 rounded-lg text-xs text-indigo-300 py-1.5 px-2.5 focus:outline-none focus:border-indigo-500 font-mono flex-1 sm:flex-none"
               title="세션 단위 격리 필터"
             >
-              <option value="ALL">전체 세션 대상</option>
+              <option value="ALL">전체 세션</option>
               {availableSessions.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.id}
@@ -384,7 +384,7 @@ export default function TaskInfoManager({ onNavigateToTrace, dbStatus = 'CONNECT
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-300 py-1.5 px-3 focus:outline-none focus:border-indigo-500"
+            className="bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-300 py-1.5 px-2.5 focus:outline-none focus:border-indigo-500"
           >
             <option value="ALL">전체 상태</option>
             <option value="시작">시작</option>
@@ -412,334 +412,474 @@ export default function TaskInfoManager({ onNavigateToTrace, dbStatus = 'CONNECT
         </form>
       </div>
 
-      {/* Main Table Content */}
+      {/* Main Content: Desktop Table (< md: hidden) + Mobile Card List (>= md: hidden) */}
       <div className="flex-1 overflow-auto relative">
         {activeTab === 'session' && (
-          <table className="w-full text-left border-collapse text-xs">
-            <thead className="sticky top-0 z-20 bg-slate-900 shadow-md">
-              <tr className="border-b border-slate-800 text-slate-400 select-none">
-                <th
-                  onClick={() => handleSessionSort('session_id')}
-                  className="p-3 w-44 font-mono cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
-                >
-                  <span className="inline-flex items-center">
-                    세션 ID{renderSortIndicator(sessionSortField, 'session_id', sessionSortOrder)}
-                  </span>
-                </th>
-                <th
-                  onClick={() => handleSessionSort('session_name')}
-                  className="p-3 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
-                >
-                  <span className="inline-flex items-center">
-                    세션명{renderSortIndicator(sessionSortField, 'session_name', sessionSortOrder)}
-                  </span>
-                </th>
-                <th
-                  onClick={() => handleSessionSort('work_group')}
-                  className="p-3 w-36 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
-                >
-                  <span className="inline-flex items-center">
-                    작업그룹{renderSortIndicator(sessionSortField, 'work_group', sessionSortOrder)}
-                  </span>
-                </th>
-                <th
-                  onClick={() => handleSessionSort('status_cd')}
-                  className="p-3 w-28 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
-                >
-                  <span className="inline-flex items-center">
-                    상태{renderSortIndicator(sessionSortField, 'status_cd', sessionSortOrder)}
-                  </span>
-                </th>
-                <th
-                  onClick={() => handleSessionSort('ai_agent')}
-                  className="p-3 w-48 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
-                >
-                  <span className="inline-flex items-center">
-                    담당 에이전트 / 모델{renderSortIndicator(sessionSortField, 'ai_agent', sessionSortOrder)}
-                  </span>
-                </th>
-                <th
-                  onClick={() => handleSessionSort('started_at')}
-                  className="p-3 w-40 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
-                >
-                  <span className="inline-flex items-center">
-                    시작일시{renderSortIndicator(sessionSortField, 'started_at', sessionSortOrder)}
-                  </span>
-                </th>
-                <th className="p-3 text-right w-44">대화턴 및 상세</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60">
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead className="sticky top-0 z-20 bg-slate-900 shadow-md">
+                  <tr className="border-b border-slate-800 text-slate-400 select-none">
+                    <th
+                      onClick={() => handleSessionSort('session_id')}
+                      className="p-3 w-44 font-mono cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                    >
+                      <span className="inline-flex items-center">
+                        세션 ID{renderSortIndicator(sessionSortField, 'session_id', sessionSortOrder)}
+                      </span>
+                    </th>
+                    <th
+                      onClick={() => handleSessionSort('session_name')}
+                      className="p-3 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                    >
+                      <span className="inline-flex items-center">
+                        세션명{renderSortIndicator(sessionSortField, 'session_name', sessionSortOrder)}
+                      </span>
+                    </th>
+                    <th
+                      onClick={() => handleSessionSort('work_group')}
+                      className="p-3 w-36 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                    >
+                      <span className="inline-flex items-center">
+                        작업그룹{renderSortIndicator(sessionSortField, 'work_group', sessionSortOrder)}
+                      </span>
+                    </th>
+                    <th
+                      onClick={() => handleSessionSort('status_cd')}
+                      className="p-3 w-28 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                    >
+                      <span className="inline-flex items-center">
+                        상태{renderSortIndicator(sessionSortField, 'status_cd', sessionSortOrder)}
+                      </span>
+                    </th>
+                    <th
+                      onClick={() => handleSessionSort('ai_agent')}
+                      className="p-3 w-48 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                    >
+                      <span className="inline-flex items-center">
+                        담당 에이전트 / 모델{renderSortIndicator(sessionSortField, 'ai_agent', sessionSortOrder)}
+                      </span>
+                    </th>
+                    <th
+                      onClick={() => handleSessionSort('started_at')}
+                      className="p-3 w-40 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                    >
+                      <span className="inline-flex items-center">
+                        시작일시{renderSortIndicator(sessionSortField, 'started_at', sessionSortOrder)}
+                      </span>
+                    </th>
+                    <th className="p-3 text-right w-44">대화턴 및 상세</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {sortedSessions.map((s) => (
+                    <tr key={s.session_id} className="hover:bg-slate-900/50 transition-colors">
+                      <td className="p-3 font-mono text-indigo-400 font-semibold">{s.session_id}</td>
+                      <td className="p-3 font-medium text-white">{s.session_name}</td>
+                      <td className="p-3 text-slate-300">{s.work_group}</td>
+                      <td className="p-3">{getStatusBadge(s.status_cd)}</td>
+                      <td className="p-3 text-slate-400">
+                        <span className="text-slate-200">{s.ai_agent}</span> ({s.ai_model})
+                      </td>
+                      <td className="p-3 text-slate-400">{new Date(s.started_at).toLocaleString('ko-KR')}</td>
+                      <td className="p-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() =>
+                              openTraceModal({
+                                type: '세션',
+                                id: s.session_id,
+                                title: s.session_name,
+                                sessionId: s.session_id,
+                              })
+                            }
+                            className="px-2.5 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-[11px] inline-flex items-center gap-1.5 shadow-sm transition-all"
+                            title="해당 세션의 대화턴 목록 및 전문 열람"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            대화턴 뷰어
+                          </button>
+                          <button
+                            onClick={() => setSelectedItem({ type: 'Session', data: s })}
+                            className="text-xs text-slate-400 hover:text-slate-200 px-2 py-1 rounded bg-slate-800/60"
+                          >
+                            JSONB
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View (Zero Horizontal Scroll) */}
+            <div className="block md:hidden p-3 space-y-3">
               {sortedSessions.map((s) => (
-                <tr key={s.session_id} className="hover:bg-slate-900/50 transition-colors">
-                  <td className="p-3 font-mono text-indigo-400 font-semibold">{s.session_id}</td>
-                  <td className="p-3 font-medium text-white">{s.session_name}</td>
-                  <td className="p-3 text-slate-300">{s.work_group}</td>
-                  <td className="p-3">{getStatusBadge(s.status_cd)}</td>
-                  <td className="p-3 text-slate-400">
-                    <span className="text-slate-200">{s.ai_agent}</span> ({s.ai_model})
-                  </td>
-                  <td className="p-3 text-slate-400">{new Date(s.started_at).toLocaleString('ko-KR')}</td>
-                  <td className="p-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() =>
-                          openTraceModal({
-                            type: '세션',
-                            id: s.session_id,
-                            title: s.session_name,
-                            sessionId: s.session_id,
-                          })
-                        }
-                        className="px-2.5 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-[11px] inline-flex items-center gap-1.5 shadow-sm transition-all"
-                        title="해당 세션의 대화턴 목록 및 전문 열람"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        대화턴 뷰어
-                      </button>
-                      <button
-                        onClick={() => setSelectedItem({ type: 'Session', data: s })}
-                        className="text-xs text-slate-400 hover:text-slate-200 px-2 py-1 rounded bg-slate-800/60"
-                      >
-                        JSONB
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                <div key={s.session_id} className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/90 shadow-sm space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-xs font-bold text-indigo-400 bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-800/40">
+                      {s.session_id}
+                    </span>
+                    {getStatusBadge(s.status_cd)}
+                  </div>
+                  <h4 className="text-sm font-bold text-white leading-snug">{s.session_name}</h4>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400 pt-1 border-t border-slate-800/60">
+                    <span>그룹: <strong className="text-slate-300">{s.work_group}</strong></span>
+                    <span>에이전트: <strong className="text-slate-300">{s.ai_agent}</strong> ({s.ai_model})</span>
+                    <span>일시: {new Date(s.started_at).toLocaleString('ko-KR')}</span>
+                  </div>
+                  <div className="flex items-center gap-2 pt-2 border-t border-slate-800/60">
+                    <button
+                      onClick={() =>
+                        openTraceModal({
+                          type: '세션',
+                          id: s.session_id,
+                          title: s.session_name,
+                          sessionId: s.session_id,
+                        })
+                      }
+                      className="flex-1 min-h-[38px] py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      대화턴 전문 뷰어
+                    </button>
+                    <button
+                      onClick={() => setSelectedItem({ type: 'Session', data: s })}
+                      className="min-h-[38px] px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs font-mono"
+                    >
+                      JSONB
+                    </button>
+                  </div>
+                </div>
               ))}
-              {sortedSessions.length === 0 && !isLoading && (
-                <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-400">
-                    {dbStatus !== 'CONNECTED' ? (
-                      <div className="flex flex-col items-center justify-center gap-1.5">
-                        <Database className="w-5 h-5 text-amber-500/80 animate-pulse" />
-                        <span className="font-medium text-amber-300">조회된 결과가 없습니다.</span>
-                        <span className="text-[11px] text-slate-500">DB 연결 상태 확인 필요 (영속화 상태 점검필요)</span>
-                      </div>
-                    ) : (
-                      <span>{keyword ? '조회된 결과가 없습니다. (검색 조건 불일치)' : '조회된 결과가 없습니다.'}</span>
-                    )}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+            </div>
+
+            {sortedSessions.length === 0 && !isLoading && (
+              <div className="p-8 text-center text-slate-400 text-xs">
+                {dbStatus !== 'CONNECTED' ? (
+                  <div className="flex flex-col items-center justify-center gap-1.5">
+                    <Database className="w-5 h-5 text-amber-500/80 animate-pulse" />
+                    <span className="font-medium text-amber-300">조회된 결과가 없습니다.</span>
+                    <span className="text-[11px] text-slate-500">DB 연결 상태 확인 필요 (영속화 상태 점검필요)</span>
+                  </div>
+                ) : (
+                  <span>{keyword ? '조회된 결과가 없습니다. (검색 조건 불일치)' : '조회된 결과가 없습니다.'}</span>
+                )}
+              </div>
+            )}
+          </>
         )}
 
         {activeTab === 'task' && (
-          <table className="w-full text-left border-collapse text-xs">
-            <thead className="sticky top-0 z-20 bg-slate-900 shadow-md">
-              <tr className="border-b border-slate-800 text-slate-400 select-none">
-                <th
-                  onClick={() => handleTaskSort('task_id')}
-                  className="p-3 w-40 font-mono cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
-                >
-                  <span className="inline-flex items-center">
-                    태스크 ID{renderSortIndicator(taskSortField, 'task_id', taskSortOrder)}
-                  </span>
-                </th>
-                <th
-                  onClick={() => handleTaskSort('task_name')}
-                  className="p-3 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
-                >
-                  <span className="inline-flex items-center">
-                    태스크명{renderSortIndicator(taskSortField, 'task_name', taskSortOrder)}
-                  </span>
-                </th>
-                <th
-                  onClick={() => handleTaskSort('session_id')}
-                  className="p-3 w-40 font-mono cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
-                >
-                  <span className="inline-flex items-center">
-                    연결 세션{renderSortIndicator(taskSortField, 'session_id', taskSortOrder)}
-                  </span>
-                </th>
-                <th
-                  onClick={() => handleTaskSort('git_branch')}
-                  className="p-3 w-40 font-mono cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
-                >
-                  <span className="inline-flex items-center">
-                    작업 브랜치{renderSortIndicator(taskSortField, 'git_branch', taskSortOrder)}
-                  </span>
-                </th>
-                <th
-                  onClick={() => handleTaskSort('status_cd')}
-                  className="p-3 w-28 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
-                >
-                  <span className="inline-flex items-center">
-                    상태{renderSortIndicator(taskSortField, 'status_cd', taskSortOrder)}
-                  </span>
-                </th>
-                <th
-                  onClick={() => handleTaskSort('started_at')}
-                  className="p-3 w-40 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
-                >
-                  <span className="inline-flex items-center">
-                    시작일시{renderSortIndicator(taskSortField, 'started_at', taskSortOrder)}
-                  </span>
-                </th>
-                <th className="p-3 text-right w-44">대화턴 및 상세</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60">
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead className="sticky top-0 z-20 bg-slate-900 shadow-md">
+                  <tr className="border-b border-slate-800 text-slate-400 select-none">
+                    <th
+                      onClick={() => handleTaskSort('task_id')}
+                      className="p-3 w-40 font-mono cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                    >
+                      <span className="inline-flex items-center">
+                        태스크 ID{renderSortIndicator(taskSortField, 'task_id', taskSortOrder)}
+                      </span>
+                    </th>
+                    <th
+                      onClick={() => handleTaskSort('task_name')}
+                      className="p-3 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                    >
+                      <span className="inline-flex items-center">
+                        태스크명{renderSortIndicator(taskSortField, 'task_name', taskSortOrder)}
+                      </span>
+                    </th>
+                    <th
+                      onClick={() => handleTaskSort('session_id')}
+                      className="p-3 w-40 font-mono cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                    >
+                      <span className="inline-flex items-center">
+                        연결 세션{renderSortIndicator(taskSortField, 'session_id', taskSortOrder)}
+                      </span>
+                    </th>
+                    <th
+                      onClick={() => handleTaskSort('git_branch')}
+                      className="p-3 w-40 font-mono cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                    >
+                      <span className="inline-flex items-center">
+                        작업 브랜치{renderSortIndicator(taskSortField, 'git_branch', taskSortOrder)}
+                      </span>
+                    </th>
+                    <th
+                      onClick={() => handleTaskSort('status_cd')}
+                      className="p-3 w-28 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                    >
+                      <span className="inline-flex items-center">
+                        상태{renderSortIndicator(taskSortField, 'status_cd', taskSortOrder)}
+                      </span>
+                    </th>
+                    <th
+                      onClick={() => handleTaskSort('started_at')}
+                      className="p-3 w-40 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                    >
+                      <span className="inline-flex items-center">
+                        시작일시{renderSortIndicator(taskSortField, 'started_at', taskSortOrder)}
+                      </span>
+                    </th>
+                    <th className="p-3 text-right w-44">대화턴 및 상세</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {sortedTasks.map((t) => (
+                    <tr key={t.task_id} className="hover:bg-slate-900/50 transition-colors">
+                      <td className="p-3 font-mono text-indigo-300 font-semibold">{t.task_id}</td>
+                      <td className="p-3 font-medium text-white">{t.task_name}</td>
+                      <td className="p-3 font-mono text-slate-400 text-[11px]">{t.session_id}</td>
+                      <td className="p-3 font-mono text-slate-300 text-[11px]">
+                        <span className="inline-flex items-center gap-1">
+                          <GitBranch className="w-3 h-3 text-indigo-400" />
+                          {t.git_branch}
+                        </span>
+                      </td>
+                      <td className="p-3">{getStatusBadge(t.status_cd)}</td>
+                      <td className="p-3 text-slate-400">{new Date(t.started_at).toLocaleString('ko-KR')}</td>
+                      <td className="p-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() =>
+                              openTraceModal({
+                                type: '태스크',
+                                id: t.task_id,
+                                title: t.task_name,
+                                taskId: t.task_id,
+                              })
+                            }
+                            className="px-2.5 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-[11px] inline-flex items-center gap-1.5 shadow-sm transition-all"
+                            title="해당 태스크의 대화턴 목록 및 전문 열람"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            대화턴 뷰어
+                          </button>
+                          <button
+                            onClick={() => setSelectedItem({ type: 'Task', data: t })}
+                            className="text-xs text-slate-400 hover:text-slate-200 px-2 py-1 rounded bg-slate-800/60"
+                          >
+                            JSONB
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="block md:hidden p-3 space-y-3">
               {sortedTasks.map((t) => (
-                <tr key={t.task_id} className="hover:bg-slate-900/50 transition-colors">
-                  <td className="p-3 font-mono text-amber-400 font-semibold">{t.task_id}</td>
-                  <td className="p-3 font-medium text-white">{t.task_name}</td>
-                  <td className="p-3 font-mono text-slate-400 text-[11px]">{t.session_id}</td>
-                  <td className="p-3 font-mono text-amber-300 text-[11px]">
-                    <span className="inline-flex items-center gap-1">
-                      <GitBranch className="w-3 h-3 text-amber-500" />
-                      {t.git_branch}
+                <div key={t.task_id} className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/90 shadow-sm space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-xs font-bold text-indigo-300 bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-800/40">
+                      {t.task_id}
                     </span>
-                  </td>
-                  <td className="p-3">{getStatusBadge(t.status_cd)}</td>
-                  <td className="p-3 text-slate-400">{new Date(t.started_at).toLocaleString('ko-KR')}</td>
-                  <td className="p-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() =>
-                          openTraceModal({
-                            type: '태스크',
-                            id: t.task_id,
-                            title: t.task_name,
-                            taskId: t.task_id,
-                          })
-                        }
-                        className="px-2.5 py-1 rounded-md bg-amber-600 hover:bg-amber-500 text-white font-semibold text-[11px] inline-flex items-center gap-1.5 shadow-sm transition-all"
-                        title="해당 태스크의 대화턴 목록 및 전문 열람"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        대화턴 뷰어
-                      </button>
-                      <button
-                        onClick={() => setSelectedItem({ type: 'Task', data: t })}
-                        className="text-xs text-slate-400 hover:text-slate-200 px-2 py-1 rounded bg-slate-800/60"
-                      >
-                        JSONB
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                    {getStatusBadge(t.status_cd)}
+                  </div>
+                  <h4 className="text-sm font-bold text-white leading-snug">{t.task_name}</h4>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400 pt-1 border-t border-slate-800/60">
+                    <span>세션: <strong className="font-mono text-slate-300">{t.session_id}</strong></span>
+                    <span className="flex items-center gap-1">
+                      <GitBranch className="w-3 h-3 text-indigo-400" />
+                      <strong className="font-mono text-slate-300">{t.git_branch}</strong>
+                    </span>
+                    <span>시작: {new Date(t.started_at).toLocaleString('ko-KR')}</span>
+                  </div>
+                  <div className="flex items-center gap-2 pt-2 border-t border-slate-800/60">
+                    <button
+                      onClick={() =>
+                        openTraceModal({
+                          type: '태스크',
+                          id: t.task_id,
+                          title: t.task_name,
+                          taskId: t.task_id,
+                        })
+                      }
+                      className="flex-1 min-h-[38px] py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      대화턴 전문 뷰어
+                    </button>
+                    <button
+                      onClick={() => setSelectedItem({ type: 'Task', data: t })}
+                      className="min-h-[38px] px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs font-mono"
+                    >
+                      JSONB
+                    </button>
+                  </div>
+                </div>
               ))}
-              {sortedTasks.length === 0 && !isLoading && (
-                <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-400">
-                    {dbStatus !== 'CONNECTED' ? (
-                      <div className="flex flex-col items-center justify-center gap-1.5">
-                        <Database className="w-5 h-5 text-amber-500/80 animate-pulse" />
-                        <span className="font-medium text-amber-300">조회된 결과가 없습니다.</span>
-                        <span className="text-[11px] text-slate-500">DB 연결 상태 확인 필요 (영속화 상태 점검필요)</span>
-                      </div>
-                    ) : (
-                      <span>{keyword ? '조회된 결과가 없습니다. (검색 조건 불일치)' : '조회된 결과가 없습니다.'}</span>
-                    )}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+            </div>
+
+            {sortedTasks.length === 0 && !isLoading && (
+              <div className="p-8 text-center text-slate-400 text-xs">
+                {dbStatus !== 'CONNECTED' ? (
+                  <div className="flex flex-col items-center justify-center gap-1.5">
+                    <Database className="w-5 h-5 text-amber-500/80 animate-pulse" />
+                    <span className="font-medium text-amber-300">조회된 결과가 없습니다.</span>
+                    <span className="text-[11px] text-slate-500">DB 연결 상태 확인 필요 (영속화 상태 점검필요)</span>
+                  </div>
+                ) : (
+                  <span>{keyword ? '조회된 결과가 없습니다. (검색 조건 불일치)' : '조회된 결과가 없습니다.'}</span>
+                )}
+              </div>
+            )}
+          </>
         )}
 
         {activeTab === 'loop' && (
-          <table className="w-full text-left border-collapse text-xs">
-            <thead className="sticky top-0 z-20 bg-slate-900 shadow-md">
-              <tr className="border-b border-slate-800 text-slate-400 select-none">
-                <th
-                  onClick={() => handleLoopSort('loop_id')}
-                  className="p-3 w-40 font-mono cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
-                >
-                  <span className="inline-flex items-center">
-                    루프 ID{renderSortIndicator(loopSortField, 'loop_id', loopSortOrder)}
-                  </span>
-                </th>
-                <th
-                  onClick={() => handleLoopSort('loop_name')}
-                  className="p-3 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
-                >
-                  <span className="inline-flex items-center">
-                    루프명{renderSortIndicator(loopSortField, 'loop_name', loopSortOrder)}
-                  </span>
-                </th>
-                <th
-                  onClick={() => handleLoopSort('task_id')}
-                  className="p-3 w-40 font-mono cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
-                >
-                  <span className="inline-flex items-center">
-                    연결 태스크{renderSortIndicator(loopSortField, 'task_id', loopSortOrder)}
-                  </span>
-                </th>
-                <th
-                  onClick={() => handleLoopSort('status_cd')}
-                  className="p-3 w-28 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
-                >
-                  <span className="inline-flex items-center">
-                    상태{renderSortIndicator(loopSortField, 'status_cd', loopSortOrder)}
-                  </span>
-                </th>
-                <th
-                  onClick={() => handleLoopSort('started_at')}
-                  className="p-3 w-40 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
-                >
-                  <span className="inline-flex items-center">
-                    시작일시{renderSortIndicator(loopSortField, 'started_at', loopSortOrder)}
-                  </span>
-                </th>
-                <th className="p-3 text-right w-44">대화턴 및 상세</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60">
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead className="sticky top-0 z-20 bg-slate-900 shadow-md">
+                  <tr className="border-b border-slate-800 text-slate-400 select-none">
+                    <th
+                      onClick={() => handleLoopSort('loop_id')}
+                      className="p-3 w-40 font-mono cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                    >
+                      <span className="inline-flex items-center">
+                        루프 ID{renderSortIndicator(loopSortField, 'loop_id', loopSortOrder)}
+                      </span>
+                    </th>
+                    <th
+                      onClick={() => handleLoopSort('loop_name')}
+                      className="p-3 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                    >
+                      <span className="inline-flex items-center">
+                        루프명{renderSortIndicator(loopSortField, 'loop_name', loopSortOrder)}
+                      </span>
+                    </th>
+                    <th
+                      onClick={() => handleLoopSort('task_id')}
+                      className="p-3 w-40 font-mono cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                    >
+                      <span className="inline-flex items-center">
+                        연결 태스크{renderSortIndicator(loopSortField, 'task_id', loopSortOrder)}
+                      </span>
+                    </th>
+                    <th
+                      onClick={() => handleLoopSort('status_cd')}
+                      className="p-3 w-28 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                    >
+                      <span className="inline-flex items-center">
+                        상태{renderSortIndicator(loopSortField, 'status_cd', loopSortOrder)}
+                      </span>
+                    </th>
+                    <th
+                      onClick={() => handleLoopSort('started_at')}
+                      className="p-3 w-40 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                    >
+                      <span className="inline-flex items-center">
+                        시작일시{renderSortIndicator(loopSortField, 'started_at', loopSortOrder)}
+                      </span>
+                    </th>
+                    <th className="p-3 text-right w-44">대화턴 및 상세</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {sortedLoops.map((l) => (
+                    <tr key={l.loop_id} className="hover:bg-slate-900/50 transition-colors">
+                      <td className="p-3 font-mono text-indigo-300 font-semibold">{l.loop_id}</td>
+                      <td className="p-3 font-medium text-white">{l.loop_name}</td>
+                      <td className="p-3 font-mono text-slate-400 text-[11px]">{l.task_id}</td>
+                      <td className="p-3">{getStatusBadge(l.status_cd)}</td>
+                      <td className="p-3 text-slate-400">{new Date(l.started_at).toLocaleString('ko-KR')}</td>
+                      <td className="p-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() =>
+                              openTraceModal({
+                                type: '루프',
+                                id: l.loop_id,
+                                title: l.loop_name,
+                                loopId: l.loop_id,
+                              })
+                            }
+                            className="px-2.5 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-[11px] inline-flex items-center gap-1.5 shadow-sm transition-all"
+                            title="해당 루프의 대화턴 목록 및 전문 열람"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            대화턴 뷰어
+                          </button>
+                          <button
+                            onClick={() => setSelectedItem({ type: 'Loop', data: l })}
+                            className="text-xs text-slate-400 hover:text-slate-200 px-2 py-1 rounded bg-slate-800/60"
+                          >
+                            JSONB
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="block md:hidden p-3 space-y-3">
               {sortedLoops.map((l) => (
-                <tr key={l.loop_id} className="hover:bg-slate-900/50 transition-colors">
-                  <td className="p-3 font-mono text-emerald-400 font-semibold">{l.loop_id}</td>
-                  <td className="p-3 font-medium text-white">{l.loop_name}</td>
-                  <td className="p-3 font-mono text-slate-400 text-[11px]">{l.task_id}</td>
-                  <td className="p-3">{getStatusBadge(l.status_cd)}</td>
-                  <td className="p-3 text-slate-400">{new Date(l.started_at).toLocaleString('ko-KR')}</td>
-                  <td className="p-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() =>
-                          openTraceModal({
-                            type: '루프',
-                            id: l.loop_id,
-                            title: l.loop_name,
-                            loopId: l.loop_id,
-                          })
-                        }
-                        className="px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] inline-flex items-center gap-1.5 shadow-sm transition-all"
-                        title="해당 루프의 대화턴 목록 및 전문 열람"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        대화턴 뷰어
-                      </button>
-                      <button
-                        onClick={() => setSelectedItem({ type: 'Loop', data: l })}
-                        className="text-xs text-slate-400 hover:text-slate-200 px-2 py-1 rounded bg-slate-800/60"
-                      >
-                        JSONB
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                <div key={l.loop_id} className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/90 shadow-sm space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-xs font-bold text-indigo-300 bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-800/40">
+                      {l.loop_id}
+                    </span>
+                    {getStatusBadge(l.status_cd)}
+                  </div>
+                  <h4 className="text-sm font-bold text-white leading-snug">{l.loop_name}</h4>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400 pt-1 border-t border-slate-800/60">
+                    <span>태스크: <strong className="font-mono text-slate-300">{l.task_id}</strong></span>
+                    <span>시작: {new Date(l.started_at).toLocaleString('ko-KR')}</span>
+                  </div>
+                  <div className="flex items-center gap-2 pt-2 border-t border-slate-800/60">
+                    <button
+                      onClick={() =>
+                        openTraceModal({
+                          type: '루프',
+                          id: l.loop_id,
+                          title: l.loop_name,
+                          loopId: l.loop_id,
+                        })
+                      }
+                      className="flex-1 min-h-[38px] py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      대화턴 전문 뷰어
+                    </button>
+                    <button
+                      onClick={() => setSelectedItem({ type: 'Loop', data: l })}
+                      className="min-h-[38px] px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs font-mono"
+                    >
+                      JSONB
+                    </button>
+                  </div>
+                </div>
               ))}
-              {sortedLoops.length === 0 && !isLoading && (
-                <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-400">
-                    {dbStatus !== 'CONNECTED' ? (
-                      <div className="flex flex-col items-center justify-center gap-1.5">
-                        <Database className="w-5 h-5 text-amber-500/80 animate-pulse" />
-                        <span className="font-medium text-amber-300">조회된 결과가 없습니다.</span>
-                        <span className="text-[11px] text-slate-500">DB 연결 상태 확인 필요 (영속화 상태 점검필요)</span>
-                      </div>
-                    ) : (
-                      <span>{keyword ? '조회된 결과가 없습니다. (검색 조건 불일치)' : '조회된 결과가 없습니다.'}</span>
-                    )}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+            </div>
+
+            {sortedLoops.length === 0 && !isLoading && (
+              <div className="p-8 text-center text-slate-400 text-xs">
+                {dbStatus !== 'CONNECTED' ? (
+                  <div className="flex flex-col items-center justify-center gap-1.5">
+                    <Database className="w-5 h-5 text-amber-500/80 animate-pulse" />
+                    <span className="font-medium text-amber-300">조회된 결과가 없습니다.</span>
+                    <span className="text-[11px] text-slate-500">DB 연결 상태 확인 필요 (영속화 상태 점검필요)</span>
+                  </div>
+                ) : (
+                  <span>{keyword ? '조회된 결과가 없습니다. (검색 조건 불일치)' : '조회된 결과가 없습니다.'}</span>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
 

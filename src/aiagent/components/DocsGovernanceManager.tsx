@@ -354,11 +354,11 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
         </div>
       </div>
 
-      {/* Main 2-Column: Folder Tree + Docs List */}
-      <div className="grid grid-cols-12 gap-6 min-h-[480px]">
-        {/* Left: 18 Folders Navigation */}
-        <div className="col-span-3 border border-slate-800 rounded-xl bg-slate-900/60 p-3 space-y-1 overflow-y-auto max-h-[580px]">
-          <div className="px-2 py-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-800/80 mb-2">
+      {/* Main Content: Responsive Folder Filter + Docs List */}
+      <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 sm:gap-6 min-h-[480px]">
+        {/* Folder Navigation: Horizontal scroll on mobile, Vertical list on desktop */}
+        <div className="lg:col-span-3 border border-slate-800 rounded-xl bg-slate-900/60 p-2.5 sm:p-3 space-y-1 overflow-x-auto lg:overflow-y-auto max-h-none lg:max-h-[580px] flex lg:flex-col gap-1.5 lg:gap-1 no-scrollbar">
+          <div className="hidden lg:flex px-2 py-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider items-center gap-1.5 border-b border-slate-800/80 mb-2">
             <Layers className="w-3.5 h-3.5 text-indigo-400" />
             18대 문서 분류 폴더
           </div>
@@ -372,13 +372,13 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
               <button
                 key={folder}
                 onClick={() => setSelectedFolder(folder)}
-                className={`w-full text-left px-2.5 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-between ${
+                className={`text-left px-2.5 py-1.5 sm:py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-between gap-2 shrink-0 whitespace-nowrap ${
                   isSelected
                     ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/30'
-                    : 'text-slate-300 hover:bg-slate-800/70 hover:text-white'
+                    : 'text-slate-300 bg-slate-950/40 lg:bg-transparent hover:bg-slate-800/70 hover:text-white border border-slate-800 lg:border-transparent'
                 }`}
               >
-                <div className="flex items-center gap-2 truncate">
+                <div className="flex items-center gap-1.5 sm:gap-2 truncate">
                   {isSelected ? (
                     <FolderOpen className="w-3.5 h-3.5 text-indigo-200 shrink-0" />
                   ) : (
@@ -402,24 +402,24 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
           })}
         </div>
 
-        {/* Right: Docs Table */}
-        <div className="col-span-9 border border-slate-800 rounded-xl overflow-hidden bg-slate-900/60 flex flex-col">
-          <div className="p-3 border-b border-slate-800 bg-slate-900/80 flex flex-wrap items-center justify-between gap-3">
+        {/* Right: Docs List (Desktop Table + Mobile Cards) */}
+        <div className="lg:col-span-9 border border-slate-800 rounded-xl overflow-hidden bg-slate-900/60 flex flex-col">
+          <div className="p-3 border-b border-slate-800 bg-slate-900/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-white">[{selectedFolder}]</span>
               <span className="text-xs text-slate-400">문서 목록 ({filteredDocs.length}건)</span>
             </div>
 
             {/* Search Input & DB doc_payload Content Search Toggle */}
-            <div className="flex items-center gap-2">
-              <div className="relative">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative flex-1 sm:flex-none">
                 <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   value={searchKeyword}
                   onChange={(e) => setSearchKeyword(e.target.value)}
-                  placeholder="제목, 파일명 또는 본문 검색..."
-                  className="pl-8 pr-7 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-56 font-sans transition-all"
+                  placeholder="제목, 파일명 또는 본문..."
+                  className="pl-8 pr-7 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full sm:w-52 font-sans transition-all"
                 />
                 {searchKeyword && (
                   <button
@@ -447,7 +447,8 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
             </div>
           </div>
 
-          <div className="overflow-x-auto flex-1">
+          {/* Desktop Table (< md hidden) */}
+          <div className="hidden md:block overflow-x-auto flex-1">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-slate-800 bg-slate-900/60 text-slate-400 select-none">
@@ -531,9 +532,9 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
                       <td className="p-3 text-slate-400 font-mono text-[11px]">{doc.folder}</td>
                       <td className="p-3 font-mono text-indigo-300 font-semibold flex items-center gap-2">
                         <FileText className={`w-3.5 h-3.5 shrink-0 group-hover:scale-110 transition-transform ${
-                          isReadme ? 'text-emerald-400' : 'text-indigo-400'
+                          isReadme ? 'text-indigo-400' : 'text-indigo-300'
                         }`} />
-                        <span className={isReadme ? 'text-emerald-300 font-bold' : 'text-indigo-200'}>
+                        <span className={isReadme ? 'text-indigo-200 font-bold' : 'text-slate-200'}>
                           {doc.fileName}
                         </span>
                       </td>
@@ -541,7 +542,7 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
                         <div className="flex items-center gap-1.5 truncate">
                           <span className="truncate">{doc.title}</span>
                           {contentMatchIds.has(doc.docId) && (
-                            <span className="shrink-0 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-mono">
+                            <span className="shrink-0 px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 text-[10px] font-mono">
                               본문 일치
                             </span>
                           )}
@@ -573,31 +574,77 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
                     </tr>
                   );
                 })}
-                {filteredDocs.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="p-8 text-center text-slate-400 text-xs">
-                      {dbStatus !== 'CONNECTED' ? (
-                        <div className="flex flex-col items-center justify-center gap-1.5">
-                          <Database className="w-5 h-5 text-amber-500/80 animate-pulse" />
-                          <span className="font-medium text-amber-300">조회된 결과가 없습니다.</span>
-                          <span className="text-[11px] text-slate-500">DB 연결 상태 확인 필요 (영속화 상태 점검필요)</span>
-                        </div>
-                      ) : (
-                        <span>{searchKeyword ? `"${searchKeyword}" 조회된 결과가 없습니다.` : '조회된 결과가 없습니다.'}</span>
-                      )}
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Card List (< md) */}
+          <div className="block md:hidden p-3 space-y-3">
+            {filteredDocs.map((doc) => {
+              const isReadme = doc.fileName.startsWith('README_');
+              return (
+                <div
+                  key={doc.filePath}
+                  onClick={() => handleOpenDoc(doc)}
+                  className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/90 shadow-sm space-y-2 cursor-pointer active:bg-slate-800/60 transition-colors"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/50">
+                      {doc.folder}
+                    </span>
+                    {doc.isSynced ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                        <CheckCircle2 className="w-3 h-3" /> DB 일치
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                        <AlertTriangle className="w-3 h-3" /> 미동기화
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <FileText className={`w-3.5 h-3.5 shrink-0 ${isReadme ? 'text-indigo-400' : 'text-indigo-300'}`} />
+                    <span className="font-mono text-xs font-bold text-slate-200 truncate">
+                      {doc.fileName}
+                    </span>
+                  </div>
+
+                  <h4 className="text-xs font-semibold text-white leading-snug">
+                    {doc.title}
+                  </h4>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-[11px] text-slate-400">
+                    <span>용량: {(doc.sizeBytes / 1024).toFixed(1)} KB</span>
+                    <span className="text-indigo-400 font-semibold flex items-center gap-1">
+                      <Eye className="w-3.5 h-3.5" /> 뷰어 열람
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {filteredDocs.length === 0 && (
+            <div className="p-8 text-center text-slate-400 text-xs">
+              {dbStatus !== 'CONNECTED' ? (
+                <div className="flex flex-col items-center justify-center gap-1.5">
+                  <Database className="w-5 h-5 text-amber-500/80 animate-pulse" />
+                  <span className="font-medium text-amber-300">조회된 결과가 없습니다.</span>
+                  <span className="text-[11px] text-slate-500">DB 연결 상태 확인 필요 (영속화 상태 점검필요)</span>
+                </div>
+              ) : (
+                <span>{searchKeyword ? `"${searchKeyword}" 조회된 결과가 없습니다.` : '조회된 결과가 없습니다.'}</span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Pure Markdown & Read-Only Source Viewer Modal with Remark-GFM & Mermaid */}
       {activeDoc && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
             <div className="p-4 border-b border-slate-800 bg-slate-950 flex items-center justify-between">
               <div className="flex items-center gap-3">
