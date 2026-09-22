@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 460" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#020617"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#6366f1"/>
+    </marker>
+  </defs>
+  <rect width="880" height="460" rx="16" fill="url(#bg-grad)" stroke="#1e293b" stroke-width="2"/>
+  <text x="40" y="50" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="20" font-weight="800">태스크 항목 분할 및 백로그 거버넌스 운영 흐름도</text>
+  <text x="40" y="80" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="13">작업 단위 마이크로 턴 분할 -> 백로그 격리 -> 단계별 승급</text>
+  <line x1="40" y1="105" x2="840" y2="105" stroke="#334155" stroke-dasharray="4 4"/>
+  
+      <g transform="translate(40, 140)">
+        <rect width="250" height="95" rx="12" fill="#0f172a" stroke="#6366f1" stroke-width="1.5" />
+        <rect x="12" y="12" width="60" height="20" rx="4" fill="#1e1b4b" />
+        <text x="42" y="26" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="10" font-weight="700" text-anchor="middle">STEP 1</text>
+        <text x="80" y="27" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="13" font-weight="700">태스크 분할</text>
+        <text x="12" y="55" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="11">작업별 순번 번호 부여</text>
+      </g>
+    
+        <path d="M 295 188 L 305 188" stroke="#475569" stroke-width="2" marker-end="url(#arrow)" />
+      
+      <g transform="translate(310, 140)">
+        <rect width="250" height="95" rx="12" fill="#0f172a" stroke="#f59e0b" stroke-width="1.5" />
+        <rect x="12" y="12" width="60" height="20" rx="4" fill="#78350f" />
+        <text x="42" y="26" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="10" font-weight="700" text-anchor="middle">STEP 2</text>
+        <text x="80" y="27" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="13" font-weight="700">범위 검증</text>
+        <text x="12" y="55" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="11">범위 이탈 요청 식별</text>
+      </g>
+    
+        <path d="M 565 188 L 575 188" stroke="#475569" stroke-width="2" marker-end="url(#arrow)" />
+      
+      <g transform="translate(580, 140)">
+        <rect width="250" height="95" rx="12" fill="#0f172a" stroke="#6366f1" stroke-width="1.5" />
+        <rect x="12" y="12" width="60" height="20" rx="4" fill="#1e1b4b" />
+        <text x="42" y="26" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="10" font-weight="700" text-anchor="middle">STEP 3</text>
+        <text x="80" y="27" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="13" font-weight="700">백로그 격리</text>
+        <text x="12" y="55" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="11">하네스 백로그 큐 분리 등록</text>
+      </g>
+    
+      <g transform="translate(40, 260)">
+        <rect width="250" height="95" rx="12" fill="#0f172a" stroke="#10b981" stroke-width="1.5" />
+        <rect x="12" y="12" width="60" height="20" rx="4" fill="#064e3b" />
+        <text x="42" y="26" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="10" font-weight="700" text-anchor="middle">STEP 4</text>
+        <text x="80" y="27" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="13" font-weight="700">태스크 완결</text>
+        <text x="12" y="55" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="11">단위 기능 완성 및 리뷰 발행</text>
+      </g>
+    
+</svg>

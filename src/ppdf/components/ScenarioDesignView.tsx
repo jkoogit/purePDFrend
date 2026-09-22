@@ -93,8 +93,8 @@ export default function ScenarioDesignView() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] p-4 max-w-7xl mx-auto w-full gap-4">
-      {/* Scenario Selection Header Tabs */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-2 px-3 shadow-lg flex items-center justify-between gap-2 overflow-x-auto">
+      {/* Scenario Selection Header Tabs (반응형 줄바꿈 및 스크롤바 제거) */}
+      <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-2 px-3 shadow-lg flex flex-wrap items-center gap-2 no-scrollbar">
         {scenarios.map((s) => {
           const Icon = s.icon;
           const isActive = activeScenario === s.id;
@@ -102,14 +102,14 @@ export default function ScenarioDesignView() {
             <button
               key={s.id}
               onClick={() => setActiveScenario(s.id)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all shrink-0 select-none ${
                 isActive
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
               }`}
             >
               <Icon className="w-4 h-4 shrink-0" />
-              <span>{s.title.split(':')[0]}</span>
+              <span className="break-keep">{s.title.split(':')[0]}</span>
             </button>
           );
         })}

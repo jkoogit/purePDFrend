@@ -88,32 +88,32 @@ export default function IntegrityAuditManager({ dbStatus = 'CONNECTED' }: Integr
   return (
     <div className="flex flex-col h-full bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
       {/* Header Bar */}
-      <div className="p-4 border-b border-slate-800 bg-slate-900/80 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+      <div className="p-3 sm:p-4 border-b border-slate-800 bg-slate-900/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="p-2 sm:p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
             <ShieldCheck className="w-5 h-5" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold text-white tracking-wide">3계층 무결성 및 거버넌스 심층 감사 센터</h2>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-800/60 font-semibold">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <h2 className="text-sm font-bold text-white tracking-wide break-keep">3계층 무결성 및 거버넌스 심층 감사 센터</h2>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-800/60 font-semibold shrink-0">
                 AGENTS.md 정책 03-09 & 02-01 준수
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-800 text-indigo-300 border border-slate-700">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-800 text-indigo-300 border border-slate-700 shrink-0">
                 DB 상태: {dbStatus}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
               세션 격리 상태, DB 고아 레코드, 실물 문서 SHA-256 일치율, 토큰 초과 오류 유입률을 실시간 전수 교차 검증합니다.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
           <button
             onClick={runAudit}
             disabled={isLoading}
-            className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md shadow-indigo-600/20 disabled:opacity-50"
+            className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md shadow-indigo-600/20 disabled:opacity-50 whitespace-nowrap"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             <span>실시간 전수 무결성 정밀 재감사</span>
@@ -348,11 +348,11 @@ export default function IntegrityAuditManager({ dbStatus = 'CONNECTED' }: Integr
 
         {/* Audit Footer Metadata */}
         {audit && (
-          <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 flex items-center justify-between text-xs text-slate-400 font-mono">
+          <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400 font-mono">
             <span>감사 시각: {new Date(audit.timestamp).toLocaleString('ko-KR')}</span>
             <span className="flex items-center gap-1.5 text-indigo-300">
-              <Database className="w-3.5 h-3.5 text-indigo-400" />
-              <span>원격 DB 엔드포인트: purepdfrend_dev (schema: aiagent)</span>
+              <Database className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+              <span className="truncate">원격 DB 엔드포인트: purepdfrend_dev (schema: aiagent)</span>
             </span>
           </div>
         )}

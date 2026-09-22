@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Navbar, ErrorBoundary } from './shared';
+import { useState, useEffect, useRef } from 'react';
+import { Navbar, ErrorBoundary, ScrollToTopFab } from './shared';
 import { ScenarioDesignView, OcrEngineManager } from './ppdf';
 import {
   WorkGraphViewer,
@@ -98,19 +98,54 @@ export default function App() {
     setActiveView('usage');
   };
 
+  // Header Pinning State (Default: true, persists in localStorage)
+  const [isHeaderPinned, setIsHeaderPinned] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('purepdfrend_header_pinned');
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
+
+  const mainScrollRef = useRef<HTMLElement | null>(null);
+
+  const togglePinHeader = () => {
+    setIsHeaderPinned((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('purepdfrend_header_pinned', String(next));
+      } catch {}
+      return next;
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white overflow-x-hidden">
+    <div
+      className={`${
+        isHeaderPinned ? 'h-screen overflow-hidden' : 'min-h-screen overflow-x-hidden'
+      } bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white`}
+    >
       {/* Top 3-Domain Global & Mobile Navigation */}
-      <Navbar
-        activeView={activeView}
-        onSelectView={setActiveView}
-        activeDomain={activeDomain}
-        onSelectDomain={setActiveDomain}
-        dbStatus={dbStatus}
-      />
+      <div className={isHeaderPinned ? 'shrink-0 z-40' : 'relative z-40'}>
+        <Navbar
+          activeView={activeView}
+          onSelectView={setActiveView}
+          activeDomain={activeDomain}
+          onSelectDomain={setActiveDomain}
+          dbStatus={dbStatus}
+          isHeaderPinned={isHeaderPinned}
+          onTogglePinHeader={togglePinHeader}
+        />
+      </div>
 
       {/* Main Content Area with Strict Overflow Defense & Mobile Responsiveness */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 overflow-x-hidden min-w-0">
+      <main
+        ref={mainScrollRef}
+        className={`flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 overflow-x-hidden min-w-0 ${
+          isHeaderPinned ? 'overflow-y-auto no-scrollbar scroll-smooth' : ''
+        }`}
+      >
         <ErrorBoundary fallbackTitle="에이전트 화면 로딩 중 오류가 발생했습니다.">
           {/* [1. 하네스 거버넌스 도메인 4대 뷰] */}
           {activeView === 'graph' && (
@@ -184,6 +219,12 @@ export default function App() {
           )}
         </ErrorBoundary>
       </main>
+
+      {/* 우하단 접이식 상단 점프 버튼 (Collapsible Jump to Top FAB) */}
+      <ScrollToTopFab
+        scrollContainerRef={isHeaderPinned ? mainScrollRef : undefined}
+        threshold={260}
+      />
     </div>
   );
 }

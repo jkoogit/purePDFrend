@@ -1,1 +1,75 @@
 @import "tailwindcss";
+
+@utility no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+  &::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+}
+
+/* 기본 HTML/Body 스크롤바 배제 및 부드러운 스크롤 체계 */
+html, body {
+  scroll-behavior: smooth;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+html::-webkit-scrollbar, body::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* 
+  [메뉴 및 버튼 영역 스크롤바 완전 제거]
+  슬라이드와 마우스 휠로만 직관적으로 컨트롤되도록 모든 내비게이션, 캐러셀 트랙, 메뉴 탭 영역의 스크롤바 숨김
+*/
+.no-scrollbar,
+.no-scrollbar *,
+[data-carousel-track],
+[data-carousel-track] *,
+nav,
+nav *,
+[role="region"][aria-label*="슬라이드"] *,
+.menu-container,
+.tabs-container {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.no-scrollbar::-webkit-scrollbar,
+.no-scrollbar *::-webkit-scrollbar,
+[data-carousel-track]::-webkit-scrollbar,
+[data-carousel-track] *::-webkit-scrollbar,
+nav::-webkit-scrollbar,
+nav *::-webkit-scrollbar,
+[role="region"][aria-label*="슬라이드"] *::-webkit-scrollbar,
+.menu-container::-webkit-scrollbar,
+.tabs-container::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+/* 일반 데이터/테이블 영역에만 부드러운 4px 초슬림 인디고 틴트 스크롤바 허용 */
+div:not([data-carousel-track]):not(nav):not(.no-scrollbar) {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.25) transparent;
+}
+div:not([data-carousel-track]):not(nav):not(.no-scrollbar)::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+div:not([data-carousel-track]):not(nav):not(.no-scrollbar)::-webkit-scrollbar-track {
+  background: transparent;
+}
+div:not([data-carousel-track]):not(nav):not(.no-scrollbar)::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.25);
+  border-radius: 9999px;
+}
+div:not([data-carousel-track]):not(nav):not(.no-scrollbar)::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.5);
+}

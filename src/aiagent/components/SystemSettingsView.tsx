@@ -49,110 +49,112 @@ export default function SystemSettingsView({
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] p-4 max-w-7xl mx-auto w-full gap-4">
-      {/* Top Main Navigation Bar */}
-      <div className="flex items-center justify-between bg-slate-900/90 border border-slate-800 rounded-xl p-2 px-4 shadow-lg backdrop-blur-xs shrink-0">
-        <div className="flex items-center gap-2">
-          <Settings className="w-5 h-5 text-indigo-400" />
-          <span className="text-sm font-bold text-white tracking-wide">시스템 관리</span>
-          <span className="text-xs text-slate-500 font-mono">| purepdfrend_dev</span>
+    <div className="flex flex-col h-[calc(100vh-4rem)] p-3 sm:p-4 max-w-7xl mx-auto w-full gap-3 sm:gap-4 overflow-y-auto">
+      {/* Top Main Navigation Bar: 표시영역 초과 시 줄바꿈 처리 */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between bg-slate-900/90 border border-slate-800 rounded-xl p-3 sm:px-4 shadow-lg backdrop-blur-xs shrink-0 gap-3">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <Settings className="w-5 h-5 text-indigo-400 shrink-0" />
+          <span className="text-sm font-bold text-white tracking-wide break-keep">시스템 관리</span>
+          <span className="text-xs text-slate-500 font-mono break-keep">| purepdfrend_dev</span>
         </div>
 
-        {/* Group Tabs */}
-        <div className="flex items-center gap-1.5">
+        {/* Group Tabs (1단 메뉴: 표시영역 초과 시 자동 줄바꿈 flex-wrap) */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <button
             onClick={() => setMainTab('ai-agent')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 break-keep select-none ${
               mainTab === 'ai-agent'
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
             }`}
           >
-            <Bot className="w-4 h-4" />
-            AI 에이전트 관리 그룹
+            <Bot className="w-4 h-4 shrink-0" />
+            <span>AI 에이전트 관리 그룹</span>
           </button>
 
           <button
             onClick={() => setMainTab('ocr-engine')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 break-keep select-none ${
               mainTab === 'ocr-engine'
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
             }`}
           >
-            <Cpu className="w-4 h-4" />
-            OCR 엔진 관리 (사용여부)
+            <Cpu className="w-4 h-4 shrink-0" />
+            <span>OCR 엔진 관리 (사용여부)</span>
           </button>
 
           <button
             onClick={() => setMainTab('docs-sync')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 break-keep select-none ${
               mainTab === 'docs-sync'
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
             }`}
           >
-            <ShieldCheck className="w-4 h-4" />
-            문서 체계 & DB 동기화
+            <ShieldCheck className="w-4 h-4 shrink-0" />
+            <span>문서 체계 & DB 동기화</span>
           </button>
         </div>
       </div>
 
-      {/* Sub-navigation if inside AI Agent Management */}
+      {/* Sub-navigation if inside AI Agent Management (2단 메뉴: 표시영역 초과 시 자동 줄바꿈 flex-wrap) */}
       {mainTab === 'ai-agent' && (
-        <div className="flex items-center gap-2 bg-slate-900/60 border border-slate-800/80 rounded-lg p-1.5 px-3 shrink-0">
-          <span className="text-xs font-semibold text-slate-400 mr-2 flex items-center gap-1">
-            <Bot className="w-3.5 h-3.5 text-indigo-400" />
-            에이전트 관리 메뉴:
+        <div className="flex flex-wrap items-center gap-2 bg-slate-900/60 border border-slate-800/80 rounded-lg p-2 sm:px-3 shrink-0">
+          <span className="text-xs font-semibold text-slate-400 mr-1 flex items-center gap-1 shrink-0 select-none break-keep">
+            <Bot className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+            <span>에이전트 관리:</span>
           </span>
 
-          <button
-            onClick={() => setAgentSubTab('graph')}
-            className={`px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
-              agentSubTab === 'graph'
-                ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-semibold'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Network className="w-3.5 h-3.5" />
-            작업그래프 조회 (뷰모드/간격)
-          </button>
+          <div className="flex flex-wrap items-center gap-1.5 flex-1">
+            <button
+              onClick={() => setAgentSubTab('graph')}
+              className={`px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 select-none break-keep ${
+                agentSubTab === 'graph'
+                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-semibold'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <Network className="w-3.5 h-3.5 shrink-0" />
+              <span>작업그래프 조회</span>
+            </button>
 
-          <button
-            onClick={() => setAgentSubTab('task-search')}
-            className={`px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
-              agentSubTab === 'task-search'
-                ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-semibold'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Search className="w-3.5 h-3.5" />
-            작업정보관리 (세션/태스크/루프 검색)
-          </button>
+            <button
+              onClick={() => setAgentSubTab('task-search')}
+              className={`px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 select-none break-keep ${
+                agentSubTab === 'task-search'
+                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-semibold'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <Search className="w-3.5 h-3.5 shrink-0" />
+              <span>작업정보관리 (세션/태스크)</span>
+            </button>
 
-          <button
-            onClick={() => setAgentSubTab('usage')}
-            className={`px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
-              agentSubTab === 'usage'
-                ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-semibold'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <BarChart3 className="w-3.5 h-3.5" />
-            에이전트 사용정보 조회
-          </button>
+            <button
+              onClick={() => setAgentSubTab('usage')}
+              className={`px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 select-none break-keep ${
+                agentSubTab === 'usage'
+                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-semibold'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <BarChart3 className="w-3.5 h-3.5 shrink-0" />
+              <span>에이전트 사용정보</span>
+            </button>
 
-          <button
-            onClick={() => setAgentSubTab('audit')}
-            className={`px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
-              agentSubTab === 'audit'
-                ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-semibold'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            3계층 무결성 감사
-          </button>
+            <button
+              onClick={() => setAgentSubTab('audit')}
+              className={`px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 select-none break-keep ${
+                agentSubTab === 'audit'
+                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-semibold'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+              <span>3계층 무결성 감사</span>
+            </button>
+          </div>
         </div>
       )}
 

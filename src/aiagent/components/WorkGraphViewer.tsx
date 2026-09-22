@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
+import { ScrollSnapCarousel } from '../../shared/components/ScrollSnapCarousel';
 import { GraphNode, GraphEdge } from '../../types';
 import {
   Layers,
@@ -20,7 +21,10 @@ import {
   Maximize2,
   Minimize2,
   Focus,
-  X
+  X,
+  Filter,
+  SlidersHorizontal,
+  List
 } from 'lucide-react';
 
 interface WorkGraphViewerProps {
@@ -78,10 +82,31 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
   const [isSavingViewState, setIsSavingViewState] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
+  // 7. Mobile responsive navigation state
+  const [mobileTab, setMobileTab] = useState<'all' | 'session' | 'task' | 'loop'>('all');
+  const [mobileFilterOpen, setMobileFilterOpen] = useState<boolean>(false);
+  const [mobileViewStyle, setMobileViewStyle] = useState<'carousel' | 'list'>('carousel');
+
   // Canvas refs for dynamic SVG connection lines
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [connectorLines, setConnectorLines] = useState<ConnectorLine[]>([]);
+  const [containerWidth, setContainerWidth] = useState<number>(0);
+
+  // ResizeObserver to detect container width for responsive line wrapping
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect) {
+          setContainerWidth(Math.round(entry.contentRect.width));
+        }
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Load saved view state from localStorage and DB on mount
   useEffect(() => {
@@ -186,11 +211,11 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
 
   // Helper to categorize node status
   const getNodeCategory = (status: string): 'completed' | 'inProgress' | 'pending' => {
-    const s = String(status || '').toUpperCase();
+    const s = String(status || '').trim().toUpperCase();
     if (['DONE', '완료', '승급', '정리', 'COMPLETED', 'PROMOTE', 'CLEANUP'].includes(s)) {
       return 'completed';
     }
-    if (['처리', 'IN_PROGRESS', 'RUNNING', 'ACTIVE'].includes(s)) {
+    if (['처리', '진행', '진행중', '처리중', 'IN_PROGRESS', 'RUNNING', 'ACTIVE'].includes(s)) {
       return 'inProgress';
     }
     return 'pending';
@@ -259,6 +284,14 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
   const taskNodes = useMemo(() => filteredNodes.filter((n) => n.level === 'task'), [filteredNodes]);
   const loopNodes = useMemo(() => filteredNodes.filter((n) => n.level === 'loop'), [filteredNodes]);
 
+  // Determine if columns need to wrap based on available width
+  const isColumnsWrapped = useMemo(() => {
+    const activeColumnsCount = (viewModes.session ? 1 : 0) + (viewModes.task ? 1 : 0) + (viewModes.loop ? 1 : 0);
+    if (activeColumnsCount <= 1) return false;
+    const minNeededWidth = activeColumnsCount * 320 + (activeColumnsCount - 1) * activeSpacing + 80;
+    return containerWidth > 0 && containerWidth < minNeededWidth;
+  }, [containerWidth, viewModes, activeSpacing]);
+
   // Calculate dynamic SVG connecting lines & arrows for Columns mode
   const recalculateConnectors = () => {
     if (layoutMode !== 'columns' || !contentRef.current) {
@@ -279,10 +312,21 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
           const sRect = sEl.getBoundingClientRect();
           const tRect = tEl.getBoundingClientRect();
 
-          const x1 = (sRect.right - contentRect.left) / zoomLevel;
-          const y1 = (sRect.top + sRect.height / 2 - contentRect.top) / zoomLevel;
-          const x2 = (tRect.left - contentRect.left) / zoomLevel;
-          const y2 = (tRect.top + tRect.height / 2 - contentRect.top) / zoomLevel;
+          const isHorizontal = tRect.left >= sRect.right - 30;
+          let x1: number, y1: number, x2: number, y2: number;
+
+          if (isHorizontal) {
+            x1 = (sRect.right - contentRect.left) / zoomLevel;
+            y1 = (sRect.top + sRect.height / 2 - contentRect.top) / zoomLevel;
+            x2 = (tRect.left - contentRect.left) / zoomLevel;
+            y2 = (tRect.top + tRect.height / 2 - contentRect.top) / zoomLevel;
+          } else {
+            // Wrapped vertically
+            x1 = (sRect.left + sRect.width / 2 - contentRect.left) / zoomLevel;
+            y1 = (sRect.bottom - contentRect.top) / zoomLevel;
+            x2 = (tRect.left + tRect.width / 2 - contentRect.left) / zoomLevel;
+            y2 = (tRect.top - contentRect.top) / zoomLevel;
+          }
 
           const isFocused = Boolean(
             activeDownstreamIds &&
@@ -314,10 +358,21 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
           const tRect = tEl.getBoundingClientRect();
           const lRect = lEl.getBoundingClientRect();
 
-          const x1 = (tRect.right - contentRect.left) / zoomLevel;
-          const y1 = (tRect.top + tRect.height / 2 - contentRect.top) / zoomLevel;
-          const x2 = (lRect.left - contentRect.left) / zoomLevel;
-          const y2 = (lRect.top + lRect.height / 2 - contentRect.top) / zoomLevel;
+          const isHorizontal = lRect.left >= tRect.right - 30;
+          let x1: number, y1: number, x2: number, y2: number;
+
+          if (isHorizontal) {
+            x1 = (tRect.right - contentRect.left) / zoomLevel;
+            y1 = (tRect.top + tRect.height / 2 - contentRect.top) / zoomLevel;
+            x2 = (lRect.left - contentRect.left) / zoomLevel;
+            y2 = (lRect.top + lRect.height / 2 - contentRect.top) / zoomLevel;
+          } else {
+            // Wrapped vertically
+            x1 = (tRect.left + tRect.width / 2 - contentRect.left) / zoomLevel;
+            y1 = (tRect.bottom - contentRect.top) / zoomLevel;
+            x2 = (lRect.left + lRect.width / 2 - contentRect.left) / zoomLevel;
+            y2 = (lRect.top - contentRect.top) / zoomLevel;
+          }
 
           const isFocused = Boolean(
             activeDownstreamIds &&
@@ -343,7 +398,7 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
   };
 
   useLayoutEffect(() => {
-    const timer = setTimeout(recalculateConnectors, 50);
+    const timer = setTimeout(recalculateConnectors, 60);
     return () => clearTimeout(timer);
   }, [
     filteredNodes,
@@ -353,33 +408,41 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
     layoutMode,
     focusedCardId,
     activeDownstreamIds,
+    containerWidth,
+    isColumnsWrapped,
   ]);
 
-  // Re-calculate on window resize
+  // Re-calculate on window resize or containerWidth change
   useEffect(() => {
     window.addEventListener('resize', recalculateConnectors);
     return () => window.removeEventListener('resize', recalculateConnectors);
-  }, [layoutMode, zoomLevel, activeSpacing]);
+  }, [layoutMode, zoomLevel, activeSpacing, containerWidth]);
 
   const getStatusBadge = (status: string) => {
-    const cat = getNodeCategory(status);
+    const s = String(status || '').trim();
+    const cat = getNodeCategory(s);
+    const baseBadgeClass = "w-[76px] shrink-0 inline-flex items-center justify-center gap-1 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap select-none";
+
     switch (cat) {
       case 'inProgress':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
-            <PlayCircle className="w-3 h-3 animate-pulse" /> {status}
+          <span className={`${baseBadgeClass} bg-indigo-500/15 text-indigo-300 border border-indigo-500/30`}>
+            <PlayCircle className="w-3 h-3 animate-pulse text-indigo-400 shrink-0" />
+            <span>{s === '처리' || s === '처리중' ? '진행중' : (s || '진행중')}</span>
           </span>
         );
       case 'completed':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-            <CheckCircle2 className="w-3 h-3" /> {status}
+          <span className={`${baseBadgeClass} bg-emerald-500/15 text-emerald-400 border border-emerald-500/30`}>
+            <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+            <span>{s}</span>
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">
-            <Clock className="w-3 h-3 text-slate-400" /> {status}
+          <span className={`${baseBadgeClass} bg-slate-800 text-slate-300 border border-slate-700`}>
+            <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+            <span>{s || '대기'}</span>
           </span>
         );
     }
@@ -421,8 +484,169 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
 
   return (
     <div className="flex flex-col h-full bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
-      {/* Top Multi-Filter & Control Bar */}
-      <div className="p-3 border-b border-slate-800 bg-slate-900/90 flex flex-wrap items-center justify-between gap-3 shrink-0">
+      {/* Mobile Top Navigation & Layer Tabs (< md) */}
+      <div className="md:hidden border-b border-slate-800 bg-slate-900/95 shrink-0">
+        <div className="p-2.5 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Network className="w-4 h-4 text-indigo-400 shrink-0" />
+            <span className="text-xs font-bold text-white truncate">작업그래프</span>
+            <span className="text-[10px] font-mono bg-indigo-950 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-800/60 shrink-0">
+              {filteredNodes.length}건
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => setMobileFilterOpen(!mobileFilterOpen)}
+              className={`min-h-[36px] px-2.5 py-1 rounded-lg border text-xs font-medium transition-colors flex items-center gap-1 ${
+                mobileFilterOpen
+                  ? 'bg-indigo-600 text-white border-indigo-500'
+                  : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
+              }`}
+            >
+              <Filter className="w-3.5 h-3.5" />
+              <span>상태</span>
+            </button>
+            <button
+              onClick={onRefresh}
+              disabled={isLoading}
+              className="min-h-[36px] min-w-[36px] p-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center"
+              title="새로고침"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-indigo-400' : ''}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Status Filter Drawer */}
+        {mobileFilterOpen && (
+          <div className="px-3 pb-3 pt-1 border-t border-slate-800/80 bg-slate-950/80 space-y-2 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">상태 필터</span>
+              <button
+                onClick={() => setStatusFilters({ all: true, completed: true, inProgress: true, pending: true })}
+                className="text-[11px] text-indigo-400 hover:underline"
+              >
+                전체 초기화
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              <button
+                onClick={() => setStatusFilters((p) => ({ ...p, completed: !p.completed }))}
+                className={`py-1.5 px-2 rounded-lg text-xs border font-medium text-center transition-colors ${
+                  statusFilters.completed
+                    ? 'bg-emerald-950/90 text-emerald-300 border-emerald-600/80 shadow-xs'
+                    : 'bg-slate-900 text-slate-500 border-slate-800'
+                }`}
+              >
+                완료 ({statusCounts.completed})
+              </button>
+              <button
+                onClick={() => setStatusFilters((p) => ({ ...p, inProgress: !p.inProgress }))}
+                className={`py-1.5 px-2 rounded-lg text-xs border font-medium text-center transition-colors ${
+                  statusFilters.inProgress
+                    ? 'bg-indigo-950/90 text-indigo-300 border-indigo-600/80 shadow-xs'
+                    : 'bg-slate-900 text-slate-500 border-slate-800'
+                }`}
+              >
+                진행 ({statusCounts.inProgress})
+              </button>
+              <button
+                onClick={() => setStatusFilters((p) => ({ ...p, pending: !p.pending }))}
+                className={`py-1.5 px-2 rounded-lg text-xs border font-medium text-center transition-colors ${
+                  statusFilters.pending
+                    ? 'bg-slate-800 text-slate-200 border-slate-600 shadow-xs'
+                    : 'bg-slate-900 text-slate-500 border-slate-800'
+                }`}
+              >
+                대기 ({statusCounts.pending})
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Layer Segments & Layout Style Toggle (넓이 인식 반응형 줄바꿈 세그먼트) */}
+        <div className="flex flex-wrap items-center justify-between border-t border-slate-800/80 px-2 py-1.5 gap-2 bg-slate-900/90">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 flex-1 min-w-[240px]">
+            <button
+              onClick={() => setMobileTab('all')}
+              className={`min-h-[34px] px-1 py-1 rounded-lg text-[11px] font-semibold transition-colors flex items-center justify-center gap-1 ${
+                mobileTab === 'all'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'bg-slate-800/70 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Network className="w-3 h-3 shrink-0" />
+              <span className="truncate">전체 ({nodes.length})</span>
+            </button>
+            <button
+              onClick={() => setMobileTab('session')}
+              className={`min-h-[34px] px-1 py-1 rounded-lg text-[11px] font-semibold transition-colors flex items-center justify-center gap-1 ${
+                mobileTab === 'session'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'bg-slate-800/70 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
+              <span className="truncate">세션 ({sessionNodes.length})</span>
+            </button>
+            <button
+              onClick={() => setMobileTab('task')}
+              className={`min-h-[34px] px-1 py-1 rounded-lg text-[11px] font-semibold transition-colors flex items-center justify-center gap-1 ${
+                mobileTab === 'task'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'bg-slate-800/70 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-300 shrink-0" />
+              <span className="truncate">태스크 ({taskNodes.length})</span>
+            </button>
+            <button
+              onClick={() => setMobileTab('loop')}
+              className={`min-h-[34px] px-1 py-1 rounded-lg text-[11px] font-semibold transition-colors flex items-center justify-center gap-1 ${
+                mobileTab === 'loop'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'bg-slate-800/70 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+              <span className="truncate">루프 ({loopNodes.length})</span>
+            </button>
+          </div>
+
+          {/* Carousel vs List View Switcher (when not 'all') */}
+          {mobileTab !== 'all' && (
+            <div className="inline-flex rounded-lg bg-slate-800/90 p-0.5 border border-slate-700/60 shrink-0">
+              <button
+                onClick={() => setMobileViewStyle('carousel')}
+                className={`p-1.5 rounded-md transition-colors ${
+                  mobileViewStyle === 'carousel'
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="가로 슬라이더(Scroll-Snap) 뷰"
+                aria-label="가로 슬라이더 뷰"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setMobileViewStyle('list')}
+                className={`p-1.5 rounded-md transition-colors ${
+                  mobileViewStyle === 'list'
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="세로 리스트 뷰"
+                aria-label="세로 리스트 뷰"
+              >
+                <List className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Desktop Top Multi-Filter & Control Bar (>= md) */}
+      <div className="hidden md:flex p-3 border-b border-slate-800 bg-slate-900/90 flex-wrap items-center justify-between gap-3 shrink-0">
         {/* Left: View Mode Toggle & Hierarchy/Status Filters */}
         <div className="flex flex-wrap items-center gap-4">
           {/* Layout Mode Switcher */}
@@ -595,7 +819,7 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
         </div>
 
         {/* Right: Spacing, Zoom & Persistence Controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {/* Spacing Controls (Active in Columns Mode) */}
           {layoutMode === 'columns' && (
             <div className="flex items-center gap-1">
@@ -721,10 +945,450 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
         </div>
       )}
 
-      {/* Main Canvas Area */}
+      {/* Mobile Card List View (< md) - Zero Horizontal Scroll Guaranteed */}
+      <div className="md:hidden flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-3 bg-slate-950 min-w-0">
+        {filteredNodes.length === 0 ? (
+          <div className="flex flex-col items-center justify-center text-slate-500 py-12 text-center">
+            <Layers className="w-10 h-10 mb-2 text-slate-700" />
+            <p className="text-xs font-semibold text-slate-300">
+              {dbStatus !== 'CONNECTED' ? '조회된 결과가 없습니다. (DB 연결 점검 필요)' : '조회된 결과가 없습니다.'}
+            </p>
+            <p className="text-[11px] text-slate-500 mt-1">
+              상단의 상태 필터를 확인해 주세요.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* 1. Mobile: All Hierarchy Tree View */}
+            {mobileTab === 'all' && (
+              <div className="space-y-3">
+                {nodes
+                  .filter((n) => n.level === 'session')
+                  .map((session) => {
+                    const isSessionCollapsed = Boolean(collapsedSessions[session.id]);
+                    const childTasks = nodes.filter((n) => n.level === 'task' && n.parentId === session.id);
+                    const allChildLoops = nodes.filter(
+                      (l) => l.level === 'loop' && childTasks.some((t) => t.id === l.parentId)
+                    );
+                    const isFocused = focusedCardId === session.id;
+
+                    return (
+                      <div
+                        key={session.id}
+                        className={`rounded-xl border transition-all shadow-md overflow-hidden ${
+                          isFocused
+                            ? 'border-indigo-400 bg-slate-900/95 ring-1 ring-indigo-500/50'
+                            : 'border-indigo-900/60 bg-slate-900/80'
+                        }`}
+                      >
+                        {/* Session Header */}
+                        <div className="p-3 bg-slate-900/95 flex items-center justify-between gap-2 border-b border-indigo-900/40">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <button
+                              onClick={() => toggleSessionCollapse(session.id)}
+                              className="min-h-[36px] min-w-[36px] p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-300 flex items-center justify-center shrink-0 transition-colors"
+                              title={isSessionCollapsed ? '펼치기' : '접기'}
+                            >
+                              {isSessionCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            </button>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60">
+                                  {session.code}
+                                </span>
+                                {getStatusBadge(session.status)}
+                              </div>
+                              <h4 className="text-xs font-bold text-white truncate mt-0.5">{session.title}</h4>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => setSelectedNode(session)}
+                            className="min-h-[36px] px-2.5 py-1 rounded-lg bg-indigo-950 hover:bg-indigo-900 text-indigo-300 border border-indigo-800/60 text-[11px] font-medium shrink-0 transition-colors"
+                          >
+                            상세
+                          </button>
+                        </div>
+
+                        {/* Collapsed summary or expanded child tasks */}
+                        {isSessionCollapsed ? (
+                          <div className="p-2.5 bg-slate-950/60 text-[11px] text-slate-400 flex items-center justify-between">
+                            <span>하위 태스크 {childTasks.length}건, 루프 {allChildLoops.length}건</span>
+                            <button
+                              onClick={() => toggleSessionCollapse(session.id)}
+                              className="text-indigo-400 hover:underline font-medium"
+                            >
+                              펼치기
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="p-2.5 space-y-2 bg-slate-950/40">
+                            {childTasks.map((task) => {
+                              const isTaskCollapsed = Boolean(collapsedTasks[task.id]);
+                              const taskLoops = nodes.filter((l) => l.level === 'loop' && l.parentId === task.id);
+
+                              return (
+                                <div
+                                  key={task.id}
+                                  className="rounded-lg border border-slate-800 bg-slate-900/90 overflow-hidden"
+                                >
+                                  <div className="p-2.5 flex items-center justify-between gap-2 bg-slate-900">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <button
+                                        onClick={() => toggleTaskCollapse(task.id)}
+                                        className="p-1 rounded bg-slate-800 text-indigo-300 flex items-center justify-center shrink-0"
+                                      >
+                                        {isTaskCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                                      </button>
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/50">
+                                            {task.code}
+                                          </span>
+                                          {getStatusBadge(task.status)}
+                                        </div>
+                                        <div className="text-xs font-semibold text-white truncate mt-0.5">{task.title}</div>
+                                      </div>
+                                    </div>
+                                    <button
+                                      onClick={() => setSelectedNode(task)}
+                                      className="text-[11px] text-indigo-400 hover:text-indigo-300 shrink-0 font-medium"
+                                    >
+                                      상세 &gt;
+                                    </button>
+                                  </div>
+
+                                  {!isTaskCollapsed && (
+                                    <div className="p-2 space-y-1.5 bg-slate-950/60 border-t border-slate-800/60">
+                                      {task.branch && (
+                                        <div className="text-[10px] font-mono text-slate-400 flex items-center gap-1 truncate px-1">
+                                          <GitBranch className="w-3 h-3 text-indigo-400 shrink-0" />
+                                          <span className="truncate">{task.branch}</span>
+                                        </div>
+                                      )}
+                                      {taskLoops.length > 0 ? (
+                                        <div className="space-y-1 pt-1">
+                                          {taskLoops.map((loop) => (
+                                            <div
+                                              key={loop.id}
+                                              onClick={() => setSelectedNode(loop)}
+                                              className="p-2 rounded-md bg-slate-900 border border-slate-800/80 hover:border-emerald-600/60 transition-colors flex items-center justify-between gap-2 cursor-pointer"
+                                            >
+                                              <div className="min-w-0">
+                                                <div className="flex items-center gap-1.5">
+                                                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800/50">
+                                                    {loop.code}
+                                                  </span>
+                                                  <span className="text-xs text-slate-200 truncate">{loop.title}</span>
+                                                </div>
+                                              </div>
+                                              {getStatusBadge(loop.status)}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <div className="text-[10px] text-slate-500 py-1 px-1">
+                                          등록된 하위 루프 없음
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+
+                            {childTasks.length === 0 && (
+                              <div className="text-xs text-slate-500 text-center py-3">
+                                등록된 태스크가 없습니다.
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+
+            {/* 2. Mobile: Session Cards Only */}
+            {mobileTab === 'session' && (
+              mobileViewStyle === 'carousel' ? (
+                <div className="space-y-2">
+                  <ScrollSnapCarousel
+                    className="p-1"
+                    showArrows={false}
+                    showGradients={true}
+                    showTopPins={true}
+                    topPinCountLabel={`${sessionNodes.length}개 세션`}
+                    scrollStep={280}
+                    ariaLabel="세션 카드 캐러셀"
+                  >
+                    <div className="flex items-stretch py-1">
+                      {sessionNodes.map((s) => (
+                        <div
+                          key={s.id}
+                          onClick={() => setSelectedNode(s)}
+                          className="w-[84vw] max-w-[320px] shrink-0 snap-start mr-3.5 p-3.5 rounded-xl border border-slate-800 bg-slate-900/95 hover:border-indigo-600/60 transition-all cursor-pointer space-y-2.5 shadow-md select-none flex flex-col justify-between"
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-mono px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60 font-bold">
+                                  {s.code}
+                                </span>
+                                {getStatusBadge(s.status)}
+                              </div>
+                              <span className="text-[11px] text-slate-500 font-mono">
+                                {new Date(s.time).toLocaleDateString('ko-KR')}
+                              </span>
+                            </div>
+                            <h4 className="text-sm font-bold text-white leading-snug">{s.title}</h4>
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-800/80">
+                            <span>에이전트: <strong className="text-slate-200">{s.agent || 'gemini'}</strong></span>
+                            <span className="text-indigo-400 font-medium">상세보기 &gt;</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollSnapCarousel>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                  {sessionNodes.map((s) => (
+                    <div
+                      key={s.id}
+                      onClick={() => setSelectedNode(s)}
+                      className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/90 hover:border-indigo-600/60 transition-all cursor-pointer space-y-2 shadow-sm"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-mono px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60 font-bold">
+                            {s.code}
+                          </span>
+                          {getStatusBadge(s.status)}
+                        </div>
+                        <span className="text-[11px] text-slate-500 font-mono">
+                          {new Date(s.time).toLocaleDateString('ko-KR')}
+                        </span>
+                      </div>
+                      <h4 className="text-xs font-bold text-white leading-snug">{s.title}</h4>
+                      <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1.5 border-t border-slate-800/80">
+                        <span>에이전트: <strong className="text-slate-200">{s.agent || 'gemini'}</strong></span>
+                        <span className="text-indigo-400 font-medium">상세보기 &gt;</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
+
+            {/* 3. Mobile: Task Cards Only */}
+            {mobileTab === 'task' && (
+              mobileViewStyle === 'carousel' ? (
+                <div className="space-y-2">
+                  <ScrollSnapCarousel
+                    className="p-1"
+                    showArrows={false}
+                    showGradients={true}
+                    showTopPins={true}
+                    topPinCountLabel={`${taskNodes.length}개 태스크`}
+                    scrollStep={280}
+                    ariaLabel="태스크 카드 캐러셀"
+                  >
+                    <div className="flex items-stretch py-1">
+                      {taskNodes.map((t) => (
+                        <div
+                          key={t.id}
+                          onClick={() => setSelectedNode(t)}
+                          className="w-[84vw] max-w-[320px] shrink-0 snap-start mr-3.5 p-3.5 rounded-xl border border-slate-800 bg-slate-900/95 hover:border-indigo-600/60 transition-all cursor-pointer space-y-2.5 shadow-md select-none flex flex-col justify-between"
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-mono px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60 font-bold">
+                                  {t.code}
+                                </span>
+                                {getStatusBadge(t.status)}
+                              </div>
+                              {t.parentId && (
+                                <span className="text-[10px] font-mono text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded truncate max-w-[120px]">
+                                  {t.parentId}
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="text-sm font-bold text-white leading-snug">{t.title}</h4>
+                            {t.branch && (
+                              <div className="p-2 rounded bg-slate-950 border border-slate-800/80 text-[11px] font-mono text-indigo-300 flex items-center gap-1.5">
+                                <GitBranch className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                                <span className="truncate">{t.branch}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-800/80">
+                            <span>시작: {new Date(t.time).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span className="text-indigo-400 font-medium">상세보기 &gt;</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollSnapCarousel>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                  {taskNodes.map((t) => (
+                    <div
+                      key={t.id}
+                      onClick={() => setSelectedNode(t)}
+                      className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/90 hover:border-indigo-600/60 transition-all cursor-pointer space-y-2 shadow-sm"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-mono px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60 font-bold">
+                            {t.code}
+                          </span>
+                          {getStatusBadge(t.status)}
+                        </div>
+                        {t.parentId && (
+                          <span className="text-[10px] font-mono text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded truncate max-w-[120px]">
+                            {t.parentId}
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="text-xs font-bold text-white leading-snug">{t.title}</h4>
+                      {t.branch && (
+                        <div className="p-2 rounded bg-slate-950 border border-slate-800/80 text-[11px] font-mono text-indigo-300 flex items-center gap-1.5">
+                          <GitBranch className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                          <span className="truncate">{t.branch}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">
+                        <span>시작: {new Date(t.time).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="text-indigo-400 font-medium">상세보기 &gt;</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
+
+            {/* 4. Mobile: Loop Cards Only */}
+            {mobileTab === 'loop' && (
+              mobileViewStyle === 'carousel' ? (
+                <div className="space-y-2">
+                  <ScrollSnapCarousel
+                    className="p-1"
+                    showArrows={false}
+                    showGradients={true}
+                    showTopPins={true}
+                    topPinCountLabel={`${loopNodes.length}개 루프`}
+                    scrollStep={280}
+                    ariaLabel="루프 카드 캐러셀"
+                  >
+                    <div className="flex items-stretch py-1">
+                      {loopNodes.map((l) => (
+                        <div
+                          key={l.id}
+                          onClick={() => setSelectedNode(l)}
+                          className="w-[84vw] max-w-[320px] shrink-0 snap-start mr-3.5 p-3.5 rounded-xl border border-slate-800 bg-slate-900/95 hover:border-emerald-600/60 transition-all cursor-pointer space-y-2.5 shadow-md select-none flex flex-col justify-between"
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800/60 font-bold">
+                                  {l.code}
+                                </span>
+                                {getStatusBadge(l.status)}
+                              </div>
+                              {l.parentId && (
+                                <span className="text-[10px] font-mono text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded truncate max-w-[120px]">
+                                  {l.parentId}
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="text-sm font-bold text-white leading-snug">{l.title}</h4>
+                            {l.payload?.items && Array.isArray(l.payload.items) && (
+                              <div className="pt-1.5 border-t border-slate-800/80 space-y-1">
+                                <span className="text-[10px] text-slate-500 font-semibold">작업 항목 ({l.payload.items.length}건):</span>
+                                <ul className="space-y-0.5">
+                                  {l.payload.items.slice(0, 3).map((it: string, idx: number) => (
+                                    <li key={idx} className="text-[11px] text-slate-300 flex items-center gap-1.5">
+                                      <span className="w-1 h-1 rounded-full bg-emerald-400 shrink-0" />
+                                      <span className="truncate">{it}</span>
+                                    </li>
+                                  ))}
+                                  {l.payload.items.length > 3 && (
+                                    <li className="text-[10px] text-slate-500 font-mono">
+                                      외 {l.payload.items.length - 3}개 항목
+                                    </li>
+                                  )}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-end text-[11px] text-emerald-400 font-medium pt-2 border-t border-slate-800/80">
+                            상세보기 &gt;
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollSnapCarousel>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                  {loopNodes.map((l) => (
+                    <div
+                      key={l.id}
+                      onClick={() => setSelectedNode(l)}
+                      className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/90 hover:border-emerald-600/60 transition-all cursor-pointer space-y-2 shadow-sm"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800/60 font-bold">
+                            {l.code}
+                          </span>
+                          {getStatusBadge(l.status)}
+                        </div>
+                        {l.parentId && (
+                          <span className="text-[10px] font-mono text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded truncate max-w-[120px]">
+                            {l.parentId}
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="text-xs font-bold text-white leading-snug">{l.title}</h4>
+                      {l.payload?.items && Array.isArray(l.payload.items) && (
+                        <div className="pt-1.5 border-t border-slate-800/80 space-y-1">
+                          <span className="text-[10px] text-slate-500 font-semibold">작업 항목 ({l.payload.items.length}건):</span>
+                          <ul className="space-y-0.5">
+                            {l.payload.items.slice(0, 3).map((it: string, idx: number) => (
+                              <li key={idx} className="text-[11px] text-slate-300 flex items-center gap-1.5">
+                                <span className="w-1 h-1 rounded-full bg-emerald-400" />
+                                <span className="truncate">{it}</span>
+                              </li>
+                            ))}
+                            {l.payload.items.length > 3 && (
+                              <li className="text-[10px] text-slate-500 font-mono">
+                                외 {l.payload.items.length - 3}개 항목
+                              </li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-end text-[11px] text-emerald-400 font-medium pt-1 border-t border-slate-800/80">
+                        상세보기 &gt;
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Main Canvas Area (Desktop >= md) */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-auto p-8 relative bg-radial from-slate-900/40 to-slate-950"
+        className="hidden md:flex flex-1 overflow-auto p-8 relative bg-radial from-slate-900/40 to-slate-950"
       >
         {filteredNodes.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-500 py-16">
@@ -741,7 +1405,7 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
         ) : (
           <div
             ref={contentRef}
-            className="relative transition-all duration-300 min-w-max pb-12"
+            className="relative transition-all duration-300 w-full min-w-0 pb-12"
             style={{
               transform: `scale(${zoomLevel})`,
               transformOrigin: 'top center',
@@ -782,11 +1446,21 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
 
                 {connectorLines.map((line) => {
                   const dx = line.x2 - line.x1;
-                  const c1x = line.x1 + dx * 0.45;
-                  const c1y = line.y1;
-                  const c2x = line.x1 + dx * 0.55;
-                  const c2y = line.y2;
-                  const pathData = `M ${line.x1} ${line.y1} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${line.x2} ${line.y2}`;
+                  const dy = line.y2 - line.y1;
+                  let pathData = '';
+                  if (Math.abs(dx) >= Math.abs(dy) * 0.7) {
+                    const c1x = line.x1 + dx * 0.45;
+                    const c1y = line.y1;
+                    const c2x = line.x1 + dx * 0.55;
+                    const c2y = line.y2;
+                    pathData = `M ${line.x1} ${line.y1} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${line.x2} ${line.y2}`;
+                  } else {
+                    const c1x = line.x1;
+                    const c1y = line.y1 + dy * 0.45;
+                    const c2x = line.x2;
+                    const c2y = line.y1 + dy * 0.55;
+                    pathData = `M ${line.x1} ${line.y1} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${line.x2} ${line.y2}`;
+                  }
 
                   const isDimmed = focusedCardId && !line.isFocused;
 
@@ -810,12 +1484,14 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
             {/* ================= MODE 1: COLUMNS VIEW (with Arrows) ================= */}
             {layoutMode === 'columns' && (
               <div
-                className="flex items-start justify-center relative z-10"
+                className={`flex items-start justify-center relative z-10 w-full transition-all duration-300 ${
+                  isColumnsWrapped ? 'flex-wrap gap-y-10' : 'flex-wrap xl:flex-nowrap'
+                }`}
                 style={{ gap: `${activeSpacing}px` }}
               >
                 {/* Level 1: Session Column */}
                 {viewModes.session && (
-                  <div className="flex flex-col gap-4 w-80 shrink-0">
+                  <div className="flex flex-col gap-4 w-full sm:w-[320px] md:w-[340px] xl:w-80 flex-1 min-w-[280px] max-w-[420px]">
                     <div className="flex items-center gap-2 pb-2 border-b border-indigo-900/50">
                       <div className="w-2 h-2 rounded-full bg-indigo-500 animate-ping" />
                       <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-400">
@@ -883,7 +1559,7 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
 
                 {/* Level 2: Task Column */}
                 {viewModes.task && (
-                  <div className="flex flex-col gap-4 w-88 shrink-0">
+                  <div className="flex flex-col gap-4 w-full sm:w-[340px] md:w-[360px] xl:w-88 flex-1 min-w-[300px] max-w-[460px]">
                     <div className="flex items-center gap-2 pb-2 border-b border-amber-900/50">
                       <div className="w-2 h-2 rounded-full bg-amber-500" />
                       <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400">
@@ -949,7 +1625,7 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
 
                 {/* Level 3: Loop Column */}
                 {viewModes.loop && (
-                  <div className="flex flex-col gap-4 w-80 shrink-0">
+                  <div className="flex flex-col gap-4 w-full sm:w-[320px] md:w-[340px] xl:w-80 flex-1 min-w-[280px] max-w-[420px]">
                     <div className="flex items-center gap-2 pb-2 border-b border-emerald-900/50">
                       <div className="w-2 h-2 rounded-full bg-emerald-500" />
                       <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
@@ -1183,7 +1859,7 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
 
                                   {/* Task Body: Child Loop Cards */}
                                   {!isTaskCollapsed && (
-                                    <div className="p-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-950/50">
+                                    <div className="p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 bg-slate-950/50">
                                       {taskLoops.map((loop) => {
                                         const isLoopFocused = focusedCardId === loop.id;
                                         const isLoopDimmed = Boolean(activeDownstreamIds && !activeDownstreamIds.has(loop.id));
@@ -1274,23 +1950,26 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
 
       {/* Selected Node Drawer / Inspector */}
       {selectedNode && (
-        <div className="p-4 border-t border-slate-800 bg-slate-900/95 flex flex-wrap items-center justify-between gap-4 text-xs shrink-0">
-          <div className="flex items-center gap-3">
-            <span className="font-semibold text-indigo-400 uppercase">[{selectedNode.level}] {selectedNode.code}</span>
-            <span className="text-slate-200 font-medium">{selectedNode.title}</span>
-            <span className="text-slate-500">|</span>
-            <span className="text-slate-400 font-mono">시작: {new Date(selectedNode.time).toLocaleString('ko-KR')}</span>
+        <div className="p-3 sm:p-4 border-t border-slate-800 bg-slate-900/95 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shrink-0">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
+            <span className="font-semibold text-indigo-400 uppercase bg-indigo-950 px-2 py-0.5 rounded border border-indigo-800/60">
+              [{selectedNode.level}] {selectedNode.code}
+            </span>
+            <span className="text-slate-200 font-medium truncate max-w-[240px] sm:max-w-md">{selectedNode.title}</span>
+            <span className="text-slate-500 hidden sm:inline">|</span>
+            <span className="text-slate-400 font-mono text-[11px]">
+              시작: {new Date(selectedNode.time).toLocaleString('ko-KR')}
+            </span>
             {selectedNode.branch && (
-              <>
-                <span className="text-slate-500">|</span>
-                <span className="text-amber-400 font-mono">브랜치: {selectedNode.branch}</span>
-              </>
+              <span className="text-indigo-300 font-mono text-[11px] bg-slate-800 px-1.5 py-0.5 rounded truncate max-w-[200px]">
+                브랜치: {selectedNode.branch}
+              </span>
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-end gap-2 shrink-0">
             <button
               onClick={() => setSelectedNode(null)}
-              className="text-slate-400 hover:text-white px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 font-medium"
+              className="text-slate-400 hover:text-white px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 font-medium text-xs transition-colors min-h-[36px]"
             >
               닫기
             </button>
