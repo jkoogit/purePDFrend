@@ -220,6 +220,86 @@ Total execution time: 1.42s
     assert(directScorecard.total_tokens === 8000, 'Domain Service 총 토큰 8,000 확인');
   }
 
+  // Test Suite 7: 5대 메타 및 쿼터 원장 도메인 모델 검증 (Meta & Quota Ledger)
+  console.log('\n[Test Suite 7] 5대 메타 및 쿼터 원장 도메인 모델 검증 (Meta & Quota Ledger)');
+  {
+    const { BillingPlan, ModelCatalog, UserAccount, AccountQuotaLedger } = await import('../src/aiagent/domain/token-quota');
+
+    // 1. BillingPlan 검증
+    const enterprisePlan = new BillingPlan({
+      planId: 'PLAN-ENTERPRISE',
+      planName: 'Enterprise Plan',
+      baseQuotaTokens: 50000000,
+      maxBurstMultiplier: 3.0,
+      priorityTier: 10,
+      overagePolicy: 'PAY_AS_YOU_GO',
+    });
+    assert(enterprisePlan.priorityTier === 10, 'Enterprise 요금제 우선순위 10 확인');
+    assert(enterprisePlan.isBurstPermitted(2.5) === true, '버스트 2.5x 허용 확인');
+    assert(enterprisePlan.isBurstPermitted(3.5) === false, '버스트 3.5x 거부 확인');
+    assert(enterprisePlan.allowsPayAsYouGo() === true, 'PayAsYouGo 초과 정책 확인');
+
+    // 2. ModelCatalog 비용 산정 검증
+    const geminiModel = new ModelCatalog({
+      modelId: 'models/gemini-3.8-flash',
+      provider: 'gemini',
+      displayName: 'Gemini 3.8 Flash',
+      promptTokenCost1k: 0.0001,
+      completionTokenCost1k: 0.0004,
+      contextWindowTokens: 1000000,
+    });
+    const cost = geminiModel.calculateCost(10000, 2000); // 10k prompt ($0.001) + 2k comp ($0.0008) = $0.0018
+    assert(cost === 0.0018, `Gemini 3.8 Flash 토큰 비용 계산 정확도 검증 ($${cost})`);
+    assert(geminiModel.isWithinContextWindow(500000) === true, '1M 컨텍스트 윈도우 한도 판별 확인');
+
+    // 3. UserAccount 상태 전이 검증
+    const user = new UserAccount({
+      userId: 'USR-TEST-01',
+      email: 'test@purepdfrend.com',
+      userName: '테스트엔지니어',
+      planId: 'PLAN-PRO',
+    });
+    assert(user.isActive() === true, '초기 사용자 ACTIVE 상태 확인');
+    user.freeze('보안 감사 점검');
+    assert(user.isFrozen() === true, '사용자 동결(FROZEN) 전환 확인');
+    assert(user.docPayload.freeze_reason === '보안 감사 점검', '동결 사유 기록 확인');
+    user.unfreeze();
+    assert(user.isActive() === true, '사용자 동결 해제 복귀 확인');
+
+    // 4. AccountQuotaLedger 원장 차감 및 자동 동결, 감사 로그 생성 검증
+    const ledger = new AccountQuotaLedger({
+      ledgerId: 'LDG-TEST-01',
+      userId: 'USR-TEST-01',
+      planId: 'PLAN-PRO',
+      totalGrantedQuota: 100000,
+      usedQuota: 10000,
+      remainingQuota: 90000,
+      isFrozen: false,
+      overageAllowed: false,
+    });
+    assert(ledger.remainingQuota === 90000, '초기 잔여 쿼터 90,000 확인');
+    assert(ledger.getUsageRatio() === 0.1, '소모율 10% 산출 확인');
+
+    // 차감 테스트
+    const deductRes = ledger.deduct(15000, { sessionId: 'SES-01', taskId: 'TSK-01', modelId: 'models/gemini-3.8-flash' });
+    assert(deductRes.success === true, '15,000 토큰 정상 차감 확인');
+    assert(ledger.remainingQuota === 75000, '차감 후 잔여 쿼터 75,000 확인');
+    assert(deductRes.log !== undefined, '차감 감사 로그(QTX) 객체 생성 확인');
+    assert(deductRes.log?.tokenDelta === -15000, '감사 로그 음수 델타(-15000) 확인');
+
+    // 한도 초과 차감 시도 -> 자동 동결(FROZEN) 방어
+    const overDeductRes = ledger.deduct(80000);
+    assert(overDeductRes.success === false, '한도 초과 차감 요청 거부 확인');
+    assert(overDeductRes.isFrozen === true, '한도 초과 시 자동 원장 동결 확인');
+    assert(ledger.isFrozen === true, '원장 상태 동결 전환 확인');
+
+    // 추가 쿼터 충전(Grant) -> 자동 동결 해제
+    const grantLog = ledger.grant(50000, '관리자 긴급 충전');
+    assert(grantLog.tokenDelta === 50000, '50,000 토큰 충전 감사 로그 확인');
+    assert(ledger.remainingQuota === 125000, '충전 후 잔여 쿼터 125,000 확인');
+    assert(ledger.isFrozen === false, '잔여 쿼터 확보 후 자동 동결 해제 확인');
+  }
+
   console.log('\n================================================================');
   console.log('🎉 [TDD 완료] 모든 토큰 소진 방지 및 하네스 자동화 테스트 통과!');
   console.log('================================================================');

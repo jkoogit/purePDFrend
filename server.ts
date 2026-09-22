@@ -62,18 +62,34 @@ interface LocalStoreData {
   tasks: any[];
   loops: any[];
   traces: any[];
+  plans?: any[];
+  models?: any[];
+  users?: any[];
+  ledgers?: any[];
+  quota_logs?: any[];
 }
 
 function getLocalStore(): LocalStoreData {
   try {
     if (fs.existsSync(LOCAL_STORE_PATH)) {
       const raw = fs.readFileSync(LOCAL_STORE_PATH, 'utf-8');
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      return {
+        sessions: parsed.sessions || [],
+        tasks: parsed.tasks || [],
+        loops: parsed.loops || [],
+        traces: parsed.traces || [],
+        plans: parsed.plans || [],
+        models: parsed.models || [],
+        users: parsed.users || [],
+        ledgers: parsed.ledgers || [],
+        quota_logs: parsed.quota_logs || [],
+      };
     }
   } catch (e) {
     console.error('Error reading local agent store:', e);
   }
-  return { sessions: [], tasks: [], loops: [], traces: [] };
+  return { sessions: [], tasks: [], loops: [], traces: [], plans: [], models: [], users: [], ledgers: [], quota_logs: [] };
 }
 
 function saveLocalStore(data: LocalStoreData): void {
@@ -89,6 +105,33 @@ function saveLocalStore(data: LocalStoreData): void {
   } catch (e) {
     console.error('Error saving local agent store:', e);
   }
+}
+
+// Helper to retrieve all sessions (current store + archived sessions for offline resilience)
+function getAllLocalSessions(): any[] {
+  const store = getLocalStore();
+  const map = new Map<string, any>();
+  if (Array.isArray(store.sessions)) {
+    for (const s of store.sessions) {
+      if (s && s.session_id) map.set(s.session_id, s);
+    }
+  }
+  if (fs.existsSync(ARCHIVES_DIR)) {
+    const files = fs.readdirSync(ARCHIVES_DIR).filter((f) => f.endsWith('.json'));
+    for (const file of files) {
+      try {
+        const content = JSON.parse(fs.readFileSync(path.join(ARCHIVES_DIR, file), 'utf-8'));
+        if (Array.isArray(content.sessions)) {
+          for (const s of content.sessions) {
+            if (s && s.session_id && !map.has(s.session_id)) {
+              map.set(s.session_id, s);
+            }
+          }
+        }
+      } catch (e) {}
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => new Date(b.started_at || 0).getTime() - new Date(a.started_at || 0).getTime());
 }
 
 // Session Isolation & Lifecycle Management: Archive old session and initialize clean store
@@ -187,7 +230,7 @@ async function executeSql(sql: string, database = TARGET_DATABASE): Promise<any>
         'Content-Length': Buffer.byteLength(payload),
       },
       rejectUnauthorized: false,
-      timeout: 6000,
+      timeout: 15000,
     }, (res) => {
       const chunks: Buffer[] = [];
       res.on('data', (chunk) => {
@@ -300,8 +343,8 @@ app.get('/api/agent/sessions', async (req, res) => {
     const result: any = await executeSql(sql);
     res.json({ success: true, sessions: result.rows, source: 'REMOTE_DB' });
   } catch (err: any) {
-    // Fallback filter
-    let list = [...store.sessions];
+    // Fallback filter with full historical archive support
+    let list = getAllLocalSessions();
     if (keyword) {
       const q = String(keyword).toLowerCase();
       list = list.filter((s) => s.session_id?.toLowerCase().includes(q) || s.session_name?.toLowerCase().includes(q));
@@ -1711,6 +1754,444 @@ app.get('/api/agent/telemetry/scorecard/:sessionId', (req, res) => {
       currentAlpha: session?.calibration_alpha || 1.0,
     });
     res.json({ success: true, scorecard: freshScorecard });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// =========================================================================
+// 5. 에이전트 사용자·모델·요금제 메타 거버넌스 및 다차원 쿼터 원장 API
+// =========================================================================
+
+// 5.1 요금제 목록 조회 (Billing Plans)
+app.get('/api/agent/meta/plans', async (req, res) => {
+  const store = getLocalStore();
+  try {
+    const dbRes: any = await executeSql(`
+      SELECT 
+        plan_id, plan_name, description, base_quota_tokens, 
+        max_burst_multiplier, priority_tier, overage_policy, is_active, 
+        created_at, updated_at
+      FROM aiagent.agent_billing_plan 
+      ORDER BY priority_tier ASC;
+    `);
+    const plans = dbRes.rows || [];
+    res.json({ success: true, plans, source: 'REMOTE_DB' });
+  } catch (err: any) {
+    res.json({ success: true, plans: store.plans || [], source: 'LOCAL_FALLBACK', dbError: err.message });
+  }
+});
+
+// 5.2 모델 카탈로그 목록 조회 (Model Catalog)
+app.get('/api/agent/meta/models', async (req, res) => {
+  const store = getLocalStore();
+  try {
+    const dbRes: any = await executeSql(`
+      SELECT 
+        model_id, provider, display_name, prompt_token_cost_1k, 
+        completion_token_cost_1k, context_window_tokens, is_active, 
+        doc_payload, created_at, updated_at
+      FROM aiagent.agent_model_catalog 
+      ORDER BY is_active DESC, prompt_token_cost_1k ASC;
+    `);
+    const models = dbRes.rows || [];
+    res.json({ success: true, models, source: 'REMOTE_DB' });
+  } catch (err: any) {
+    res.json({ success: true, models: store.models || [], source: 'LOCAL_FALLBACK', dbError: err.message });
+  }
+});
+
+// 5.3 사용자 목록 조회 (User Accounts with Plan & Quota)
+app.get('/api/agent/meta/users', async (req, res) => {
+  const store = getLocalStore();
+  try {
+    const dbRes: any = await executeSql(`
+      SELECT 
+        u.user_id, u.email, u.user_name, u.account_status, u.org_group, 
+        u.plan_id, u.doc_payload, u.created_at, u.updated_at,
+        p.plan_name, p.priority_tier, p.overage_policy,
+        l.remaining_quota, l.total_granted_quota, l.used_quota, l.is_frozen as ledger_frozen
+      FROM aiagent.agent_user_account u
+      LEFT JOIN aiagent.agent_billing_plan p ON u.plan_id = p.plan_id
+      LEFT JOIN aiagent.agent_account_quota_ledger l ON u.user_id = l.user_id
+      ORDER BY u.created_at DESC;
+    `);
+    res.json({ success: true, users: dbRes.rows || [], source: 'REMOTE_DB' });
+  } catch (err: any) {
+    const fallbackUsers = (store.users || []).map((u) => {
+      const plan = (store.plans || []).find((p) => p.plan_id === u.plan_id);
+      const ledger = (store.ledgers || []).find((l) => l.user_id === u.user_id);
+      return {
+        ...u,
+        plan_name: plan?.plan_name || u.plan_id,
+        priority_tier: plan?.priority_tier || 1,
+        overage_policy: plan?.overage_policy || 'BLOCK',
+        remaining_quota: ledger?.remaining_quota || 0,
+        total_granted_quota: ledger?.total_granted_quota || 0,
+        used_quota: ledger?.used_quota || 0,
+        ledger_frozen: ledger?.is_frozen || false,
+      };
+    });
+    res.json({ success: true, users: fallbackUsers, source: 'LOCAL_FALLBACK', dbError: err.message });
+  }
+});
+
+// 5.4 쿼터 원장 목록 조회 (Account Quota Ledgers)
+app.get('/api/agent/meta/ledgers', async (req, res) => {
+  const store = getLocalStore();
+  try {
+    const dbRes: any = await executeSql(`
+      SELECT 
+        l.ledger_id, l.user_id, l.plan_id, l.total_granted_quota, l.used_quota, 
+        l.remaining_quota, l.is_frozen, l.overage_allowed, l.version, 
+        l.last_deducted_at, l.created_at, l.updated_at,
+        u.user_name, u.email, u.account_status,
+        p.plan_name, p.priority_tier, p.max_burst_multiplier
+      FROM aiagent.agent_account_quota_ledger l
+      LEFT JOIN aiagent.agent_user_account u ON l.user_id = u.user_id
+      LEFT JOIN aiagent.agent_billing_plan p ON l.plan_id = p.plan_id
+      ORDER BY l.remaining_quota ASC;
+    `);
+    res.json({ success: true, ledgers: dbRes.rows || [], source: 'REMOTE_DB' });
+  } catch (err: any) {
+    const fallbackLedgers = (store.ledgers || []).map((l) => {
+      const u = (store.users || []).find((usr) => usr.user_id === l.user_id);
+      const p = (store.plans || []).find((pln) => pln.plan_id === l.plan_id);
+      return {
+        ...l,
+        user_name: u?.user_name || l.user_id,
+        email: u?.email || '',
+        account_status: u?.account_status || 'ACTIVE',
+        plan_name: p?.plan_name || l.plan_id,
+        priority_tier: p?.priority_tier || 1,
+        max_burst_multiplier: p?.max_burst_multiplier || 1.5,
+      };
+    });
+    res.json({ success: true, ledgers: fallbackLedgers, source: 'LOCAL_FALLBACK', dbError: err.message });
+  }
+});
+
+// 5.5 특정 사용자 쿼터 원장 및 감사 로그 조회 (User Ledger & Logs)
+app.get('/api/agent/meta/ledger/:userId', async (req, res) => {
+  const userId = req.params.userId;
+  const store = getLocalStore();
+
+  try {
+    const ledgerRes: any = await executeSql(`
+      SELECT l.*, u.user_name, u.email, p.plan_name, p.priority_tier
+      FROM aiagent.agent_account_quota_ledger l
+      LEFT JOIN aiagent.agent_user_account u ON l.user_id = u.user_id
+      LEFT JOIN aiagent.agent_billing_plan p ON l.plan_id = p.plan_id
+      WHERE l.user_id = '${userId.replace(/'/g, "''")}';
+    `);
+
+    const logsRes: any = await executeSql(`
+      SELECT *
+      FROM aiagent.agent_quota_transaction_log
+      WHERE user_id = '${userId.replace(/'/g, "''")}'
+      ORDER BY created_at DESC
+      LIMIT 20;
+    `);
+
+    const ledger = ledgerRes.rows?.[0] || null;
+    const logs = logsRes.rows || [];
+
+    res.json({ success: true, ledger, logs, source: 'REMOTE_DB' });
+  } catch (err: any) {
+    const localLedger = (store.ledgers || []).find((l) => l.user_id === userId) || null;
+    const localLogs = (store.quota_logs || []).filter((q) => q.user_id === userId).reverse().slice(0, 20);
+    res.json({ success: true, ledger: localLedger, logs: localLogs, source: 'LOCAL_FALLBACK', dbError: err.message });
+  }
+});
+
+// 5.6 사용자 계정 생성 및 플랜 변경 (Save User & Initialize Ledger)
+app.post('/api/agent/meta/user/save', async (req, res) => {
+  try {
+    const {
+      user_id,
+      email,
+      user_name,
+      account_status = 'ACTIVE',
+      org_group = 'purePDFrend',
+      plan_id = 'PLAN-STARTER',
+      role = 'MEMBER',
+    } = req.body;
+
+    if (!user_id || !email || !user_name || !plan_id) {
+      return res.status(400).json({ success: false, error: 'user_id, email, user_name, plan_id는 필수입니다.' });
+    }
+
+    const store = getLocalStore();
+    const nowIso = new Date().toISOString();
+
+    if (!store.users) store.users = [];
+    if (!store.ledgers) store.ledgers = [];
+    if (!store.quota_logs) store.quota_logs = [];
+
+    const existingUserIdx = store.users.findIndex((u) => u.user_id === user_id);
+    const userRecord = {
+      user_id,
+      email,
+      user_name,
+      account_status,
+      org_group,
+      plan_id,
+      doc_payload: { role },
+      updated_at: nowIso,
+    };
+
+    if (existingUserIdx >= 0) {
+      store.users[existingUserIdx] = { ...store.users[existingUserIdx], ...userRecord };
+    } else {
+      store.users.push({ ...userRecord, created_at: nowIso });
+    }
+
+    let ledgerRecord = store.ledgers.find((l) => l.user_id === user_id);
+    const plan = (store.plans || []).find((p) => p.plan_id === plan_id);
+    const baseQuota = plan ? Number(plan.base_quota_tokens) : 2000000;
+
+    if (!ledgerRecord) {
+      const ledgerId = `LDG-${user_id}`;
+      ledgerRecord = {
+        ledger_id: ledgerId,
+        user_id,
+        plan_id,
+        total_granted_quota: baseQuota,
+        used_quota: 0,
+        remaining_quota: baseQuota,
+        is_frozen: false,
+        overage_allowed: plan_id === 'PLAN-ENTERPRISE',
+        version: 1,
+        last_deducted_at: null,
+        created_at: nowIso,
+        updated_at: nowIso,
+      };
+      store.ledgers.push(ledgerRecord);
+
+      store.quota_logs.push({
+        tx_id: `QTX-${Date.now()}`,
+        ledger_id: ledgerId,
+        user_id,
+        tx_type: 'GRANT',
+        token_delta: baseQuota,
+        balance_after: baseQuota,
+        unit_cost_applied: 0,
+        reason_desc: `${plan_id} 신규 계정 기본 쿼터 지급`,
+        created_at: nowIso,
+      });
+    } else if (ledgerRecord.plan_id !== plan_id) {
+      ledgerRecord.plan_id = plan_id;
+      ledgerRecord.updated_at = nowIso;
+      ledgerRecord.overage_allowed = plan_id === 'PLAN-ENTERPRISE';
+    }
+
+    saveLocalStore(store);
+
+    let dbSuccess = false;
+    let dbError = null;
+    try {
+      const safeUserId = user_id.replace(/'/g, "''");
+      const safeEmail = email.replace(/'/g, "''");
+      const safeUserName = user_name.replace(/'/g, "''");
+      const safePlanId = plan_id.replace(/'/g, "''");
+      const safeStatus = account_status.replace(/'/g, "''");
+      const safeOrg = org_group.replace(/'/g, "''");
+      const safePayload = JSON.stringify({ role }).replace(/'/g, "''");
+
+      const userSql = `
+        INSERT INTO aiagent.agent_user_account (
+          user_id, email, user_name, account_status, org_group, plan_id, doc_payload, created_at, updated_at
+        ) VALUES (
+          '${safeUserId}', '${safeEmail}', '${safeUserName}', '${safeStatus}', '${safeOrg}', '${safePlanId}', '${safePayload}'::jsonb, now(), now()
+        )
+        ON CONFLICT (user_id) DO UPDATE SET
+          email = EXCLUDED.email,
+          user_name = EXCLUDED.user_name,
+          account_status = EXCLUDED.account_status,
+          org_group = EXCLUDED.org_group,
+          plan_id = EXCLUDED.plan_id,
+          doc_payload = EXCLUDED.doc_payload,
+          updated_at = now();
+      `;
+
+      const ledgerSql = `
+        INSERT INTO aiagent.agent_account_quota_ledger (
+          ledger_id, user_id, plan_id, total_granted_quota, used_quota, remaining_quota, is_frozen, overage_allowed, created_at, updated_at
+        ) VALUES (
+          'LDG-${safeUserId}', '${safeUserId}', '${safePlanId}', ${baseQuota}, 0, ${baseQuota}, false, ${plan_id === 'PLAN-ENTERPRISE'}, now(), now()
+        )
+        ON CONFLICT (user_id) DO UPDATE SET
+          plan_id = EXCLUDED.plan_id,
+          overage_allowed = EXCLUDED.overage_allowed,
+          updated_at = now();
+      `;
+
+      await executeSql(userSql);
+      await executeSql(ledgerSql);
+      dbSuccess = true;
+    } catch (e: any) {
+      dbError = e.message;
+    }
+
+    res.json({
+      success: true,
+      message: `사용자(${user_name}) 계정 및 쿼터 정보가 저장되었습니다.`,
+      user: userRecord,
+      ledger: ledgerRecord,
+      dbSuccess,
+      dbError,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 5.7 원장 동결/동결해제 토글 (Toggle Ledger Freeze)
+app.post('/api/agent/meta/ledger/toggle-freeze', async (req, res) => {
+  try {
+    const { userId, isFrozen, reason = '관리자 수동 조치' } = req.body;
+    if (!userId) {
+      return res.status(400).json({ success: false, error: 'userId는 필수입니다.' });
+    }
+
+    const store = getLocalStore();
+    const nowIso = new Date().toISOString();
+    const ledger = (store.ledgers || []).find((l) => l.user_id === userId);
+
+    if (ledger) {
+      ledger.is_frozen = Boolean(isFrozen);
+      ledger.updated_at = nowIso;
+      ledger.version = (ledger.version || 1) + 1;
+
+      if (!store.quota_logs) store.quota_logs = [];
+      store.quota_logs.push({
+        tx_id: `QTX-${Date.now()}`,
+        ledger_id: ledger.ledger_id,
+        user_id: userId,
+        tx_type: isFrozen ? 'FREEZE' : 'UNFREEZE',
+        token_delta: 0,
+        balance_after: ledger.remaining_quota,
+        unit_cost_applied: 0,
+        reason_desc: reason,
+        created_at: nowIso,
+      });
+
+      saveLocalStore(store);
+    }
+
+    let dbSuccess = false;
+    let dbError = null;
+    try {
+      const safeUserId = userId.replace(/'/g, "''");
+      const safeReason = reason.replace(/'/g, "''");
+      const freezeBool = Boolean(isFrozen);
+
+      const sql = `
+        UPDATE aiagent.agent_account_quota_ledger
+        SET is_frozen = ${freezeBool}, updated_at = now(), version = version + 1
+        WHERE user_id = '${safeUserId}';
+
+        INSERT INTO aiagent.agent_quota_transaction_log (
+          tx_id, ledger_id, user_id, tx_type, token_delta, balance_after, reason_desc, created_at
+        ) VALUES (
+          'QTX-${Date.now()}', 'LDG-${safeUserId}', '${safeUserId}', '${freezeBool ? 'FREEZE' : 'UNFREEZE'}', 0, 
+          (SELECT remaining_quota FROM aiagent.agent_account_quota_ledger WHERE user_id = '${safeUserId}'),
+          '${safeReason}', now()
+        );
+      `;
+      await executeSql(sql);
+      dbSuccess = true;
+    } catch (e: any) {
+      dbError = e.message;
+    }
+
+    res.json({
+      success: true,
+      message: `사용자(${userId}) 원장 상태가 ${isFrozen ? '동결' : '동결 해제'}되었습니다.`,
+      isFrozen: Boolean(isFrozen),
+      dbSuccess,
+      dbError,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 5.8 쿼터 추가 부여 (Grant Extra Quota)
+app.post('/api/agent/meta/ledger/grant', async (req, res) => {
+  try {
+    const { userId, grantTokens, reason = '관리자 쿼터 추가 부여' } = req.body;
+    const tokens = Math.max(0, Number(grantTokens) || 0);
+
+    if (!userId || tokens <= 0) {
+      return res.status(400).json({ success: false, error: '유효한 userId와 양수 grantTokens가 필요합니다.' });
+    }
+
+    const store = getLocalStore();
+    const nowIso = new Date().toISOString();
+    const ledger = (store.ledgers || []).find((l) => l.user_id === userId);
+
+    if (ledger) {
+      ledger.total_granted_quota = Number(ledger.total_granted_quota || 0) + tokens;
+      ledger.remaining_quota = Number(ledger.remaining_quota || 0) + tokens;
+      if (ledger.remaining_quota > 0 && ledger.is_frozen) {
+        ledger.is_frozen = false;
+      }
+      ledger.updated_at = nowIso;
+      ledger.version = (ledger.version || 1) + 1;
+
+      if (!store.quota_logs) store.quota_logs = [];
+      store.quota_logs.push({
+        tx_id: `QTX-${Date.now()}`,
+        ledger_id: ledger.ledger_id,
+        user_id: userId,
+        tx_type: 'GRANT',
+        token_delta: tokens,
+        balance_after: ledger.remaining_quota,
+        unit_cost_applied: 0,
+        reason_desc: reason,
+        created_at: nowIso,
+      });
+
+      saveLocalStore(store);
+    }
+
+    let dbSuccess = false;
+    let dbError = null;
+    try {
+      const safeUserId = userId.replace(/'/g, "''");
+      const safeReason = reason.replace(/'/g, "''");
+
+      const sql = `
+        UPDATE aiagent.agent_account_quota_ledger
+        SET total_granted_quota = total_granted_quota + ${tokens},
+            remaining_quota = remaining_quota + ${tokens},
+            is_frozen = CASE WHEN remaining_quota + ${tokens} > 0 THEN false ELSE is_frozen END,
+            updated_at = now(),
+            version = version + 1
+        WHERE user_id = '${safeUserId}';
+
+        INSERT INTO aiagent.agent_quota_transaction_log (
+          tx_id, ledger_id, user_id, tx_type, token_delta, balance_after, reason_desc, created_at
+        ) VALUES (
+          'QTX-${Date.now()}', 'LDG-${safeUserId}', '${safeUserId}', 'GRANT', ${tokens}, 
+          (SELECT remaining_quota FROM aiagent.agent_account_quota_ledger WHERE user_id = '${safeUserId}'),
+          '${safeReason}', now()
+        );
+      `;
+      await executeSql(sql);
+      dbSuccess = true;
+    } catch (e: any) {
+      dbError = e.message;
+    }
+
+    res.json({
+      success: true,
+      message: `${tokens.toLocaleString()} 토큰이 성공적으로 부여되었습니다.`,
+      grantedTokens: tokens,
+      dbSuccess,
+      dbError,
+    });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
