@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { ScrollSnapCarousel } from './ScrollSnapCarousel';
 import {
   Layout,
   Settings,
@@ -19,6 +21,8 @@ import {
   FileText,
   Cpu,
   ChevronRight,
+  Pin,
+  PinOff,
 } from 'lucide-react';
 import { ActiveViewId, DomainGroupId } from '../../types';
 
@@ -127,6 +131,8 @@ interface NavbarProps {
   dbStatus: string;
   currentTab?: AppTab;
   onSelectTab?: (tab: AppTab) => void;
+  isHeaderPinned?: boolean;
+  onTogglePinHeader?: () => void;
 }
 
 interface CheckResultItem {
@@ -143,6 +149,8 @@ export default function Navbar({
   activeDomain,
   onSelectDomain,
   dbStatus,
+  isHeaderPinned = true,
+  onTogglePinHeader,
 }: NavbarProps) {
   const [hoveredBadge, setHoveredBadge] = useState<'db' | 'branch' | 'status' | null>(null);
   const [activeSessionId, setActiveSessionId] = useState<string>('SESSION-20260921-004');
@@ -155,7 +163,6 @@ export default function Navbar({
   const [checkResults, setCheckResults] = useState<CheckResultItem[] | null>(null);
   const [allPassed, setAllPassed] = useState<boolean | null>(null);
 
-  const currentViewItem = ALL_VIEWS.find((v) => v.id === activeView) || ALL_VIEWS[0];
   const currentDomainGroup = DOMAIN_GROUPS.find((g) => g.id === activeDomain) || DOMAIN_GROUPS[0];
 
   const runServiceCheck = async () => {
@@ -217,63 +224,64 @@ export default function Navbar({
             className="flex items-center gap-2.5 cursor-pointer select-none"
             onClick={() => handleViewClick('graph', 'harness')}
           >
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-black text-sm sm:text-base shadow-lg shadow-indigo-500/20">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-black text-sm sm:text-base shadow-lg shadow-indigo-500/20 shrink-0">
               P
             </div>
-            <div>
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <span className="font-bold text-white tracking-tight text-xs sm:text-sm">purePDFrend</span>
-                <span className="px-1.5 py-0.5 text-[9px] sm:text-[10px] font-semibold rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60 font-mono">
-                  v2.1 IA
-                </span>
-              </div>
-              <div className="text-[9px] sm:text-[10px] text-slate-400 font-mono hidden xs:block">
-                대용량 스캔 PDF & 하네스 스튜디오
-              </div>
+            <div className="flex flex-col justify-center min-w-0">
+              <span className="font-black text-white tracking-tight text-sm sm:text-base whitespace-nowrap leading-tight">
+                purePDFrend
+              </span>
             </div>
           </div>
 
-          {/* Desktop 3-Domain Segmented Tabs */}
-          <nav className="hidden md:flex items-center gap-1.5 border-l border-slate-800 pl-4 lg:pl-6">
-            {DOMAIN_GROUPS.map((group) => {
-              const isDomainActive = activeDomain === group.id;
-              return (
-                <button
-                  key={group.id}
-                  id={`domain-tab-${group.id}`}
-                  onClick={() => handleSelectDomainAndFirstView(group.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
-                    isDomainActive
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-                  }`}
-                  title={group.description}
-                >
-                  {group.id === 'harness' && <Bot className="w-3.5 h-3.5 text-indigo-300" />}
-                  {group.id === 'knowledge' && <FileText className="w-3.5 h-3.5 text-indigo-300" />}
-                  {group.id === 'studio' && <Cpu className="w-3.5 h-3.5 text-indigo-300" />}
-                  <span>{group.name}</span>
-                </button>
-              );
-            })}
-          </nav>
+          {/* Desktop 3-Domain Segmented Tabs (1단 메뉴 가로슬라이드) */}
+          <div className="hidden md:flex items-center border-l border-slate-800 pl-3 lg:pl-5 min-w-0 flex-1 max-w-2xl">
+            <ScrollSnapCarousel
+              dragEnabled={true}
+              wheelEnabled={true}
+              magnetic={true}
+              showArrows={false}
+              showGradients={true}
+              gradientWidth="w-4"
+              scrollStep={160}
+              ariaLabel="1단 도메인 메뉴 슬라이드"
+            >
+              <nav className="flex items-center gap-1.5 py-1 whitespace-nowrap no-scrollbar">
+                {DOMAIN_GROUPS.map((group) => {
+                  const isDomainActive = activeDomain === group.id;
+                  return (
+                    <button
+                      key={group.id}
+                      id={`domain-tab-${group.id}`}
+                      onClick={() => handleSelectDomainAndFirstView(group.id)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 shrink-0 select-none snap-start ${
+                        isDomainActive
+                          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 ring-1 ring-indigo-400/40'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
+                      }`}
+                      title={group.description}
+                    >
+                      {group.id === 'harness' && <Bot className="w-3.5 h-3.5 text-indigo-300 shrink-0" />}
+                      {group.id === 'knowledge' && <FileText className="w-3.5 h-3.5 text-indigo-300 shrink-0" />}
+                      {group.id === 'studio' && <Cpu className="w-3.5 h-3.5 text-indigo-300 shrink-0" />}
+                      <span className="break-keep">{group.name}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </ScrollSnapCarousel>
+          </div>
         </div>
 
         {/* Right Status Indicators & Action Tools */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Mobile Current View Mini Pill */}
-          <div className="md:hidden flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-950/60 border border-indigo-800/60 text-indigo-300 text-[11px] font-semibold">
-            <currentViewItem.icon className="w-3 h-3 text-indigo-400" />
-            <span className="max-w-[80px] truncate">{currentViewItem.label}</span>
-          </div>
-
           {/* DB Connection Indicator */}
           <div
             className="relative"
             onMouseEnter={() => setHoveredBadge('db')}
             onMouseLeave={() => setHoveredBadge(null)}
           >
-            <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-slate-900 border border-slate-800 hover:border-indigo-500/50 cursor-pointer transition-colors text-xs">
+            <div className="h-8 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 rounded-full bg-slate-900 border border-slate-800 hover:border-indigo-500/50 cursor-pointer transition-colors text-xs shrink-0 select-none">
               <Database className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
               <span className="text-slate-400 font-mono text-[10px] sm:text-[11px] hidden sm:inline">DB:</span>
               {dbStatus === 'CONNECTED' ? (
@@ -332,27 +340,52 @@ export default function Navbar({
             onMouseEnter={() => setHoveredBadge('branch')}
             onMouseLeave={() => setHoveredBadge(null)}
           >
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-950/40 border border-amber-800/40 hover:border-amber-500/60 cursor-pointer transition-colors text-xs text-amber-300 font-mono text-[11px]">
+            <div className="h-8 flex items-center gap-1.5 px-3 rounded-full bg-amber-950/40 border border-amber-800/40 hover:border-amber-500/60 cursor-pointer transition-colors text-xs text-amber-300 font-mono text-[11px] shrink-0">
               <GitBranch className="w-3.5 h-3.5 text-amber-400" />
               <span className="truncate max-w-[130px]">{activeBranch}</span>
             </div>
           </div>
 
-          {/* Comprehensive Service Health Check Button */}
+          {/* Comprehensive Service Health Check Button (모바일 및 PC 상시 표시) */}
           <button
             id="btn-service-health-check"
             onClick={() => {
               setIsCheckModalOpen(true);
               if (!checkResults) runServiceCheck();
             }}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-emerald-950/50 border border-emerald-700/60 hover:border-emerald-400 hover:bg-emerald-900/40 cursor-pointer transition-all text-emerald-300 text-xs font-semibold shadow-sm"
+            className="h-8 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-full bg-emerald-950/70 border border-emerald-700/80 hover:border-emerald-400 hover:bg-emerald-900/60 cursor-pointer transition-all text-emerald-300 text-xs font-semibold shadow-sm shrink-0 whitespace-nowrap select-none"
             title="서비스 전수 점검 및 가드레일 진단"
           >
-            <Stethoscope className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="hidden sm:inline">정밀점검</span>
-            {allPassed === true && <span className="w-2 h-2 rounded-full bg-emerald-400" />}
-            {allPassed === false && <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />}
+            <Stethoscope className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span className="inline font-semibold">정밀점검</span>
+            {allPassed === true && <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />}
+            {allPassed === false && <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping shrink-0" />}
           </button>
+
+          {/* Header Pin / Unpin Toggle Button (아이콘 전용, 텍스트 제거) */}
+          {onTogglePinHeader && (
+            <button
+              id="btn-toggle-pin-header"
+              onClick={onTogglePinHeader}
+              className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all cursor-pointer shadow-xs shrink-0 ${
+                isHeaderPinned
+                  ? 'bg-indigo-950/70 border-indigo-700/60 text-indigo-300 hover:bg-indigo-900/60 hover:border-indigo-400'
+                  : 'bg-slate-900/90 border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+              }`}
+              title={
+                isHeaderPinned
+                  ? '상단 헤더 고정 중 (본문 바디만 스크롤) - 클릭 시 고정 해제하여 전체화면 스크롤'
+                  : '상단 헤더 고정 해제됨 (전체화면 스크롤) - 클릭 시 상단 헤더 고정'
+              }
+              aria-label={isHeaderPinned ? '헤더 고정 해제' : '헤더 고정'}
+            >
+              {isHeaderPinned ? (
+                <Pin className="w-3.5 h-3.5 text-indigo-400" />
+              ) : (
+                <PinOff className="w-3.5 h-3.5 text-slate-400" />
+              )}
+            </button>
+          )}
 
           {/* Mobile Hamburger Drawer Trigger (44px Minimum Touch Target Guaranteed) */}
           <button
@@ -366,93 +399,175 @@ export default function Navbar({
         </div>
       </div>
 
-      {/* 2. Sub-Navigation Bar */}
-      {/* Desktop: Active Domain Views Chip Bar */}
-      <div className="hidden md:flex h-10 border-t border-slate-800/80 bg-slate-900/50 px-6 items-center justify-between text-xs">
-        <div className="flex items-center gap-2">
-          <span className="text-slate-400 font-medium flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-            {currentDomainGroup.name}:
-          </span>
-          <div className="flex items-center gap-1.5">
-            {currentDomainGroup.views.map((item) => {
-              const isActive = activeView === item.id;
-              const IconComp = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  id={`sub-view-tab-${item.id}`}
-                  onClick={() => onSelectView(item.id)}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
-                    isActive
-                      ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-semibold'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
-                  }`}
-                  title={item.description}
-                >
-                  <IconComp className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
+      {/* 2. Sub-Navigation Bar (1단 메뉴 & 각 메뉴별 2단 메뉴 가로슬라이드 적용) */}
+      
+      {/* [Desktop] 2단 메뉴: 활성 도메인의 서브 뷰 가로슬라이드 (하단 레이어 max-w-7xl px-3 sm:px-6 lg:px-8 정렬) */}
+      <div className="hidden md:flex h-10 border-t border-slate-800/80 bg-slate-900/50">
+        <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex items-center justify-between text-xs min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-4">
+            <span className="text-slate-400 font-medium flex items-center gap-1.5 shrink-0 select-none">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+              {currentDomainGroup.name}:
+            </span>
+            <div className="min-w-0 flex-1">
+              <ScrollSnapCarousel
+                dragEnabled={true}
+                wheelEnabled={true}
+                magnetic={true}
+                showArrows={false}
+                showGradients={true}
+                gradientWidth="w-5"
+                scrollStep={180}
+                ariaLabel="데스크톱 2단 서브메뉴 슬라이드"
+              >
+                <div className="flex items-center gap-1.5 py-1 whitespace-nowrap no-scrollbar">
+                  {currentDomainGroup.views.map((item) => {
+                    const isActive = activeView === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        id={`sub-view-tab-${item.id}`}
+                        onClick={() => onSelectView(item.id)}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-all shrink-0 select-none snap-start ${
+                          isActive
+                            ? 'bg-indigo-600 text-white font-semibold shadow-sm ring-1 ring-indigo-400/40'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/70 border border-transparent'
+                        }`}
+                        title={item.description}
+                      >
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </ScrollSnapCarousel>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 text-[11px] text-slate-400 font-mono shrink-0">
+            <span className="flex items-center gap-1 text-emerald-400 font-semibold">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              AGENTS.md 준거 거버넌스 활성
+            </span>
+            <span>|</span>
+            <span className="text-slate-400 truncate max-w-[180px] lg:max-w-[280px]" title={activeSessionId}>
+              {activeSessionId}
+            </span>
           </div>
         </div>
+      </div>
 
-        <div className="flex items-center gap-3 text-[11px] text-slate-400 font-mono">
-          <span className="flex items-center gap-1 text-emerald-400 font-semibold">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            AGENTS.md 준거 거버넌스 활성
-          </span>
-          <span>|</span>
-          <span className="text-slate-400">{activeSessionId}</span>
+      {/* [Mobile] 1단 메뉴: 3대 도메인 그룹 가로슬라이드 (하단 레이어 px-3 sm:px-6 정렬) */}
+      <div className="md:hidden border-t border-slate-800/90 bg-slate-950/90">
+        <div className="w-full max-w-7xl mx-auto">
+          <ScrollSnapCarousel
+            className="h-10"
+            gradientWidth="w-5"
+            showArrows={false}
+            dragEnabled={true}
+            wheelEnabled={true}
+            magnetic={true}
+            scrollStep={160}
+            ariaLabel="모바일 1단 도메인 선택 메뉴"
+          >
+            <div className="flex items-center gap-1.5 whitespace-nowrap px-3 sm:px-6 py-1.5 no-scrollbar">
+              {DOMAIN_GROUPS.map((group) => {
+                const isDomainActive = activeDomain === group.id;
+                return (
+                  <button
+                    key={group.id}
+                    id={`mobile-domain-tab-${group.id}`}
+                    onClick={() => handleSelectDomainAndFirstView(group.id)}
+                    className={`h-7 px-3 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 shrink-0 select-none snap-start ${
+                      isDomainActive
+                        ? 'bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-400/50'
+                        : 'bg-slate-900 border border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
+                    }`}
+                  >
+                    {group.id === 'harness' && <Bot className="w-3.5 h-3.5 text-indigo-300" />}
+                    {group.id === 'knowledge' && <FileText className="w-3.5 h-3.5 text-indigo-300" />}
+                    {group.id === 'studio' && <Cpu className="w-3.5 h-3.5 text-indigo-300" />}
+                    <span>{group.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </ScrollSnapCarousel>
         </div>
       </div>
 
-      {/* Mobile: Horizontal Swipeable Quick Chip Bar (8 Views Direct 1-Tap) */}
-      <div className="md:hidden h-11 border-t border-slate-800/80 bg-slate-900/60 px-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar whitespace-nowrap touch-pan-x">
-        {ALL_VIEWS.map((item) => {
-          const isActive = activeView === item.id;
-          const IconComp = item.icon;
-          return (
-            <button
-              key={item.id}
-              onClick={() => handleViewClick(item.id, item.domain)}
-              className={`min-h-[32px] px-3 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 shrink-0 select-none ${
-                isActive
-                  ? 'bg-indigo-600 text-white font-semibold shadow-sm'
-                  : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <IconComp className="w-3.5 h-3.5" />
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
+      {/* [Mobile] 2단 메뉴: 선택된 도메인의 서브 뷰 가로슬라이드 (하단 레이어 px-3 sm:px-6 정렬, 왼쪽 벽 붙음 방지) */}
+      <div className="md:hidden border-t border-slate-800/70 bg-slate-900/70">
+        <div className="w-full max-w-7xl mx-auto">
+          <ScrollSnapCarousel
+            className="h-11"
+            gradientWidth="w-6"
+            showArrows={false}
+            dragEnabled={true}
+            wheelEnabled={true}
+            magnetic={true}
+            scrollStep={160}
+            ariaLabel="모바일 2단 서브 뷰 선택 메뉴"
+          >
+            <div className="flex items-center gap-1.5 whitespace-nowrap px-3 sm:px-6 py-1.5 no-scrollbar">
+              {currentDomainGroup.views.map((item) => {
+                const isActive = activeView === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    id={`mobile-sub-view-tab-${item.id}`}
+                    onClick={() => handleViewClick(item.id, currentDomainGroup.id)}
+                    className={`min-h-[32px] px-3 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 select-none snap-start ${
+                      isActive
+                        ? 'bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-400/50'
+                        : 'bg-slate-800/70 border border-slate-700/60 text-slate-300 hover:text-white hover:bg-slate-800'
+                    }`}
+                    title={item.description}
+                  >
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </ScrollSnapCarousel>
+        </div>
       </div>
 
-      {/* 3. Mobile Right Sliding Drawer (Off-Canvas Navigation) */}
-      {isMobileDrawerOpen && (
-        <div className="fixed inset-0 z-50 md:hidden flex justify-end">
+      {/* 3. Mobile Right Sliding Drawer (Portal to document.body) */}
+      {isMobileDrawerOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9998] md:hidden flex justify-end">
           {/* Backdrop Dim */}
           <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
             onClick={() => setIsMobileDrawerOpen(false)}
           />
 
           {/* Sliding Panel */}
-          <div className="relative w-80 max-w-[85vw] h-full bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col z-50 animate-in slide-in-from-right duration-200">
+          <div className="relative w-80 max-w-[85vw] h-full bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col z-[9999] animate-in slide-in-from-right duration-200">
             {/* Drawer Header */}
-            <div className="h-14 px-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-xs">
+            <div className="h-16 px-4 border-b border-slate-800 flex items-center justify-between bg-slate-950 shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-black text-sm shadow-md shadow-indigo-500/20 shrink-0">
                   P
                 </div>
-                <span className="font-bold text-white text-sm">3대 도메인 내비게이션</span>
+                <div className="flex flex-col justify-center min-w-0">
+                  <span className="font-black text-white tracking-tight text-sm whitespace-nowrap leading-tight">
+                    purePDFrend
+                  </span>
+                  <div className="flex items-center gap-1.5 mt-0.5 leading-none">
+                    <span className="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60 font-mono shrink-0">
+                      v2.1 IA
+                    </span>
+                    <span className="text-[9px] text-slate-400 font-mono truncate max-w-[130px]">
+                      대용량 스캔 PDF & 하네스
+                    </span>
+                  </div>
+                </div>
               </div>
               <button
                 onClick={() => setIsMobileDrawerOpen(false)}
                 aria-label="메뉴 닫기"
-                className="w-11 h-11 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 active:scale-95 transition-all"
+                className="w-10 h-10 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 active:scale-95 transition-all shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -538,95 +653,103 @@ export default function Navbar({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* 4. Comprehensive Service Health Check Modal (100% Shared & Responsive) */}
-      {isCheckModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+      {/* 4. Comprehensive Service Health Check Modal (Portal to document.body, strictly viewport bound & centered) */}
+      {isCheckModalOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-md z-[9999] flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in duration-150"
+          onClick={() => setIsCheckModalOpen(false)}
+        >
+          <div
+            className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh] sm:max-h-[80vh] my-auto animate-in zoom-in-95 duration-150 relative z-10"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Modal Header */}
-            <div className="px-4 sm:px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-                  <Stethoscope className="w-5 h-5" />
+            <div className="px-4 py-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/80 shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shrink-0">
+                  <Stethoscope className="w-4 h-4" />
                 </div>
-                <div>
-                  <h3 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
-                    서비스 전수 점검 & 상시 가드레일 진단
+                <div className="min-w-0">
+                  <h3 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2 truncate">
+                    서비스 전수 점검 & 가드레일
                     {allPassed === true && (
-                      <span className="px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                        100% ALL PASSED
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
+                        100% 통과
                       </span>
                     )}
                     {allPassed === false && (
-                      <span className="px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 shrink-0">
                         점검필요
                       </span>
                     )}
                   </h3>
-                  <p className="text-[10px] sm:text-[11px] text-slate-400">
-                    인프라/DB, 정합성, 거버넌스 100점 감사, 문서 및 GIN 검색 4단계 종합 검증
+                  <p className="text-[10px] text-slate-400 truncate">
+                    인프라/DB, 정합성, 감사, 문서 GIN 검색 진단
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   onClick={runServiceCheck}
                   disabled={checking}
-                  className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50 min-h-[36px]"
+                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1 transition-colors disabled:opacity-50"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 text-slate-400 ${checking ? 'animate-spin text-emerald-400' : ''}`} />
-                  <span className="hidden sm:inline">{checking ? '점검중...' : '재점검'}</span>
+                  <span className="hidden sm:inline">{checking ? '점검중' : '재점검'}</span>
                 </button>
                 <button
                   onClick={() => setIsCheckModalOpen(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                  aria-label="닫기"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
             {/* Modal Body */}
-            <div className="p-4 sm:p-6 overflow-y-auto space-y-3">
+            <div className="p-3.5 sm:p-5 overflow-y-auto no-scrollbar space-y-2.5 flex-1">
               {checking && !checkResults ? (
-                <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-400">
-                  <RefreshCw className="w-8 h-8 text-emerald-400 animate-spin" />
+                <div className="py-10 flex flex-col items-center justify-center gap-3 text-slate-400">
+                  <RefreshCw className="w-7 h-7 text-emerald-400 animate-spin" />
                   <p className="text-xs">4단계 서비스 전수 점검을 수행하고 있습니다...</p>
                 </div>
               ) : checkResults && checkResults.length > 0 ? (
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   {checkResults.map((item, idx) => (
                     <div
                       key={idx}
-                      className={`p-3 rounded-xl border transition-all flex items-start justify-between gap-3 ${
+                      className={`p-2.5 rounded-xl border transition-all flex items-start justify-between gap-2.5 ${
                         item.passed
                           ? 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700'
                           : 'bg-rose-950/20 border-rose-900/60'
                       }`}
                     >
-                      <div className="flex items-start gap-2.5">
-                        <div className="mt-0.5">
+                      <div className="flex items-start gap-2 min-w-0 flex-1">
+                        <div className="mt-0.5 shrink-0">
                           {item.passed ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                           ) : (
-                            <AlertTriangle className="w-4 h-4 text-rose-400" />
+                            <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
                           )}
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-slate-800 text-slate-300 shrink-0">
                               {item.step}
                             </span>
-                            <span className="text-xs font-bold text-white">{item.name}</span>
+                            <span className="text-xs font-bold text-white break-keep">{item.name}</span>
                           </div>
-                          <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
+                          <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed break-words break-keep">
                             {item.message}
                           </p>
                         </div>
                       </div>
-                      <span className="text-[10px] font-mono text-slate-500 whitespace-nowrap mt-0.5">
+                      <span className="text-[9px] font-mono text-slate-500 whitespace-nowrap shrink-0 mt-0.5">
                         {item.durationMs}ms
                       </span>
                     </div>
@@ -640,20 +763,21 @@ export default function Navbar({
             </div>
 
             {/* Modal Footer */}
-            <div className="px-4 sm:px-6 py-3 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400">
-              <div className="flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>CLI: <code className="text-slate-200 font-mono px-1 py-0.5 bg-slate-800 rounded">npm run check:service</code></span>
+            <div className="px-4 py-2.5 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between text-[10px] text-slate-400 shrink-0">
+              <div className="flex items-center gap-1.5 truncate">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span className="truncate">CLI: <code className="text-slate-200 font-mono px-1 py-0.2 bg-slate-800 rounded">npm run check:service</code></span>
               </div>
               <button
                 onClick={() => setIsCheckModalOpen(false)}
-                className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-colors shadow-md min-h-[36px]"
+                className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-colors shadow-sm shrink-0"
               >
                 닫기
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </header>
   );
