@@ -21,6 +21,9 @@ import {
 } from 'lucide-react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { TokenBurnoutGauge } from './TokenBurnoutGauge';
+import { HandoffDossierModal } from './HandoffDossierModal';
+import { ScorecardModal } from './ScorecardModal';
 
 interface AgentUsageViewerProps {
   initialFilter?: string;
@@ -40,6 +43,8 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
   const [selectedTrace, setSelectedTrace] = useState<ConversationTrace | null>(null);
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [copiedResponse, setCopiedResponse] = useState(false);
+  const [isHandoffModalOpen, setIsHandoffModalOpen] = useState(false);
+  const [isScorecardModalOpen, setIsScorecardModalOpen] = useState(false);
 
   // 3-state cyclic sort: 'init' -> 'asc' -> 'desc' -> 'init'
   const [sortField, setSortField] = useState<SortField>('step_index');
@@ -198,6 +203,10 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
     });
   }, [traces, searchKeyword, sortField, sortOrder]);
 
+  const totalTokensUsed = useMemo(() => {
+    return traces.reduce((sum, t) => sum + (Number(t.total_tokens) || Number(t.estimated_tokens) || 0), 0);
+  }, [traces]);
+
   const handleCopy = (text: string, isPrompt: boolean) => {
     navigator.clipboard.writeText(text);
     if (isPrompt) {
@@ -273,6 +282,16 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Burnout Fuel Gauge & 4-Tier Telemetry Status */}
+      <div className="px-3 sm:px-4 pt-3">
+        <TokenBurnoutGauge
+          sessionId={sessionFilter !== 'ALL' ? sessionFilter : availableSessions[0]?.id}
+          totalTokensUsed={totalTokensUsed}
+          onOpenHandoffModal={() => setIsHandoffModalOpen(true)}
+          onOpenScorecardModal={() => setIsScorecardModalOpen(true)}
+        />
       </div>
 
       {/* Search Header Bar */}
@@ -378,6 +397,11 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
                     응답 요약 (Response){renderSortIndicator('agent_response')}
                   </span>
                 </th>
+                <th className="p-3 w-28 text-center">
+                  <span className="inline-flex items-center justify-center">
+                    토큰 (Tokens)
+                  </span>
+                </th>
                 <th
                   onClick={() => handleHeaderSort('created_at')}
                   className="p-3 w-28 text-center cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
@@ -399,6 +423,9 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
                   : trace.agent_response
                   ? trace.agent_response.split('\n')[0].substring(0, 55) + (trace.agent_response.length > 55 ? '...' : '')
                   : '(응답 없음)';
+
+                const tokensVal = trace.total_tokens || trace.estimated_tokens || 0;
+                const isBurst = trace.burst_score && trace.burst_score > 1.25;
 
                 return (
                   <tr
@@ -433,6 +460,16 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
                     <td className="p-3 text-slate-400 max-w-sm truncate">
                       {responseSummary}
                     </td>
+                    <td className="p-3 text-center font-mono text-[11px]">
+                      <div className="flex items-center justify-center gap-1">
+                        <span className="text-indigo-300 font-bold">{tokensVal.toLocaleString()}</span>
+                        {isBurst && (
+                          <span className="px-1 rounded bg-amber-950 text-amber-300 border border-amber-800/60 text-[9px] font-semibold" title="토큰 급증 버스트 감지">
+                            급증
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="p-3 text-center text-[11px] text-slate-500 font-mono whitespace-nowrap">
                       {new Date(trace.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </td>
@@ -445,7 +482,7 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
 
               {displayTraces.length === 0 && !isLoading && (
                 <tr>
-                  <td colSpan={8} className="p-12 text-center text-slate-400 text-xs">
+                  <td colSpan={9} className="p-12 text-center text-slate-400 text-xs">
                     {dbStatus !== 'CONNECTED' ? (
                       <div className="flex flex-col items-center justify-center gap-2">
                         <Database className="w-6 h-6 text-amber-500/80 animate-pulse" />
@@ -705,6 +742,25 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
             </div>
           </div>
         </div>
+      )}
+
+      {/* Handoff Dossier Modal */}
+      {isHandoffModalOpen && (
+        <HandoffDossierModal
+          sessionId={sessionFilter !== 'ALL' ? sessionFilter : availableSessions[0]?.id}
+          onClose={() => setIsHandoffModalOpen(false)}
+          onSuccess={() => {
+            fetchUsage(searchKeyword);
+          }}
+        />
+      )}
+
+      {/* Adaptive Scorecard Modal */}
+      {isScorecardModalOpen && (
+        <ScorecardModal
+          sessionId={sessionFilter !== 'ALL' ? sessionFilter : availableSessions[0]?.id}
+          onClose={() => setIsScorecardModalOpen(false)}
+        />
       )}
     </div>
   );

@@ -5,6 +5,10 @@ export interface HarnessSession {
   status_cd: string;
   ai_agent: string;
   ai_model: string;
+  account_id?: string;
+  parent_session_id?: string | null;
+  handoff_token?: string | null;
+  calibration_alpha?: number;
   started_at: string;
   ended_at?: string | null;
   doc_payload: any;
@@ -19,6 +23,8 @@ export interface HarnessTask {
   task_name: string;
   status_cd: string;
   git_branch: string;
+  account_id?: string;
+  checkpoint_tree_sha?: string | null;
   started_at: string;
   ended_at?: string | null;
   doc_payload: any;
@@ -33,6 +39,9 @@ export interface HarnessLoop {
   session_id: string;
   loop_name: string;
   status_cd: string;
+  account_id?: string;
+  loop_token_budget?: number;
+  loop_actual_tokens?: number;
   started_at: string;
   ended_at?: string | null;
   doc_payload: any;
@@ -61,6 +70,7 @@ export interface ConversationTrace {
   session_id: string;
   task_id?: string;
   loop_id?: string;
+  account_id?: string;
   step_index: number;
   agent_name: string;
   model_name: string;
@@ -71,6 +81,11 @@ export interface ConversationTrace {
   prompt_tokens: number;
   completion_tokens: number;
   total_tokens: number;
+  estimated_tokens?: number;
+  burst_score?: number;
+  burn_rate_velocity?: number;
+  loop_safety_margin?: number;
+  burnout_risk_index?: number;
   created_at: string;
 }
 

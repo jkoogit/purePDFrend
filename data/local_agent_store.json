@@ -1,162 +1,67 @@
 {
   "sessions": [
     {
-      "session_id": "SESSION-20260921-004",
-      "session_name": "[0006]purePDFrend-모바일반응형UX_및_3대도메인_IA그룹화",
+      "session_id": "SESSION-20260922-005",
+      "session_name": "[0008]에이전트 사용량 관리기능 및 사용자(계정)별 관리기능 개선",
       "work_group": "purePDFrend",
       "ai_agent": "gemini",
       "ai_model": "models/gemini-3.8-flash",
-      "status_cd": "완료",
-      "started_at": "2026-09-21T17:12:40.859Z",
-      "ended_at": "2026-09-22T09:51:27.460Z",
+      "status_cd": "진행중",
+      "started_at": "2026-09-22T10:22:00.000Z",
+      "ended_at": null,
       "doc_payload": {
-        "objective": "8대 상단 메뉴의 3대 도메인 그룹화 (IA 전면 재구조화), 모바일 반응형 UX 완전 개편(오버플로우 제거, 드로어 및 칩 바, 터치 44px), 4단계 서비스 전수점검 100점 유지",
-        "issue_number": 8,
-        "branch": "task/모바일UX_IA개편_Gemini"
+        "objective": "토큰사용량 계산방법 검토, 사용자(계정)별 관리방안 점검, 토큰소진 시 신규채팅/세션연장 작업연계 프로세스 수립, 토큰복구 후 계정간 세션번호 채번 및 의존성 관리방안 수립",
+        "issue_number": 9,
+        "branch": "task/사용량_계정관리개선_Gemini",
+        "token_scorecard": {
+          "session_id": "SESSION-20260922-005",
+          "total_turns": 0,
+          "total_loops": 0,
+          "total_tokens": 0,
+          "avg_tokens_per_turn": 0,
+          "burn_rate_acceleration": 0,
+          "predicted_tokens": 0,
+          "actual_tokens": 0,
+          "mape_percent": 0,
+          "calibration_weight_alpha": 1,
+          "hang_risk_detected": false,
+          "recommended_max_turns_next_session": 15,
+          "api_candidate_proposals": []
+        }
       },
       "created_sys": "agent-harness",
       "created_by": "system",
       "updated_sys": "agent-harness",
       "updated_by": "system",
-      "version": 3
+      "version": 1,
+      "calibration_alpha": 1
     }
   ],
   "tasks": [
     {
-      "task_id": "TASK-20260921-001",
-      "session_id": "SESSION-20260921-004",
-      "task_name": "모바일 반응형 UX 및 3대 도메인 IA 그룹화 구현",
-      "status_cd": "완료",
-      "git_branch": "task/모바일UX_IA개편_Gemini",
-      "started_at": "2026-09-21T17:15:00.000Z",
-      "ended_at": "2026-09-22T09:49:40.640Z",
+      "task_id": "TASK-20260922-005-01",
+      "session_id": "SESSION-20260922-005",
+      "task_name": "[01] 토큰 관리 전략 의사결정 문서화 및 OOP/DDD 리팩토링",
+      "status_cd": "정리",
+      "started_at": "2026-09-22T10:25:00.000Z",
+      "ended_at": null,
       "doc_payload": {
-        "items": [
-          "03-13",
-          "03-14",
-          "04-01",
-          "05-06",
-          "06-01",
-          "10-18",
-          "Navbar",
-          "ScrollSnapCarousel",
-          "WorkGraphViewer",
-          "TaskInfoManager",
-          "SystemConfig",
-          "App"
+        "review_doc": "docs/10.리뷰/260922_019_토큰소진방지_자가적응형쿼터관리_및_OOP_DDD_리팩토링_리뷰.md",
+        "backlogs": [
+          {
+            "id": "BL-20260922-01",
+            "title": "사용자/모델/요금제 메타 거버넌스 및 다차원 쿼터 시스템 구축",
+            "target_layer": "도메인/백오피스"
+          }
         ]
       },
       "created_sys": "agent-harness",
       "created_by": "system",
       "updated_sys": "agent-harness",
       "updated_by": "system",
-      "version": 6
+      "version": 1
     }
   ],
-  "loops": [
-    {
-      "loop_id": "LOOP-20260921-001",
-      "task_id": "TASK-20260921-001",
-      "loop_name": "모바일 네비게이션 드로어 및 3대 도메인 그룹화 구현",
-      "status_cd": "완료",
-      "started_at": "2026-09-21T17:20:00.000Z",
-      "ended_at": "2026-09-21T18:00:00.000Z",
-      "doc_payload": {
-        "description": "3대 도메인(하네스, 지식창고, PDF 스튜디오) 세그먼트 및 모바일 햄버거 드로어 구현"
-      },
-      "created_sys": "agent-service",
-      "created_at": "2026-09-22T09:56:05.010Z",
-      "created_by": "system",
-      "updated_sys": "agent-service",
-      "updated_at": "2026-09-22T09:56:05.011Z",
-      "updated_by": "system",
-      "version": 2,
-      "session_id": "SESSION-20260921-004"
-    },
-    {
-      "loop_id": "LOOP-20260921-002",
-      "task_id": "TASK-20260921-001",
-      "loop_name": "상단 툴 높이 규격 통일(h-8) 및 대화턴 뷰어 버튼명 표준화",
-      "status_cd": "완료",
-      "started_at": "2026-09-22T09:00:00.000Z",
-      "ended_at": "2026-09-22T09:40:00.000Z",
-      "doc_payload": {
-        "description": "상단 액션 툴 높이 32px(h-8) 통일, 로고/버전 재배치 및 뷰어 버튼명 단일화"
-      },
-      "created_sys": "agent-service",
-      "created_at": "2026-09-22T09:56:05.011Z",
-      "created_by": "system",
-      "updated_sys": "agent-service",
-      "updated_at": "2026-09-22T09:56:05.011Z",
-      "updated_by": "system",
-      "version": 2,
-      "session_id": "SESSION-20260921-004"
-    }
-  ],
-  "traces": [
-    {
-      "trace_id": "TRACE-20260921-034",
-      "session_id": "SESSION-20260921-004",
-      "task_id": "TASK-20260921-001",
-      "loop_id": null,
-      "step_index": 1,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-3.8-flash",
-      "user_prompt": "[0006]purePDFrend-모바일반응형UX_및_3대도메인_IA그룹화 #태스크처리 추천안 수용",
-      "agent_response": "3대 도메인 8대 뷰 IA 재구조화, 44px 모바일 내비게이션, 오버플로우 방어 컴포넌트 구현 및 100점 무결성 감사 달성",
-      "response_summary": "모바일 반응형 UX 및 3대 도메인 IA 그룹화 구현 완결",
-      "prompt_tokens": 1200,
-      "completion_tokens": 950,
-      "total_tokens": 2150,
-      "created_at": "2026-09-21T17:32:16.658Z"
-    },
-    {
-      "trace_id": "TRACE-20260921-035",
-      "session_id": "SESSION-20260921-004",
-      "task_id": "TASK-20260921-001",
-      "loop_id": null,
-      "step_index": 2,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-2.5-flash",
-      "user_prompt": "#태스크처리 가로 스크롤 영역 Scroll-Snap 및 스마트 좌우 화살표/페이드 인터랙션 구현 및 UI 정책 보완",
-      "agent_response": "ScrollSnapCarousel 공용 컴포넌트 개발, Navbar 및 WorkGraphViewer 연동, 03-14 정책 문서 현행화 및 SVG 다이어그램 연계 완결",
-      "response_summary": "Scroll-Snap 스마트 캐러셀 컴포넌트 및 UI 정책 v2.2 현행화",
-      "prompt_tokens": 1450,
-      "completion_tokens": 1100,
-      "total_tokens": 2550,
-      "created_at": "2026-09-22T09:42:12.652Z"
-    },
-    {
-      "trace_id": "TRACE-20260922-218",
-      "session_id": "SESSION-20260921-004",
-      "task_id": "TASK-20260921-001",
-      "loop_id": null,
-      "step_index": 3,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-3.8-flash",
-      "user_prompt": "#태스크처리 1차 메뉴 첫 버튼 여백 보정 및 /docs 전수 문서정책(이력, 링크, 다이어그램 이미지) 반영과 DB 영속화",
-      "agent_response": "Navbar 작업그래프 좌측 여백 보강, /docs 전수 문서 8대 필드 편집이력/상호링크/SVG 다이어그램 이미지 생성 연계 및 개발DB aiagent.agent_docs_meta 영속화 완결",
-      "response_summary": "문서정책 v2.2 전수 반영 및 DB 영속화 완료",
-      "prompt_tokens": 1800,
-      "completion_tokens": 1300,
-      "total_tokens": 3100,
-      "created_at": "2026-09-22T09:41:38.407Z"
-    },
-    {
-      "trace_id": "TRACE-20260922-219",
-      "session_id": "SESSION-20260921-004",
-      "task_id": "TASK-20260921-001",
-      "loop_id": null,
-      "step_index": 4,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-3.8-flash",
-      "user_prompt": "1. 화면 상단에 탑 메뉴에. 표시한 화면 명 라벨 삭제해줘. 2. 대화 턴 뷰어 버튼 명 바꿔줘. 대화턴뷰어 > 뷰어 / 1. 화면상단 로고옆 시스템명 아래 버전정보이동 화면상단 우측 햄버가메뉴 상단타이틀로 시스템명과 버전정보 표시. 시스템명이 두곳에 표시되는거야. 2. db상태, 정밀점검, 핀고정 높이 통일 #태스크정리",
-      "agent_response": "화면 상단 로고 옆 시스템명 단독 배치, 햄버거 메뉴 상단 헤더에 로고/시스템명/버전정보 재배치, 우측 툴(DB상태, 정밀점검, 핀고정) 높이 h-8(32px) 통일, 대화턴 뷰어 버튼명 '뷰어'로 표준화 및 리뷰문서 10-18 발행",
-      "response_summary": "상단 메뉴 및 드로어 헤더 개편, 툴 높이 통일 및 대화턴 뷰어 버튼명 표준화 완료",
-      "prompt_tokens": 1600,
-      "completion_tokens": 1200,
-      "total_tokens": 2800,
-      "created_at": "2026-09-22T09:41:38.520Z"
-    }
-  ]
+  "loops": [],
+  "traces": []
 }
