@@ -33,21 +33,39 @@
       "work_group": "purePDFrend",
       "ai_agent": "gemini",
       "ai_model": "models/gemini-3.8-flash",
-      "status_cd": "진행중",
+      "status_cd": "완료",
       "started_at": "2026-09-23T09:47:48.502Z",
-      "ended_at": null,
+      "ended_at": "2026-09-23T12:25:00.000Z",
       "doc_payload": {
         "theme": "사용자·AI계정·구독모델별 토큰정책 및 작업별 모델설정·작업반영 프로세스",
         "activeAgent": "Gemini 3.8 Flash",
         "issueNumber": 11,
         "branchName": "task/user-model-token-policy_Gemini",
-        "baseSha": "0388f7e9e95409d7d8ce6e48e9f94826da3dafb7"
+        "baseSha": "0388f7e9e95409d7d8ce6e48e9f94826da3dafb7",
+        "promotedCommitSha": "4a43140f3e76d031e6a0606d6127af2cb23119c1",
+        "completed_tasks": [
+          "TASK-20260923-004 (완료): 복수계정 토큰정책, 세션 자원 현행화 및 모델설정 구현"
+        ],
+        "retrospectiveDoc": "docs/13.회고/13-08_SESSION-20260923-007_세션종합_KPT_회고록.md",
+        "hang_governance_telemetry": {
+          "session_prompt_tokens": 2500,
+          "session_completion_tokens": 1800,
+          "session_total_tokens": 4300,
+          "context_bloat_ratio": "2.86%",
+          "burnout_risk_index": 13,
+          "burst_score": 1,
+          "burn_rate_velocity": 4300,
+          "loop_safety_margin": 4.9,
+          "rpd_consumed_turns": 42,
+          "quota_429_violations": 0,
+          "hang_risk_level": "SAFE"
+        }
       },
       "created_sys": "agent-harness",
       "created_by": "system",
       "updated_sys": "agent-harness",
       "updated_by": "system",
-      "version": 1
+      "version": 3
     }
   ],
   "tasks": [
@@ -56,15 +74,20 @@
       "session_id": "SESSION-20260923-007",
       "task_name": "[01] 복수계정 토큰정책, 세션 자원 현행화 및 모델설정 구현",
       "git_branch": "task/user-model-token-policy_Gemini",
-      "status_cd": "진행중",
+      "status_cd": "완료",
       "started_at": "2026-09-23T10:15:00.000Z",
-      "doc_payload": {},
-      "ended_at": null,
+      "ended_at": "2026-09-23T12:14:00.000Z",
+      "doc_payload": {
+        "pushed_commit_sha": "4a43140f3e76d031e6a0606d6127af2cb23119c1",
+        "promoted_commit_sha": "4a43140f3e76d031e6a0606d6127af2cb23119c1",
+        "review_doc": "docs/10.리뷰/260923_023_복수계정_토큰정책_세션자원현행화_및_모델설정_구현_리뷰.md",
+        "refinement_6step_status": "완료"
+      },
       "created_sys": "agent-harness",
       "created_by": "system",
       "updated_sys": "agent-harness",
       "updated_by": "system",
-      "version": 2
+      "version": 5
     },
     {
       "task_id": "TASK-20260923-003",
