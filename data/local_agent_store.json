@@ -2,58 +2,46 @@
   "sessions": [
     {
       "session_id": "SESSION-20260923-008",
-      "session_name": "[0011]PDF 비즈니스 코어 고도화 (다국어 OCR 전처리 및 바운딩 박스 교정 스튜디오 구현)",
+      "session_name": "[0011]PDF ???? ?? ??? (??? OCR ??? ? ??? ?? ?? ???? ??)",
       "work_group": "purePDFrend",
       "ai_agent": "gemini",
       "ai_model": "models/gemini-3.7-flash",
-      "status_cd": "진행중",
+      "status_cd": "??",
       "started_at": "2026-09-23T13:18:40.555Z",
-      "ended_at": null,
-      "doc_payload": {
-        "planned_tasks": [
-          "TASK-20260923-005: PDF 이미지 고정밀 전처리 파이프라인 및 다국어 OCR 엔진 어댑터(Tesseract/Gemini/PaddleOCR Docker) 확장",
-          "TASK-20260923-006: 인터랙티브 캔버스 기반 바운딩 박스 인라인 선택/수정/병합 교정 스튜디오 UI 구현",
-          "TASK-20260923-007: PDF OCR 처리량 및 토큰 쿼터(SessionResourceManager) 실시간 연동 및 검증"
-        ],
-        "branchName": "task/pdf-ocr-correction-studio_Gemini",
-        "issueNumber": 12,
-        "objective": "PDF 이미지 전처리(기울기보정/이진화/노이즈제거), 다국어 OCR 및 바운딩박스 교정 캔버스 UI, 온디맨드 자원 연동 및 PaddleOCR(우분투 도커) 어댑터 확장 설계",
-        "activeAgent": "Gemini 3.7 Flash",
-        "baseSha": "86bd880ce5429a6a2ae75dbe625f864f73c9afd8",
-        "theme": "PDF 비즈니스 코어 고도화 (다국어 OCR 전처리 및 바운딩 박스 교정 스튜디오)"
-      },
+      "ended_at": "2026-09-23T17:46:00.000Z",
+      "doc_payload": {},
       "created_sys": "agent-harness",
       "created_by": "system",
       "updated_sys": "agent-harness",
       "updated_by": "system",
-      "version": 1
+      "version": 2
     }
   ],
   "tasks": [
     {
       "task_id": "TASK-20260923-005",
       "session_id": "SESSION-20260923-008",
-      "task_name": "[0012]PDF 이미지 전처리 엔진 및 다국어 OCR(WASM/클라우드/PaddleOCR 도커 어댑터) 파이프라인 구현",
+      "task_name": "[0012]PDF ??? ??? ?? ? ??? OCR(WASM/????/PaddleOCR ?? ???) ????? ??",
       "git_branch": "task/pdf-ocr-correction-studio_Gemini",
-      "status_cd": "완료",
+      "status_cd": "??",
       "started_at": "2026-09-23T13:32:53.406Z",
       "ended_at": "2026-09-23T13:58:17.977Z",
-      "doc_payload": {
-        "tests_passed": "13/13 PASS (100%)",
-        "lint_status": "0 errors (clean)",
-        "review_doc": "docs/10.리뷰/260923_024_PDF_이미지_전처리_및_3대_OCR_엔진_어댑터_구현_리뷰.md",
-        "description": "PDF 스캔 이미지 5단계 전처리, 테두리 트리밍/양면 분할, 3대 OCR 엔진 어댑터, 앙상블 라우터 및 2-Way BBox 교정 스튜디오 구현 완료",
-        "completed_components": [
-          "ImagePreprocessingPipeline (5단계 전처리, 테두리 자동 트리밍, 펼침면 양면 분할)",
-          "3대 다국어 OCR 엔진 어댑터 (Tesseract WASM, Gemini Multimodal, PaddleOCR Ubuntu Docker)",
-          "EnsembleOcrRouter (하이브리드 비용 절감 라우팅)",
-          "OCRCorrectionStudio (2-Way 인터랙티브 캔버스 & 텍스트 실시간 동기화)",
-          "OcrEngineManager (3대 엔진 관제 및 실시간 벤치마크)",
-          "Express REST API 프록시 및 브릿지 엔드포인트 7종",
-          "설계(05-10), 학습(15-06, 15-07), 리뷰(10-24) 문서 발행"
-        ],
-        "promoted_at": "2026-09-23T13:58:17.977Z"
-      },
+      "doc_payload": {},
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 4
+    },
+    {
+      "task_id": "TASK-260923-0011-01",
+      "session_id": "SESSION-20260923-008",
+      "task_name": "[0013]???? ID ?? ??(??�???�??�???) ? ???? ?? ???(Mermaid ????? ????�?? ???? ???)",
+      "git_branch": "task/0011_0013_governance-id-and-docs_Gemini",
+      "status_cd": "??",
+      "started_at": "2026-09-23T16:22:45.000Z",
+      "ended_at": "2026-09-23T16:31:00.180Z",
+      "doc_payload": {},
       "created_sys": "agent-harness",
       "created_by": "system",
       "updated_sys": "agent-harness",
@@ -61,28 +49,14 @@
       "version": 3
     },
     {
-      "task_id": "TASK-260923-0011-01",
+      "task_id": "TASK-260923-0011-14",
       "session_id": "SESSION-20260923-008",
-      "task_name": "[0013]거버넌스 ID 포맷 개선(세션·태스크·루프·대화턴) 및 기술문서 전수 현행화(Mermaid 다이어그램 이미지화·하단 편집이력 표준화)",
-      "git_branch": "task/0011_0013_governance-id-and-docs_Gemini",
-      "status_cd": "완료",
-      "started_at": "2026-09-23T16:22:45.000Z",
-      "ended_at": "2026-09-23T16:31:00.180Z",
-      "doc_payload": {
-        "tests_passed": "11/11 PASS (100%)",
-        "lint_status": "0 errors (clean)",
-        "review_doc": "docs/10.리뷰/260924_025_거버넌스_4대_식별자_포맷_및_기술문서_체계_표준화_리뷰.md",
-        "description": "AGENTS.md v2.1 4대 식별자 채번 도메인 엔진 구축 및 99개 기술문서 Mermaid 이미지 래퍼/최하단 편집이력 전수 표준화 완료",
-        "promoted_at": "2026-09-23T16:31:00.180Z",
-        "completed_components": [
-          "GovernanceIdGenerator (세션/태스크/루프/대화턴 4대 ID 정규화 채번 엔진)",
-          "server.ts 및 REST API 연동",
-          "tests/governance_id.test.ts (11종 단위 테스트 100% 통과)",
-          "99개 기술문서 Mermaid <img> 태그 및 상세 alt 대체 텍스트 삽입",
-          "18대 문서 체계 상단 편집이력 테이블 최하단 이동 및 ## 📋 편집 이력 (Revision History) 표준화",
-          "설계(05-11), 학습(15-08), 리뷰(10-25) 문서 발행 및 DB 동기화"
-        ]
-      },
+      "task_name": "[0014]800? ??? ?? ??(VirtualViewer) ? ????? ??? ??? ????? ??",
+      "git_branch": "task/0011_0014_virtual-viewer_Gemini",
+      "status_cd": "??",
+      "started_at": "2026-09-23T16:45:00.000Z",
+      "ended_at": "2026-09-23T17:00:00.000Z",
+      "doc_payload": {},
       "created_sys": "agent-harness",
       "created_by": "system",
       "updated_sys": "agent-harness",
