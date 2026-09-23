@@ -148,8 +148,8 @@ export default function App() {
         }`}
       >
         <ErrorBoundary fallbackTitle="에이전트 화면 로딩 중 오류가 발생했습니다.">
-          {/* 비-LLM 긴급 Push 및 세션 DR 관제실 */}
-          {activeDomain === 'harness' && (
+          {/* 비-LLM 긴급 Push 및 세션 DR 관제실 (에이전트통계 뷰에만 단독 배치) */}
+          {activeDomain === 'harness' && activeView === 'usage' && (
             <div className="mb-4">
               <EmergencyRecoveryPanel />
             </div>

@@ -76,6 +76,7 @@ interface LocalStoreData {
   users?: any[];
   ledgers?: any[];
   quota_logs?: any[];
+  snapshots?: any[];
 }
 
 function getLocalStore(): LocalStoreData {
@@ -93,12 +94,13 @@ function getLocalStore(): LocalStoreData {
         users: parsed.users || [],
         ledgers: parsed.ledgers || [],
         quota_logs: parsed.quota_logs || [],
+        snapshots: parsed.snapshots || [],
       };
     }
   } catch (e) {
     console.error('Error reading local agent store:', e);
   }
-  return { sessions: [], tasks: [], loops: [], traces: [], plans: [], models: [], users: [], ledgers: [], quota_logs: [] };
+  return { sessions: [], tasks: [], loops: [], traces: [], plans: [], models: [], users: [], ledgers: [], quota_logs: [], snapshots: [] };
 }
 
 function saveLocalStore(data: LocalStoreData): void {
@@ -2323,7 +2325,7 @@ app.post('/api/agent/emergency/push', async (req, res) => {
 });
 
 // =========================================================================
-// 5.10 [세션DR] 세션 스냅샷 생성 및 목록 조회 API
+// 5.10 [세션DR] 세션 스냅샷 생성 및 파일화/목록 조회 API
 // =========================================================================
 app.post('/api/agent/session/snapshot', async (req, res) => {
   try {
@@ -2332,18 +2334,84 @@ app.post('/api/agent/session/snapshot', async (req, res) => {
     const activeTask = store.tasks?.[0];
 
     const snapshotId = `SNAP-${Date.now()}`;
-    const newSnapshot = {
+    const snapshotsDir = path.join(process.cwd(), 'data', 'snapshots');
+    if (!fs.existsSync(snapshotsDir)) {
+      fs.mkdirSync(snapshotsDir, { recursive: true });
+    }
+
+    const unfinalizedTasks = (store.tasks || []).filter((t: any) => t.status_cd !== '완료');
+    const unfinalizedLoops = (store.loops || []).filter((l: any) => l.status_cd !== '완료');
+    const latestCommitSha = store.snapshots?.[0]?.latest_commit_sha || 'e3ce53534e1e1e3d78a0bca681d3ee21b2c49719';
+
+    const snapshotPayload = {
       snapshot_id: snapshotId,
-      session_num: activeSession?.session_id?.split('-')[1] || '0009',
+      session_id: activeSession?.session_id || 'SESSION-20260922-006',
+      session_num: activeSession?.session_id?.split('-')[1] || '0006',
       session_title: activeSession?.session_name || '활성 세션 백업',
       last_task_id: activeTask?.task_id || '',
       current_task_name: activeTask?.task_name || '',
-      latest_commit_sha: '7109f1c922e4ae6c123cb34e6d0e6a0df1c69542',
+      latest_commit_sha: latestCommitSha,
       branch: 'dev',
       status: 'PENDING_RECOVERY',
       total_context_tokens: Number(req.body.contextTokens) || 106510,
       hang_reason: req.body.hangReason || 'NORMAL',
+      unfinalized_tasks: unfinalizedTasks.map((t: any) => ({
+        task_id: t.task_id,
+        task_name: t.task_name,
+        status_cd: t.status_cd,
+      })),
+      unfinalized_loops: unfinalizedLoops.map((l: any) => ({
+        loop_id: l.loop_id,
+        loop_name: l.loop_name,
+        status_cd: l.status_cd,
+      })),
       created_at: new Date().toISOString(),
+    };
+
+    const jsonFilePath = path.join(snapshotsDir, `${snapshotId}.json`);
+    const mdFilePath = path.join(snapshotsDir, `${snapshotId}.md`);
+
+    fs.writeFileSync(jsonFilePath, JSON.stringify(snapshotPayload, null, 2), 'utf-8');
+
+    const mdContent = `# 🚨 AI 세션 재해복구(DR) 스냅샷 보고서 (${snapshotId})
+
+> **스냅샷 ID**: \`${snapshotId}\`  
+> **백업 일시**: ${snapshotPayload.created_at}  
+> **대상 세션**: \`${snapshotPayload.session_id}\` (${snapshotPayload.session_title})  
+> **원격 브랜치**: \`${snapshotPayload.branch}\` (최신 Commit SHA: \`${snapshotPayload.latest_commit_sha.slice(0, 10)}\`)  
+> **행(Hang) 진단 원인**: \`${snapshotPayload.hang_reason}\` (컨텍스트 토큰: ${snapshotPayload.total_context_tokens.toLocaleString()}T)  
+
+---
+
+## 📌 1. 미완료 잔여 태스크 (Unfinalized Tasks)
+${
+  unfinalizedTasks.length > 0
+    ? unfinalizedTasks.map((t: any) => `- **[${t.task_id}]** ${t.task_name} (상태: \`${t.status_cd}\`)`).join('\n')
+    : '- 없음 (모든 태스크가 완료된 상태에서 백업됨)'
+}
+
+## 🔄 2. 미완료 잔여 루프 (Unfinalized Loops)
+${
+  unfinalizedLoops.length > 0
+    ? unfinalizedLoops.map((l: any) => `- **[${l.loop_id}]** ${l.loop_name} (상태: \`${l.status_cd}\`)`).join('\n')
+    : '- 없음 (모든 루프가 정상 종료됨)'
+}
+
+---
+
+## 🚀 3. 신규 세션(B) 작업 재개 프롬프트
+행이 발생한 세션 창을 닫고, 새로운 세션 채팅창을 열어 아래 복구 명령을 입력하세요:
+
+\`\`\`bash
+#세션복구:${snapshotId}
+\`\`\`
+`;
+    fs.writeFileSync(mdFilePath, mdContent, 'utf-8');
+
+    const newSnapshot = {
+      ...snapshotPayload,
+      json_file_path: `data/snapshots/${snapshotId}.json`,
+      md_file_path: `data/snapshots/${snapshotId}.md`,
     };
 
     if (!store.snapshots) store.snapshots = [];
@@ -2368,8 +2436,10 @@ app.post('/api/agent/session/snapshot', async (req, res) => {
 
     res.json({
       success: true,
-      message: `세션 스냅샷(${snapshotId})이 성공적으로 영속화되었습니다.`,
+      message: `세션 스냅샷 파일(JSON/MD) 및 DB 영속화가 성공적으로 완료되었습니다.`,
       snapshot: newSnapshot,
+      jsonFilePath: `data/snapshots/${snapshotId}.json`,
+      mdFilePath: `data/snapshots/${snapshotId}.md`,
       dbSuccess,
     });
   } catch (err: any) {
@@ -2386,6 +2456,39 @@ app.get('/api/agent/session/snapshots', async (req, res) => {
       snapshots,
       totalCount: snapshots.length,
       pendingCount: snapshots.filter((s: any) => s.status === 'PENDING_RECOVERY').length,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/agent/session/snapshot/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const store = getLocalStore();
+    const snapshot = (store.snapshots || []).find((s: any) => s.snapshot_id === id);
+    if (!snapshot) {
+      return res.status(404).json({ success: false, error: `스냅샷(${id})을 찾을 수 없습니다.` });
+    }
+
+    let mdContent = '';
+    let jsonContent = null;
+    const snapshotsDir = path.join(process.cwd(), 'data', 'snapshots');
+    const mdPath = path.join(snapshotsDir, `${id}.md`);
+    const jsonPath = path.join(snapshotsDir, `${id}.json`);
+
+    if (fs.existsSync(mdPath)) {
+      mdContent = fs.readFileSync(mdPath, 'utf-8');
+    }
+    if (fs.existsSync(jsonPath)) {
+      jsonContent = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+    }
+
+    res.json({
+      success: true,
+      snapshot,
+      mdContent,
+      jsonContent,
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
