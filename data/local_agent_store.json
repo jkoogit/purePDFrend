@@ -1,638 +1,117 @@
 {
   "sessions": [
     {
-      "session_id": "SESSION-20260922-006",
-      "session_name": "[0009]에이전트 사용자·모델·요금제 메타 거버넌스 및 다차원 쿼터 시스템 구축",
+      "session_id": "SESSION-20260923-008",
+      "session_name": "[0011]PDF 비즈니스 코어 고도화 (다국어 OCR 전처리 및 바운딩 박스 교정 스튜디오 구현)",
       "work_group": "purePDFrend",
       "ai_agent": "gemini",
-      "ai_model": "models/gemini-3.8-flash",
-      "status_cd": "완료",
-      "started_at": "2026-09-22T14:17:50.455Z",
-      "ended_at": "2026-09-23T08:53:30.000Z",
+      "ai_model": "models/gemini-3.7-flash",
+      "status_cd": "진행중",
+      "started_at": "2026-09-23T13:18:40.555Z",
+      "ended_at": null,
       "doc_payload": {
-        "objective": "PostgreSQL aiagent 5대 메타/쿼터 테이블 신설, 비-LLM 긴급 Push 우회로, 세션 DR 스냅샷 파일화 및 관리자 백오피스 구축",
-        "issue_number": 10,
-        "branch": "dev",
-        "retrospective_doc": "docs/13.회고/13-07_SESSION-20260922-006_세션종합_KPT_회고록.md",
-        "tasks_summary": [
-          "TASK-20260923-001 (완료): PostgreSQL 5대 메타원장 DDL 및 도메인 엔티티 구축",
-          "TASK-20260923-002 (완료): 비-LLM 긴급 Push, 다차원 쿼터 엔진 및 세션 재해복구 체계 구축",
-          "TASK-20260923-003 (완료): 재해복구 관제실 UI/스냅샷 파일화 개선 및 관리자 메타거버넌스 대시보드 구축"
-        ]
-      },
-      "created_sys": "agent-harness",
-      "created_by": "system",
-      "updated_sys": "agent-harness",
-      "updated_by": "system",
-      "version": 2,
-      "calibration_alpha": 1
-    },
-    {
-      "session_id": "SESSION-20260923-007",
-      "session_name": "[0010]에이전트 작업을 위한 사용자, AI계정, AI구독모델 별 토큰정책, 사용자의 작업별 모델설정 및 작업반영 프로세스 적용",
-      "work_group": "purePDFrend",
-      "ai_agent": "gemini",
-      "ai_model": "models/gemini-3.8-flash",
-      "status_cd": "완료",
-      "started_at": "2026-09-23T09:47:48.502Z",
-      "ended_at": "2026-09-23T12:25:00.000Z",
-      "doc_payload": {
-        "theme": "사용자·AI계정·구독모델별 토큰정책 및 작업별 모델설정·작업반영 프로세스",
-        "activeAgent": "Gemini 3.8 Flash",
-        "issueNumber": 11,
-        "branchName": "task/user-model-token-policy_Gemini",
-        "baseSha": "0388f7e9e95409d7d8ce6e48e9f94826da3dafb7",
-        "promotedCommitSha": "4a43140f3e76d031e6a0606d6127af2cb23119c1",
-        "completed_tasks": [
-          "TASK-20260923-004 (완료): 복수계정 토큰정책, 세션 자원 현행화 및 모델설정 구현"
+        "planned_tasks": [
+          "TASK-20260923-005: PDF 이미지 고정밀 전처리 파이프라인 및 다국어 OCR 엔진 어댑터(Tesseract/Gemini/PaddleOCR Docker) 확장",
+          "TASK-20260923-006: 인터랙티브 캔버스 기반 바운딩 박스 인라인 선택/수정/병합 교정 스튜디오 UI 구현",
+          "TASK-20260923-007: PDF OCR 처리량 및 토큰 쿼터(SessionResourceManager) 실시간 연동 및 검증"
         ],
-        "retrospectiveDoc": "docs/13.회고/13-08_SESSION-20260923-007_세션종합_KPT_회고록.md",
-        "hang_governance_telemetry": {
-          "session_prompt_tokens": 2500,
-          "session_completion_tokens": 1800,
-          "session_total_tokens": 4300,
-          "context_bloat_ratio": "2.86%",
-          "burnout_risk_index": 13,
-          "burst_score": 1,
-          "burn_rate_velocity": 4300,
-          "loop_safety_margin": 4.9,
-          "rpd_consumed_turns": 42,
-          "quota_429_violations": 0,
-          "hang_risk_level": "SAFE"
-        }
+        "branchName": "task/pdf-ocr-correction-studio_Gemini",
+        "issueNumber": 12,
+        "objective": "PDF 이미지 전처리(기울기보정/이진화/노이즈제거), 다국어 OCR 및 바운딩박스 교정 캔버스 UI, 온디맨드 자원 연동 및 PaddleOCR(우분투 도커) 어댑터 확장 설계",
+        "activeAgent": "Gemini 3.7 Flash",
+        "baseSha": "86bd880ce5429a6a2ae75dbe625f864f73c9afd8",
+        "theme": "PDF 비즈니스 코어 고도화 (다국어 OCR 전처리 및 바운딩 박스 교정 스튜디오)"
       },
       "created_sys": "agent-harness",
       "created_by": "system",
       "updated_sys": "agent-harness",
       "updated_by": "system",
-      "version": 3
+      "version": 1
     }
   ],
   "tasks": [
     {
-      "task_id": "TASK-20260923-004",
-      "session_id": "SESSION-20260923-007",
-      "task_name": "[01] 복수계정 토큰정책, 세션 자원 현행화 및 모델설정 구현",
-      "git_branch": "task/user-model-token-policy_Gemini",
+      "task_id": "TASK-20260923-005",
+      "session_id": "SESSION-20260923-008",
+      "task_name": "[0012]PDF 이미지 전처리 엔진 및 다국어 OCR(WASM/클라우드/PaddleOCR 도커 어댑터) 파이프라인 구현",
+      "git_branch": "task/pdf-ocr-correction-studio_Gemini",
       "status_cd": "완료",
-      "started_at": "2026-09-23T10:15:00.000Z",
-      "ended_at": "2026-09-23T12:14:00.000Z",
+      "started_at": "2026-09-23T13:32:53.406Z",
+      "ended_at": "2026-09-23T13:58:17.977Z",
       "doc_payload": {
-        "pushed_commit_sha": "4a43140f3e76d031e6a0606d6127af2cb23119c1",
-        "promoted_commit_sha": "4a43140f3e76d031e6a0606d6127af2cb23119c1",
-        "review_doc": "docs/10.리뷰/260923_023_복수계정_토큰정책_세션자원현행화_및_모델설정_구현_리뷰.md",
-        "refinement_6step_status": "완료"
-      },
-      "created_sys": "agent-harness",
-      "created_by": "system",
-      "updated_sys": "agent-harness",
-      "updated_by": "system",
-      "version": 5
-    },
-    {
-      "task_id": "TASK-20260923-003",
-      "session_id": "SESSION-20260922-006",
-      "task_name": "[03] 재해복구 관제실 UI/스냅샷 파일화 개선 및 관리자 백오피스 메타 거버넌스 대시보드 구축",
-      "git_branch": "dev",
-      "status_cd": "완료",
-      "started_at": "2026-09-23T01:30:00.000Z",
-      "ended_at": "2026-09-23T08:52:00.000Z",
-      "doc_payload": {
-        "implemented_components": [
-          "EmergencyRecoveryPanel (UI정돈, 에이전트통계 전용 배치, 슬레이트 다크 테마, 세션복구 복사 UX)",
-          "Snapshot File Persistence (JSON & MD 파일화 및 미완료 잔여 태스크/루프 추적)",
-          "Hang Diagnosis Detailed Trigger & Recovery Assessment",
-          "MetaGovernanceBackoffice (4대 요금제, 멀티 모델 카탈로그, 원장 동결/해제, 긴급 쿼터 충전, 감사로그)"
+        "tests_passed": "13/13 PASS (100%)",
+        "lint_status": "0 errors (clean)",
+        "review_doc": "docs/10.리뷰/260923_024_PDF_이미지_전처리_및_3대_OCR_엔진_어댑터_구현_리뷰.md",
+        "description": "PDF 스캔 이미지 5단계 전처리, 테두리 트리밍/양면 분할, 3대 OCR 엔진 어댑터, 앙상블 라우터 및 2-Way BBox 교정 스튜디오 구현 완료",
+        "completed_components": [
+          "ImagePreprocessingPipeline (5단계 전처리, 테두리 자동 트리밍, 펼침면 양면 분할)",
+          "3대 다국어 OCR 엔진 어댑터 (Tesseract WASM, Gemini Multimodal, PaddleOCR Ubuntu Docker)",
+          "EnsembleOcrRouter (하이브리드 비용 절감 라우팅)",
+          "OCRCorrectionStudio (2-Way 인터랙티브 캔버스 & 텍스트 실시간 동기화)",
+          "OcrEngineManager (3대 엔진 관제 및 실시간 벤치마크)",
+          "Express REST API 프록시 및 브릿지 엔드포인트 7종",
+          "설계(05-10), 학습(15-06, 15-07), 리뷰(10-24) 문서 발행"
         ],
-        "review_doc": "docs/10.리뷰/260923_022_재해복구_관제실_UI_스냅샷_파일화_개선_및_관리자_메타거버넌스_대시보드_구축_리뷰.md",
-        "promoted_commit_sha": "ab8d5a60c400cf60caaad826a3beaaa4a8537fc7"
+        "promoted_at": "2026-09-23T13:58:17.977Z"
       },
       "created_sys": "agent-harness",
       "created_by": "system",
       "updated_sys": "agent-harness",
       "updated_by": "system",
       "version": 3
-    },
-    {
-      "task_id": "TASK-20260923-002",
-      "session_id": "SESSION-20260922-006",
-      "task_name": "[02] 비-LLM 긴급 Push, 다차원 토큰 쿼터 엔진 및 세션 재해복구 체계 구축",
-      "git_branch": "dev",
-      "status_cd": "완료",
-      "started_at": "2026-09-23T00:45:00.000Z",
-      "ended_at": "2026-09-23T01:04:00.000Z",
-      "doc_payload": {
-        "implemented_components": [
-          "EmergencyGitPushEngine",
-          "QuotaDeductionEngine",
-          "SessionDisasterRecoveryService",
-          "EmergencyRecoveryPanel",
-          "GEMINI.md",
-          "AGENTS.md (0-2, 0-3)"
-        ],
-        "review_doc": "docs/10.리뷰/260923_021_비LLM_긴급Push_다차원_토큰쿼터_엔진_및_세션_재해복구_체계_구축_리뷰.md"
-      },
-      "created_sys": "agent-harness",
-      "created_by": "system",
-      "updated_sys": "agent-harness",
-      "updated_by": "system",
-      "version": 2
-    },
-    {
-      "task_id": "TASK-20260922-001",
-      "session_id": "SESSION-20260922-006",
-      "task_name": "[01] PostgreSQL aiagent 5대 메타·원장 테이블 DDL 마이그레이션 및 도메인 엔티티 완결",
-      "git_branch": "task/메타거버넌스_쿼터시스템_Gemini",
-      "status_cd": "완료",
-      "started_at": "2026-09-22T14:40:00.000Z",
-      "ended_at": "2026-09-22T14:50:00.000Z",
-      "doc_payload": {
-        "migrated_tables": [
-          "agent_billing_plan",
-          "agent_model_catalog",
-          "agent_user_account",
-          "agent_account_quota_ledger",
-          "agent_quota_transaction_log"
-        ],
-        "domain_entities": [
-          "BillingPlan",
-          "ModelCatalog",
-          "UserAccount",
-          "AccountQuotaLedger",
-          "QuotaTransactionLog"
-        ]
-      },
-      "created_sys": "agent-harness",
-      "created_by": "system",
-      "updated_sys": "agent-harness",
-      "updated_by": "system",
-      "version": 2
     }
   ],
-  "loops": [
-    {
-      "loop_id": "LOOP-20260922-001",
-      "task_id": "TASK-20260922-001",
-      "session_id": "SESSION-20260922-006",
-      "loop_name": "PostgreSQL 5대 메타·원장 테이블 DDL 마이그레이션 및 초기 시드 적재",
-      "status_cd": "완료",
-      "started_at": "2026-09-22T14:42:00.000Z",
-      "ended_at": "2026-09-22T14:44:00.000Z",
-      "doc_payload": {
-        "target_db": "purepdfrend_dev",
-        "schema": "aiagent"
-      },
-      "version": 2,
-      "created_sys": "agent-service",
-      "created_by": "system",
-      "updated_sys": "agent-service",
-      "updated_by": "system"
-    },
-    {
-      "loop_id": "LOOP-20260922-002",
-      "task_id": "TASK-20260922-001",
-      "session_id": "SESSION-20260922-006",
-      "loop_name": "TypeScript OOP/DDD 도메인 모델링 및 단위 검증(TDD Suite 7)",
-      "status_cd": "완료",
-      "started_at": "2026-09-22T14:44:00.000Z",
-      "ended_at": "2026-09-22T14:46:00.000Z",
-      "doc_payload": {
-        "test_suites_passed": 7
-      },
-      "version": 2,
-      "created_sys": "agent-service",
-      "created_by": "system",
-      "updated_sys": "agent-service",
-      "updated_by": "system"
-    },
-    {
-      "loop_id": "LOOP-20260922-003",
-      "task_id": "TASK-20260922-001",
-      "session_id": "SESSION-20260922-006",
-      "loop_name": "백엔드 Express REST API 엔드포인트 8종 구축 및 듀얼 스토어 폴백 연동",
-      "status_cd": "완료",
-      "started_at": "2026-09-22T14:46:00.000Z",
-      "ended_at": "2026-09-22T14:50:00.000Z",
-      "doc_payload": {
-        "endpoints_count": 8,
-        "compile_status": "SUCCESS"
-      },
-      "version": 2,
-      "created_sys": "agent-service",
-      "created_by": "system",
-      "updated_sys": "agent-service",
-      "updated_by": "system"
-    }
-  ],
+  "loops": [],
   "traces": [
     {
-      "trace_id": "TRACE-20260922-001",
-      "session_id": "SESSION-20260922-006",
-      "task_id": "TASK-20260922-001",
-      "loop_id": "LOOP-20260922-003",
-      "step_index": 1,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-3.8-flash",
-      "user_prompt": "#태스크처리 [01] PostgreSQL aiagent 5대 메타·원장 테이블 DDL 마이그레이션 및 도메인 엔티티 완결",
-      "agent_response": "PostgreSQL aiagent 5대 메타·원장 테이블 마이그레이션, OOP/DDD 5대 도메인 모델, 백엔드 REST API 8종 연동 및 TDD Suite 7 검증 완결",
-      "response_summary": "5대 메타·원장 테이블 DDL 마이그레이션 및 도메인 엔티티 완결",
-      "prompt_tokens": 2100,
-      "completion_tokens": 1400,
-      "total_tokens": 3500,
-      "estimated_tokens": 3500,
-      "burst_score": 1,
-      "burn_rate_velocity": 3500,
-      "loop_safety_margin": 5.9,
-      "burnout_risk_index": 14,
-      "created_at": "2026-09-22T14:59:37.541Z"
-    },
-    {
-      "trace_id": "TRACE-1790165440802",
-      "session_id": "SESSION-20260923-007",
-      "task_id": "TASK-20260923-004",
+      "trace_id": "TRACE-20260923-008-001",
+      "session_id": "SESSION-20260923-008",
+      "task_id": "TASK-20260923-005",
       "loop_id": null,
       "step_index": 1,
       "agent_name": "gemini",
-      "model_name": "models/gemini-3.8-flash",
-      "user_prompt": "#태스크처리 [01] 복수계정 토큰정책, 세션 자원 현행화 및 모델설정 구현",
-      "agent_response": "복수 Gemini 계정 지원, 온디맨드 세션 자원 현행화 및 모델정책 거버넌스 도메인·API·UI 구축 완료",
-      "response_summary": "복수계정 토큰정책 및 세션 자원 현행화 완료",
-      "prompt_tokens": 2500,
-      "completion_tokens": 1800,
-      "total_tokens": 4300,
-      "estimated_tokens": 4300,
+      "model_name": "models/gemini-3.7-flash",
+      "user_prompt": "#태스크처리 [0012]PDF 이미지 전처리 엔진 및 다국어 OCR(WASM/클라우드/PaddleOCR 도커 어댑터) 파이프라인 구현",
+      "agent_response": "ImagePreprocessingPipeline (Deskew/이진화/노이즈제거) 및 3대 다국어 OCR 엔진 어댑터(Tesseract/Gemini/PaddleOCR Ubuntu Docker) 구현 및 10/10 단위테스트, 린트, 100점 무결성 검증 완료",
+      "response_summary": "[0012] PDF 이미지 전처리 파이프라인 및 3대 OCR 엔진 어댑터 구현 및 검증 완결",
+      "prompt_tokens": 1200,
+      "completion_tokens": 950,
+      "total_tokens": 2150,
+      "estimated_tokens": 2150,
       "burst_score": 1,
-      "burn_rate_velocity": 4300,
-      "loop_safety_margin": 4.9,
-      "burnout_risk_index": 13,
-      "created_at": "2026-09-23T12:10:40.803Z"
+      "burn_rate_velocity": 2150,
+      "loop_safety_margin": 10.1,
+      "burnout_risk_index": 6,
+      "created_at": "2026-09-23T13:34:07.210Z"
+    },
+    {
+      "trace_id": "TRACE-20260923-008-002",
+      "session_id": "SESSION-20260923-008",
+      "task_id": "TASK-20260923-005",
+      "loop_id": null,
+      "step_index": 2,
+      "agent_name": "gemini",
+      "model_name": "models/gemini-3.7-flash",
+      "user_prompt": "#태스크처리 보완사항 개선 후 보완턴 6단계 진행.",
+      "agent_response": "스캔 도서 양면 자동 분할(Spread Split), 스캐너 검은 테두리 자동 트리밍(Auto Crop), 지능형 앙상블 OCR 라우터(EnsembleOcrRouter), 2-Way BBox 교정 스튜디오 UI(OCRCorrectionStudio) 구현 및 13/13 TDD, 0 오류 린트, 100점 무결성 검증 완료",
+      "response_summary": "[0012] 양면분할/테두리트리밍/앙상블OCR 라우터 및 2-Way BBox 교정스튜디오 구현 & 6단계 검증 완결",
+      "prompt_tokens": 1450,
+      "completion_tokens": 1100,
+      "total_tokens": 2550,
+      "estimated_tokens": 2550,
+      "burst_score": 1.19,
+      "burn_rate_velocity": 2150,
+      "loop_safety_margin": 9.9,
+      "burnout_risk_index": 9,
+      "created_at": "2026-09-23T13:46:50.914Z"
     }
   ],
-  "plans": [
-    {
-      "plan_id": "PLAN-FREE",
-      "plan_name": "Free Tier",
-      "description": "기본 무료 요금제 (월 50만 토큰)",
-      "base_quota_tokens": 500000,
-      "max_burst_multiplier": 1.2,
-      "priority_tier": 1,
-      "overage_policy": "BLOCK",
-      "is_active": true
-    },
-    {
-      "plan_id": "PLAN-STARTER",
-      "plan_name": "Starter Plan",
-      "description": "개인 개발자용 스타터 요금제 (월 200만 토큰)",
-      "base_quota_tokens": 2000000,
-      "max_burst_multiplier": 1.5,
-      "priority_tier": 3,
-      "overage_policy": "THROTTLE",
-      "is_active": true
-    },
-    {
-      "plan_id": "PLAN-PRO",
-      "plan_name": "Pro Plan",
-      "description": "파워 유저 및 전문 엔지니어용 (월 1,000만 토큰)",
-      "base_quota_tokens": 10000000,
-      "max_burst_multiplier": 2,
-      "priority_tier": 7,
-      "overage_policy": "THROTTLE",
-      "is_active": true
-    },
-    {
-      "plan_id": "PLAN-ENTERPRISE",
-      "plan_name": "Enterprise Plan",
-      "description": "기업 및 대규모 팀 전용 (월 5,000만 토큰)",
-      "base_quota_tokens": 50000000,
-      "max_burst_multiplier": 3,
-      "priority_tier": 10,
-      "overage_policy": "PAY_AS_YOU_GO",
-      "is_active": true
-    }
-  ],
-  "models": [
-    {
-      "model_id": "models/gemini-3.8-flash",
-      "provider": "gemini",
-      "display_name": "Gemini 3.8 Flash (최우선 추천)",
-      "prompt_token_cost_1k": 0.0001,
-      "completion_token_cost_1k": 0.0004,
-      "context_window_tokens": 1000000,
-      "is_active": true,
-      "doc_payload": {
-        "recommended": true,
-        "family": "flash"
-      }
-    },
-    {
-      "model_id": "models/gemini-3.8-pro",
-      "provider": "gemini",
-      "display_name": "Gemini 3.8 Pro (심층 추론)",
-      "prompt_token_cost_1k": 0.00125,
-      "completion_token_cost_1k": 0.005,
-      "context_window_tokens": 2000000,
-      "is_active": true,
-      "doc_payload": {
-        "recommended": false,
-        "family": "pro"
-      }
-    },
-    {
-      "model_id": "claude-3-5-sonnet",
-      "provider": "claude",
-      "display_name": "Claude 3.5 Sonnet",
-      "prompt_token_cost_1k": 0.003,
-      "completion_token_cost_1k": 0.015,
-      "context_window_tokens": 200000,
-      "is_active": true,
-      "doc_payload": {
-        "family": "sonnet"
-      }
-    },
-    {
-      "model_id": "gpt-4o",
-      "provider": "openai",
-      "display_name": "GPT-4o Omnimodel",
-      "prompt_token_cost_1k": 0.0025,
-      "completion_token_cost_1k": 0.01,
-      "context_window_tokens": 128000,
-      "is_active": true,
-      "doc_payload": {
-        "family": "gpt4"
-      }
-    },
-    {
-      "model_id": "deepseek-chat",
-      "provider": "deepseek",
-      "display_name": "DeepSeek V3",
-      "prompt_token_cost_1k": 0.00014,
-      "completion_token_cost_1k": 0.00028,
-      "context_window_tokens": 64000,
-      "is_active": true,
-      "doc_payload": {
-        "family": "deepseek"
-      }
-    }
-  ],
-  "users": [
-    {
-      "user_id": "USR-ADMIN-01",
-      "email": "jkoogit@gmail.com",
-      "user_name": "관리자(jkoogit)",
-      "account_status": "ACTIVE",
-      "org_group": "purePDFrend",
-      "plan_id": "PLAN-ENTERPRISE",
-      "doc_payload": {
-        "role": "SUPER_ADMIN"
-      },
-      "created_at": "2026-09-22T14:43:00.000Z",
-      "updated_at": "2026-09-22T14:43:00.000Z"
-    },
-    {
-      "user_id": "USR-DEV-02",
-      "email": "dev-lead@purepdfrend.com",
-      "user_name": "개발리드",
-      "account_status": "ACTIVE",
-      "org_group": "purePDFrend",
-      "plan_id": "PLAN-PRO",
-      "doc_payload": {
-        "role": "DEV_LEAD"
-      },
-      "created_at": "2026-09-22T14:43:00.000Z",
-      "updated_at": "2026-09-22T14:43:00.000Z"
-    },
-    {
-      "user_id": "USR-GUEST-03",
-      "email": "guest@purepdfrend.com",
-      "user_name": "게스트사용자",
-      "account_status": "ACTIVE",
-      "org_group": "Public",
-      "plan_id": "PLAN-FREE",
-      "doc_payload": {
-        "role": "GUEST"
-      },
-      "created_at": "2026-09-22T14:43:00.000Z",
-      "updated_at": "2026-09-22T14:43:00.000Z"
-    }
-  ],
-  "ledgers": [
-    {
-      "ledger_id": "LDG-USR-ADMIN-01",
-      "user_id": "USR-ADMIN-01",
-      "plan_id": "PLAN-ENTERPRISE",
-      "total_granted_quota": 50000000,
-      "used_quota": 0,
-      "remaining_quota": 50000000,
-      "is_frozen": false,
-      "overage_allowed": true,
-      "version": 1,
-      "last_deducted_at": null,
-      "created_at": "2026-09-22T14:43:00.000Z",
-      "updated_at": "2026-09-22T14:43:00.000Z"
-    },
-    {
-      "ledger_id": "LDG-USR-DEV-02",
-      "user_id": "USR-DEV-02",
-      "plan_id": "PLAN-PRO",
-      "total_granted_quota": 10000000,
-      "used_quota": 0,
-      "remaining_quota": 10000000,
-      "is_frozen": false,
-      "overage_allowed": false,
-      "version": 1,
-      "last_deducted_at": null,
-      "created_at": "2026-09-22T14:43:00.000Z",
-      "updated_at": "2026-09-22T14:43:00.000Z"
-    },
-    {
-      "ledger_id": "LDG-USR-GUEST-03",
-      "user_id": "USR-GUEST-03",
-      "plan_id": "PLAN-FREE",
-      "total_granted_quota": 500000,
-      "used_quota": 0,
-      "remaining_quota": 500000,
-      "is_frozen": false,
-      "overage_allowed": false,
-      "version": 1,
-      "last_deducted_at": null,
-      "created_at": "2026-09-22T14:43:00.000Z",
-      "updated_at": "2026-09-22T14:43:00.000Z"
-    }
-  ],
-  "quota_logs": [
-    {
-      "tx_id": "QTX-INIT-001",
-      "ledger_id": "LDG-USR-ADMIN-01",
-      "user_id": "USR-ADMIN-01",
-      "tx_type": "GRANT",
-      "token_delta": 50000000,
-      "balance_after": 50000000,
-      "unit_cost_applied": 0,
-      "reason_desc": "Enterprise 요금제 초기 쿼터 지급",
-      "created_at": "2026-09-22T14:43:00.000Z"
-    },
-    {
-      "tx_id": "QTX-INIT-002",
-      "ledger_id": "LDG-USR-DEV-02",
-      "user_id": "USR-DEV-02",
-      "tx_type": "GRANT",
-      "token_delta": 10000000,
-      "balance_after": 10000000,
-      "unit_cost_applied": 0,
-      "reason_desc": "Pro 요금제 초기 쿼터 지급",
-      "created_at": "2026-09-22T14:43:00.000Z"
-    },
-    {
-      "tx_id": "QTX-INIT-003",
-      "ledger_id": "LDG-USR-GUEST-03",
-      "user_id": "USR-GUEST-03",
-      "tx_type": "GRANT",
-      "token_delta": 500000,
-      "balance_after": 500000,
-      "unit_cost_applied": 0,
-      "reason_desc": "Free 요금제 초기 쿼터 지급",
-      "created_at": "2026-09-22T14:43:00.000Z"
-    }
-  ],
-  "snapshots": [
-    {
-      "snapshot_id": "SNAP-1790152911085",
-      "session_id": "SESSION-20260922-006",
-      "session_num": "20260922",
-      "session_title": "[0009]에이전트 사용자·모델·요금제 메타 거버넌스 및 다차원 쿼터 시스템 구축",
-      "last_task_id": "TASK-20260923-003",
-      "current_task_name": "[03] 재해복구 관제실 UI/스냅샷 파일화 개선 및 관리자 백오피스 메타 거버넌스 대시보드 구축",
-      "latest_commit_sha": "e3ce53534e1e1e3d78a0bca681d3ee21b2c49719",
-      "branch": "dev",
-      "status": "PENDING_RECOVERY",
-      "total_context_tokens": 108500,
-      "hang_reason": "NORMAL",
-      "unfinalized_tasks": [
-        {
-          "task_id": "TASK-20260923-003",
-          "task_name": "[03] 재해복구 관제실 UI/스냅샷 파일화 개선 및 관리자 백오피스 메타 거버넌스 대시보드 구축",
-          "status_cd": "진행중"
-        }
-      ],
-      "unfinalized_loops": [],
-      "created_at": "2026-09-23T08:41:51.085Z",
-      "json_file_path": "data/snapshots/SNAP-1790152911085.json",
-      "md_file_path": "data/snapshots/SNAP-1790152911085.md"
-    },
-    {
-      "snapshot_id": "SNAP-1790153454913",
-      "session_num": "20260922",
-      "session_title": "[0009]에이전트 사용자·모델·요금제 메타 거버넌스 및 다차원 쿼터 시스템 구축",
-      "last_task_id": "TASK-20260923-003",
-      "current_task_name": "[03] 재해복구 관제실 UI/스냅샷 파일화 개선 및 관리자 백오피스 메타 거버넌스 대시보드 구축",
-      "latest_commit_sha": "f4a000f5473311e64e5e477e958c8b8e99808f76",
-      "branch": "dev",
-      "status": "PENDING_RECOVERY",
-      "created_at": "2026-09-23T08:50:54.913Z"
-    }
-  ],
-  "vendor_attributes": [
-    {
-      "vendorId": "GOOGLE",
-      "vendorName": "Google Cloud / AI Studio",
-      "originType": "SYSTEM_CONFIRMED",
-      "status": "ACTIVE",
-      "subscriptionPlans": [
-        {
-          "planId": "PLAN-GOOGLE-ADVANCED",
-          "planName": "Google AI Pro (구독)",
-          "billingType": "SUBSCRIPTION",
-          "allowedModels": [
-            "models/gemini-1.5-pro",
-            "models/gemini-1.5-flash",
-            "models/gemini-1.5-flash-8b",
-            "models/gemini-3.8-flash"
-          ],
-          "quotaLimits": {
-            "maxTpm": 4000000,
-            "maxRpm": 360,
-            "maxRpd": 250,
-            "resetHourKst": 16
-          },
-          "description": "Tier 1 Pro 일 250회 및 Flash 2500회 제공"
-        },
-        {
-          "planId": "PLAN-GOOGLE-STANDARD",
-          "planName": "Google AI Flash (표준)",
-          "billingType": "FREE",
-          "allowedModels": [
-            "models/gemini-1.5-flash",
-            "models/gemini-1.5-flash-8b",
-            "models/gemini-3.8-flash"
-          ],
-          "quotaLimits": {
-            "maxTpm": 1000000,
-            "maxRpm": 120,
-            "maxRpd": 2500,
-            "resetHourKst": 16
-          },
-          "description": "Flash 중심 표준 개발 플랜"
-        }
-      ],
-      "agentEngines": [
-        {
-          "agentId": "agent-architect",
-          "agentName": "아키텍처 및 기획 에이전트",
-          "targetTier": "TIER_1_PRO",
-          "defaultModel": "models/gemini-1.5-pro",
-          "description": "요구사항 심층 분석 및 DDD 헥사고날 아키텍처 수립"
-        },
-        {
-          "agentId": "agent-coder",
-          "agentName": "구현 및 TDD 에이전트",
-          "targetTier": "TIER_2_FLASH",
-          "defaultModel": "models/gemini-1.5-flash",
-          "description": "컴포넌트/서비스 개발 및 단위 테스트 수행"
-        },
-        {
-          "agentId": "agent-devops",
-          "agentName": "정리 및 배포 에이전트",
-          "targetTier": "TIER_3_LITE",
-          "defaultModel": "models/gemini-1.5-flash-8b",
-          "description": "문서 동기화, 하네스 정리 및 Git 승급"
-        }
-      ]
-    }
-  ],
-  "user_ai_accounts": [
-    {
-      "accountId": "ACC-DEV001-GOOGLE-PRO",
-      "userId": "USER-DEV-001",
-      "vendorId": "GOOGLE",
-      "accountEmail": "jkoogit@gmail.com",
-      "accountLabel": "메인 Gemini Pro 계정 (개인)",
-      "planId": "PLAN-GOOGLE-ADVANCED",
-      "isDefault": true,
-      "tierOverride": {
-        "tier1Model": "models/gemini-1.5-pro",
-        "tier2Model": "models/gemini-1.5-flash",
-        "tier3Model": "models/gemini-1.5-flash-8b"
-      },
-      "statusCd": "ACTIVE",
-      "createdAt": "2026-09-23T10:00:00.000Z",
-      "updatedAt": "2026-09-23T10:00:00.000Z"
-    },
-    {
-      "accountId": "ACC-DEV001-GOOGLE-SUB",
-      "userId": "USER-DEV-001",
-      "vendorId": "GOOGLE",
-      "accountEmail": "sub.jkoogit@gmail.com",
-      "accountLabel": "보조 Gemini Flash 계정 (공용)",
-      "planId": "PLAN-GOOGLE-STANDARD",
-      "isDefault": false,
-      "tierOverride": {
-        "tier1Model": "models/gemini-1.5-flash",
-        "tier2Model": "models/gemini-1.5-flash",
-        "tier3Model": "models/gemini-1.5-flash-8b"
-      },
-      "statusCd": "ACTIVE",
-      "createdAt": "2026-09-23T10:00:00.000Z",
-      "updatedAt": "2026-09-23T10:00:00.000Z"
-    }
-  ]
+  "plans": [],
+  "models": [],
+  "users": [],
+  "ledgers": [],
+  "quota_logs": [],
+  "snapshots": [],
+  "vendor_attributes": [],
+  "user_ai_accounts": []
 }
