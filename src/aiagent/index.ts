@@ -6,6 +6,7 @@ export { default as DocsGovernanceManager } from './components/DocsGovernanceMan
 export { default as SystemConfigManager } from './components/SystemConfigManager';
 export { default as SystemSettingsView } from './components/SystemSettingsView';
 export { EmergencyRecoveryPanel } from './components/EmergencyRecoveryPanel';
+export { MetaGovernanceBackoffice } from './components/MetaGovernanceBackoffice';
 export { PpdfAuditAdapter } from './adapters/PpdfAuditAdapter';
 export { IntegrityAuditFacade } from './domain/audit/IntegrityAuditFacade';
 export { SettingsService } from './services/SettingsService';

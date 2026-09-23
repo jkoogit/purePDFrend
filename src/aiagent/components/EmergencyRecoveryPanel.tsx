@@ -1,24 +1,37 @@
 /**
  * @file EmergencyRecoveryPanel.tsx
- * @description 비-LLM 긴급 소스 Push, 세션 재해복구(DR) 및 행(Hang) 상태 관제 패널
+ * @description 비-LLM 긴급 소스 Push, 세션 재해복구(DR), 스냅샷 파일화 및 행(Hang) 관제실
  */
 
 import React, { useState, useEffect } from 'react';
 import {
   UploadCloud,
   Save,
-  RotateCcw,
   AlertOctagon,
   CheckCircle,
   ExternalLink,
-  Clock,
   ShieldAlert,
   Loader2,
   Copy,
+  Check,
+  FileText,
+  FileCode,
+  X,
+  AlertTriangle,
+  Layers,
 } from 'lucide-react';
+
+interface UnfinalizedItem {
+  task_id?: string;
+  task_name?: string;
+  loop_id?: string;
+  loop_name?: string;
+  status_cd: string;
+}
 
 interface SnapshotItem {
   snapshot_id: string;
+  session_id?: string;
   session_num: string;
   session_title: string;
   last_task_id: string;
@@ -26,6 +39,12 @@ interface SnapshotItem {
   latest_commit_sha: string;
   branch: string;
   status: string;
+  total_context_tokens?: number;
+  hang_reason?: string;
+  json_file_path?: string;
+  md_file_path?: string;
+  unfinalized_tasks?: UnfinalizedItem[];
+  unfinalized_loops?: UnfinalizedItem[];
   created_at: string;
 }
 
@@ -35,6 +54,8 @@ interface HangAssessment {
   badgeColor: 'green' | 'yellow' | 'red' | 'orange' | 'gray';
   message: string;
   recommendedAction: string;
+  triggerCondition?: string;
+  recoveryCondition?: string;
 }
 
 interface QuotaLedgerInfo {
@@ -62,12 +83,16 @@ export const EmergencyRecoveryPanel: React.FC = () => {
   } | null>(null);
 
   const [backingUp, setBackingUp] = useState(false);
-  const [backupMsg, setBackupMsg] = useState<string | null>(null);
+  const [backupMsg, setBackupMsg] = useState<{
+    success: boolean;
+    message: string;
+    jsonFilePath?: string;
+    mdFilePath?: string;
+  } | null>(null);
 
   const [snapshots, setSnapshots] = useState<SnapshotItem[]>([]);
-  const [showRestoreModal, setShowRestoreModal] = useState(false);
-  const [restoring, setRestoring] = useState(false);
-  const [restoredInfo, setRestoredInfo] = useState<any | null>(null);
+  const [selectedSnapshot, setSelectedSnapshot] = useState<SnapshotItem | null>(null);
+  const [snapshotDetailModal, setSnapshotDetailModal] = useState(false);
 
   const [hangAssessment, setHangAssessment] = useState<HangAssessment>({
     status: 'NORMAL',
@@ -75,10 +100,12 @@ export const EmergencyRecoveryPanel: React.FC = () => {
     badgeColor: 'green',
     message: '세션 텔레메트리가 정상적으로 동기화되고 있습니다.',
     recommendedAction: '계획된 태스크를 계속 진행하세요.',
+    triggerCondition: '정상 상태 (오류 없음)',
+    recoveryCondition: '조치 불필요',
   });
 
   const [quotaLedger, setQuotaLedger] = useState<QuotaLedgerInfo>({
-    remainingTokens: 1000000,
+    remainingTokens: 50000000,
     proRequestsLimit: 250,
     proRequestsUsed: 0,
     proRequestsRemaining: 250,
@@ -90,7 +117,8 @@ export const EmergencyRecoveryPanel: React.FC = () => {
     resetAtKst: '16:00 KST',
   });
 
-  const [copiedPrompt, setCopiedPrompt] = useState(false);
+  const [copiedSnapshotId, setCopiedSnapshotId] = useState<string | null>(null);
+  const [copiedQuickPrompt, setCopiedQuickPrompt] = useState(false);
 
   // Fetch snapshots, hang assessment and quota ledger
   const fetchStatus = async () => {
@@ -100,21 +128,51 @@ export const EmergencyRecoveryPanel: React.FC = () => {
         fetch('/api/agent/session/hang-status?contextTokens=106510'),
         fetch('/api/agent/quota/ledger?userId=USER-DEV-001'),
       ]);
-      const snapData = await snapRes.json();
-      const hangData = await hangRes.json();
-      const ledgerData = await ledgerRes.json();
 
-      if (snapData.success) {
-        setSnapshots(snapData.snapshots || []);
+      if (snapRes.ok) {
+        const snapData = await snapRes.json();
+        if (snapData.success) {
+          setSnapshots(snapData.snapshots || []);
+        }
       }
-      if (hangData.success && hangData.assessment) {
-        setHangAssessment(hangData.assessment);
+
+      if (hangRes.ok) {
+        const hangData = await hangRes.json();
+        if (hangData.success && hangData.assessment) {
+          const a = hangData.assessment;
+          let trigger = '정상 상태';
+          let recovery = '조치 불필요';
+
+          if (a.status === 'HANG_OVERLOAD') {
+            trigger = '순간 트래픽 급증 / 503 Service Unavailable';
+            recovery = '1~3분 쿨다운 대기 후 재시도 권장';
+          } else if (a.status === 'HANG_QUOTA_EXHAUSTED') {
+            trigger = '429 Quota Exceeded / 일일 RPD 한도 도달';
+            recovery = '한국시간 매일 16:00 (PST 00:00) 리셋 대기 또는 타 계정 전환';
+          } else if (a.status === 'HANG_CONTEXT_BLOAT') {
+            trigger = '누적 15만 토큰 초과 컨텍스트 비대화 (Bloat)';
+            recovery = '긴급 Push 및 스냅샷 백업 후 신규 세션(B) 분기';
+          } else if (a.status === 'HANG_INDETERMINATE') {
+            trigger = '10분 이상 원인 불명 무응답 상태';
+            recovery = '10분 경과 시 긴급 Push 후 새 세션에서 #세션복구 실행';
+          }
+
+          setHangAssessment({
+            ...a,
+            triggerCondition: trigger,
+            recoveryCondition: recovery,
+          });
+        }
       }
-      if (ledgerData.success && ledgerData.ledger) {
-        setQuotaLedger(ledgerData.ledger);
+
+      if (ledgerRes.ok) {
+        const ledgerData = await ledgerRes.json();
+        if (ledgerData.success && ledgerData.ledger) {
+          setQuotaLedger(ledgerData.ledger);
+        }
       }
     } catch (e) {
-      // offline fallback
+      console.warn('재해복구 관제실 상태 조회 실패 (로컬 스토어 유지):', e);
     }
   };
 
@@ -126,7 +184,6 @@ export const EmergencyRecoveryPanel: React.FC = () => {
 
   // 1. 비-LLM 긴급 Push 실행
   const handleEmergencyPush = async () => {
-    if (!confirm('현재 작업 중인 모든 소스(코드/문서)를 GitHub 원격 dev 브랜치에 긴급 Push하시겠습니까?')) return;
     setPushing(true);
     setPushResult(null);
     try {
@@ -135,22 +192,36 @@ export const EmergencyRecoveryPanel: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           targetBranch: 'dev',
-          commitMessage: `[EMERGENCY-PUSH] non-llm backup checkpoint (${new Date().toLocaleTimeString('ko-KR')})`,
+          commitMessage: `[EMERGENCY-PUSH] 비-LLM 긴급 소스 백업 (${new Date().toISOString()})`,
         }),
       });
       const data = await res.json();
-      setPushResult(data);
       if (data.success) {
-        fetchStatus();
+        setPushResult({
+          success: true,
+          commitSha: data.commitSha,
+          commitUrl: data.commitUrl,
+          filesSyncedCount: data.filesSyncedCount,
+          branch: data.branch,
+        });
+        await fetchStatus();
+      } else {
+        setPushResult({
+          success: false,
+          error: data.error || '긴급 Git Push 실패',
+        });
       }
     } catch (err: any) {
-      setPushResult({ success: false, error: err.message });
+      setPushResult({
+        success: false,
+        error: err.message || '네트워크 요청 오류',
+      });
     } finally {
       setPushing(false);
     }
   };
 
-  // 2. 세션 긴급 백업(스냅샷) 생성
+  // 2. 세션 스냅샷 파일(JSON/MD) 및 DB 백업
   const handleBackupSnapshot = async () => {
     setBackingUp(true);
     setBackupMsg(null);
@@ -158,39 +229,50 @@ export const EmergencyRecoveryPanel: React.FC = () => {
       const res = await fetch('/api/agent/session/snapshot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contextTokens: 106510 }),
+        body: JSON.stringify({
+          contextTokens: 106510,
+          hangReason: hangAssessment.status,
+        }),
       });
       const data = await res.json();
       if (data.success) {
-        setBackupMsg(`✅ 세션 스냅샷(${data.snapshot.snapshot_id})이 보존되었습니다!`);
-        fetchStatus();
+        setBackupMsg({
+          success: true,
+          message: `스냅샷 파일(JSON/MD) 백업 완료: ${data.snapshot?.snapshot_id}`,
+          jsonFilePath: data.jsonFilePath,
+          mdFilePath: data.mdFilePath,
+        });
+        await fetchStatus();
       } else {
-        setBackupMsg(`❌ 백업 실패: ${data.error}`);
+        setBackupMsg({
+          success: false,
+          message: data.error || '스냅샷 백업 실패',
+        });
       }
     } catch (err: any) {
-      setBackupMsg(`❌ 백업 실패: ${err.message}`);
+      setBackupMsg({
+        success: false,
+        message: err.message || '요청 실패',
+      });
     } finally {
       setBackingUp(false);
     }
   };
 
-  // 3. 세션 복구 실행
-  const handleRestore = async (targetId?: string) => {
-    setRestoring(true);
-    try {
-      const res = await fetch('/api/agent/session/restore', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetId }),
-      });
-      const data = await res.json();
-      setRestoredInfo(data);
-      fetchStatus();
-    } catch (err: any) {
-      alert('세션 복구 요청 실패: ' + err.message);
-    } finally {
-      setRestoring(false);
-    }
+  // 3. 복구 명령어 클립보드 복사
+  const handleCopyPrompt = (snapshotId: string) => {
+    const prompt = `#세션복구:${snapshotId}`;
+    navigator.clipboard.writeText(prompt);
+    setCopiedSnapshotId(snapshotId);
+    setTimeout(() => setCopiedSnapshotId(null), 2500);
+  };
+
+  const handleCopyQuickPrompt = () => {
+    const target = snapshots[0]?.snapshot_id || '최신';
+    const prompt = snapshots.length > 0 ? `#세션복구:${target}` : '#세션복구';
+    navigator.clipboard.writeText(prompt);
+    setCopiedQuickPrompt(true);
+    setTimeout(() => setCopiedQuickPrompt(false), 2500);
   };
 
   const getBadgeStyle = (color: string) => {
@@ -207,7 +289,7 @@ export const EmergencyRecoveryPanel: React.FC = () => {
     }
   };
 
-  const pendingSnapshots = snapshots.filter((s) => s.status === 'PENDING_RECOVERY');
+  const latestSnapshot = snapshots[0];
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl">
@@ -216,10 +298,13 @@ export const EmergencyRecoveryPanel: React.FC = () => {
         <div className="flex items-center gap-2">
           <ShieldAlert className="w-5 h-5 text-indigo-400" />
           <h3 className="text-sm font-semibold text-white">비-LLM 세션 재해복구(DR) 관제실</h3>
+          <span className="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded font-mono">
+            Zero Context Bloat
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400">행(Hang) 진단:</span>
+          <span className="text-xs text-slate-400">행(Hang) 실시간 진단:</span>
           <span
             className={`px-2.5 py-0.5 text-xs font-medium rounded-full border flex items-center gap-1.5 ${getBadgeStyle(
               hangAssessment.badgeColor
@@ -228,6 +313,24 @@ export const EmergencyRecoveryPanel: React.FC = () => {
             <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
             {hangAssessment.badgeLabel}
           </span>
+        </div>
+      </div>
+
+      {/* Hang Diagnosis Detail Card */}
+      <div className="mt-3 p-3 bg-slate-950/80 border border-slate-800/80 rounded-lg text-xs space-y-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-slate-300">
+          <div>
+            <span className="text-[11px] text-slate-400 font-semibold block">⚠️ 예상 발생 조건</span>
+            <span className="text-slate-200 mt-0.5 block">{hangAssessment.triggerCondition}</span>
+          </div>
+          <div>
+            <span className="text-[11px] text-slate-400 font-semibold block">⏱️ 예상 복구 조건 및 시간</span>
+            <span className="text-indigo-300 font-mono mt-0.5 block">{hangAssessment.recoveryCondition}</span>
+          </div>
+        </div>
+        <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400">
+          <span>{hangAssessment.message}</span>
+          <span className="text-emerald-400 font-semibold">{hangAssessment.recommendedAction}</span>
         </div>
       </div>
 
@@ -245,7 +348,10 @@ export const EmergencyRecoveryPanel: React.FC = () => {
             <div
               className="bg-cyan-500 h-full transition-all duration-300"
               style={{
-                width: `${Math.min(100, Math.round((quotaLedger.proRequestsRemaining / (quotaLedger.proRequestsLimit || 250)) * 100))}%`,
+                width: `${Math.min(
+                  100,
+                  Math.round((quotaLedger.proRequestsRemaining / (quotaLedger.proRequestsLimit || 250)) * 100)
+                )}%`,
               }}
             />
           </div>
@@ -267,7 +373,10 @@ export const EmergencyRecoveryPanel: React.FC = () => {
             <div
               className="bg-emerald-500 h-full transition-all duration-300"
               style={{
-                width: `${Math.min(100, Math.round((quotaLedger.flashRequestsRemaining / (quotaLedger.flashRequestsLimit || 2500)) * 100))}%`,
+                width: `${Math.min(
+                  100,
+                  Math.round((quotaLedger.flashRequestsRemaining / (quotaLedger.flashRequestsLimit || 2500)) * 100)
+                )}%`,
               }}
             />
           </div>
@@ -292,7 +401,7 @@ export const EmergencyRecoveryPanel: React.FC = () => {
             </span>
           </div>
           <div className="text-[11px] font-mono text-slate-300 flex justify-between">
-            <span className="text-slate-400">잔여 토큰:</span>
+            <span className="text-slate-400">잔여 원장:</span>
             <span className="text-indigo-400 font-bold">{quotaLedger.remainingTokens.toLocaleString()} T</span>
           </div>
           <p className="text-[10px] text-slate-400 truncate">
@@ -303,28 +412,29 @@ export const EmergencyRecoveryPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Action Buttons Row */}
+      {/* Action Buttons Row (Refined for Eyes & Workflow) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-4">
-        {/* 1. 비-LLM 긴급 Push 버튼 */}
+        {/* 1. 비-LLM 긴급 Push 버튼 (눈이 편안한 다크 슬레이트 & 엠버 펄스) */}
         <button
           onClick={handleEmergencyPush}
           disabled={pushing}
-          className="flex items-center justify-center gap-2 px-3 py-2.5 bg-rose-600 hover:bg-rose-500 disabled:bg-rose-800 text-white rounded-lg text-xs font-semibold shadow-md shadow-rose-950/40 transition active:scale-[0.98]"
+          className="flex items-center justify-center gap-2 px-3 py-2.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 disabled:bg-slate-900/60 text-slate-100 border border-slate-600/70 rounded-lg text-xs font-semibold shadow-md transition active:scale-[0.98]"
         >
           {pushing ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
               <span>Git Push 전송 중...</span>
             </>
           ) : (
             <>
-              <UploadCloud className="w-4 h-4" />
-              <span>🚨 긴급 소스 GitHub Push</span>
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              <UploadCloud className="w-4 h-4 text-slate-300" />
+              <span>긴급 소스 GitHub Push</span>
             </>
           )}
         </button>
 
-        {/* 2. 세션 백업(스냅샷) 버튼 */}
+        {/* 2. 세션 백업(스냅샷 파일화) 버튼 */}
         <button
           onClick={handleBackupSnapshot}
           disabled={backingUp}
@@ -333,24 +443,43 @@ export const EmergencyRecoveryPanel: React.FC = () => {
           {backingUp ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
-              <span>스냅샷 보존 중...</span>
+              <span>스냅샷 파일화 중...</span>
             </>
           ) : (
             <>
               <Save className="w-4 h-4 text-indigo-400" />
-              <span>💾 세션 스냅샷 백업</span>
+              <span>💾 세션 스냅샷 파일 백업</span>
             </>
           )}
         </button>
 
-        {/* 3. 세션 복구 다이얼로그 열기 */}
-        <button
-          onClick={() => setShowRestoreModal(true)}
-          className="flex items-center justify-center gap-2 px-3 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-indigo-950/40 transition active:scale-[0.98]"
-        >
-          <RotateCcw className="w-4 h-4" />
-          <span>🔄 #세션복구 ({pendingSnapshots.length}건 대기)</span>
-        </button>
+        {/* 3. #세션복구 프롬프트 복사 & 스냅샷 상세 열람 버튼 */}
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={handleCopyQuickPrompt}
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-indigo-900/60 hover:bg-indigo-800/80 text-indigo-200 border border-indigo-700/60 rounded-lg text-xs font-semibold shadow-sm transition active:scale-[0.98]"
+            title="새 AI 세션 채팅창에 붙여넣을 복구 명령어를 복사합니다."
+          >
+            {copiedQuickPrompt ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-emerald-300">명령 복사완료!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5 text-indigo-300" />
+                <span>#세션복구 명령 복사</span>
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => setSnapshotDetailModal(true)}
+            className="px-2.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-semibold"
+            title="스냅샷 목록 및 미완료 작업 상세 열람"
+          >
+            <Layers className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Push Result Toast Alert */}
@@ -370,7 +499,11 @@ export const EmergencyRecoveryPanel: React.FC = () => {
             )}
             <div>
               <p className="font-semibold">{pushResult.success ? '긴급 Git Push 성공' : '긴급 Git Push 실패'}</p>
-              <p className="mt-0.5 opacity-90">{pushResult.success ? `${pushResult.filesSyncedCount}개 파일이 원격 '${pushResult.branch}' 브랜치에 안전하게 반영되었습니다.` : pushResult.error}</p>
+              <p className="mt-0.5 opacity-90">
+                {pushResult.success
+                  ? `${pushResult.filesSyncedCount}개 파일이 원격 '${pushResult.branch}' 브랜치에 안전하게 반영되었습니다.`
+                  : pushResult.error}
+              </p>
               {pushResult.commitSha && (
                 <div className="mt-1 flex items-center gap-1.5 font-mono text-[11px] text-emerald-400">
                   <span>SHA: {pushResult.commitSha.slice(0, 10)}</span>
@@ -379,147 +512,207 @@ export const EmergencyRecoveryPanel: React.FC = () => {
                       href={pushResult.commitUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-0.5 underline hover:text-emerald-300"
+                      className="inline-flex items-center gap-0.5 underline text-emerald-300 hover:text-white"
                     >
-                      GitHub에서 보기 <ExternalLink className="w-3 h-3" />
+                      <ExternalLink className="w-3 h-3" /> GitHub 커밋 보기
                     </a>
                   )}
                 </div>
               )}
             </div>
           </div>
-          <button onClick={() => setPushResult(null)} className="text-slate-400 hover:text-white">✕</button>
+          <button onClick={() => setPushResult(null)} className="text-slate-400 hover:text-white">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
-      {/* Backup Notification */}
+      {/* Backup Result Toast */}
       {backupMsg && (
-        <div className="p-2.5 mb-3 bg-slate-800/80 border border-slate-700 rounded-lg text-xs text-slate-300 flex items-center justify-between">
-          <span>{backupMsg}</span>
-          <button onClick={() => setBackupMsg(null)} className="text-slate-400 hover:text-white">✕</button>
+        <div
+          className={`p-3 rounded-lg text-xs mb-3 flex items-start justify-between border ${
+            backupMsg.success
+              ? 'bg-indigo-950/40 border-indigo-500/30 text-indigo-300'
+              : 'bg-rose-950/40 border-rose-500/30 text-rose-300'
+          }`}
+        >
+          <div className="flex items-start gap-2">
+            <CheckCircle className="w-4 h-4 text-indigo-400 mt-0.5" />
+            <div>
+              <p className="font-semibold">{backupMsg.message}</p>
+              {backupMsg.jsonFilePath && (
+                <p className="mt-0.5 text-[11px] font-mono text-slate-300">
+                  📄 {backupMsg.jsonFilePath} | {backupMsg.mdFilePath}
+                </p>
+              )}
+            </div>
+          </div>
+          <button onClick={() => setBackupMsg(null)} className="text-slate-400 hover:text-white">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
-      {/* Hang Status Explanation Card */}
-      <div className="bg-slate-950/60 border border-slate-800/80 rounded-lg p-3 text-xs flex items-center justify-between">
-        <div className="flex items-center gap-2 text-slate-400">
-          <Clock className="w-3.5 h-3.5 text-slate-500" />
-          <span>{hangAssessment.message}</span>
+      {/* Latest Snapshot Summary Bar */}
+      {latestSnapshot && (
+        <div className="mt-2 p-2.5 bg-slate-950/60 border border-slate-800/80 rounded-lg flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2">
+            <FileCode className="w-4 h-4 text-indigo-400" />
+            <span className="font-mono font-bold text-slate-200">{latestSnapshot.snapshot_id}</span>
+            <span className="text-slate-400 truncate max-w-[200px]">({latestSnapshot.session_title})</span>
+            {latestSnapshot.unfinalized_tasks && latestSnapshot.unfinalized_tasks.length > 0 && (
+              <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded text-[10px] font-semibold">
+                미완료 태스크 {latestSnapshot.unfinalized_tasks.length}건
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleCopyPrompt(latestSnapshot.snapshot_id)}
+              className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-[11px] font-mono flex items-center gap-1 border border-slate-700"
+            >
+              {copiedSnapshotId === latestSnapshot.snapshot_id ? (
+                <>
+                  <Check className="w-3 h-3 text-emerald-400" />
+                  <span className="text-emerald-400">복사됨</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3 h-3 text-slate-400" />
+                  <span>#세션복구:{latestSnapshot.snapshot_id}</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => {
+                setSelectedSnapshot(latestSnapshot);
+                setSnapshotDetailModal(true);
+              }}
+              className="px-2 py-1 bg-indigo-950/70 hover:bg-indigo-900 text-indigo-300 rounded text-[11px] font-semibold border border-indigo-800/60"
+            >
+              상세보기
+            </button>
+          </div>
         </div>
-        <span className="text-indigo-400 font-medium">{hangAssessment.recommendedAction}</span>
-      </div>
+      )}
 
-      {/* Restore Modal Dialog */}
-      {showRestoreModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-lg w-full p-5 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      {/* Snapshot Detail & Residual Task Viewer Modal */}
+      {snapshotDetailModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <RotateCcw className="w-5 h-5 text-indigo-400" />
-                <h4 className="text-base font-bold text-white">#세션복구 관리자</h4>
+                <FileText className="w-5 h-5 text-indigo-400" />
+                <h3 className="text-sm font-bold text-white">세션 스냅샷 파일 및 미완료 작업 상세</h3>
               </div>
               <button
-                onClick={() => {
-                  setShowRestoreModal(false);
-                  setRestoredInfo(null);
-                }}
-                className="text-slate-400 hover:text-white"
+                onClick={() => setSnapshotDetailModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            {restoredInfo ? (
-              <div className="space-y-3">
-                <div className="p-3 bg-emerald-950/40 border border-emerald-500/30 rounded-lg text-xs text-emerald-300">
-                  <p className="font-bold text-emerald-400">{restoredInfo.message}</p>
-                  <p className="mt-1">중단되었던 세션의 최신 커밋 SHA와 태스크가 성공적으로 연결되었습니다.</p>
+            {/* Modal Body */}
+            <div className="p-4 overflow-y-auto space-y-4 text-xs">
+              {snapshots.length === 0 ? (
+                <div className="text-center py-8 text-slate-500">
+                  <p>보존된 세션 스냅샷이 없습니다.</p>
+                  <p className="mt-1 text-[11px]">상단의 [💾 세션 스냅샷 파일 백업] 버튼을 눌러 생성하세요.</p>
                 </div>
-
-                <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 space-y-1.5">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400">새 세션 입력용 추천 프롬프트:</span>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(restoredInfo.recommendedPrompt);
-                        setCopiedPrompt(true);
-                        setTimeout(() => setCopiedPrompt(false), 2000);
-                      }}
-                      className="inline-flex items-center gap-1 text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold"
-                    >
-                      <Copy className="w-3 h-3" />
-                      {copiedPrompt ? '복사됨!' : '프롬프트 복사'}
-                    </button>
-                  </div>
-                  <pre className="p-2 bg-slate-900 rounded font-mono text-[11px] text-amber-300 overflow-x-auto whitespace-pre-wrap">
-                    {restoredInfo.recommendedPrompt}
-                  </pre>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setShowRestoreModal(false);
-                    setRestoredInfo(null);
-                  }}
-                  className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold"
-                >
-                  완료 및 닫기
-                </button>
-              </div>
-            ) : pendingSnapshots.length === 0 ? (
-              <div className="py-8 text-center text-slate-400 text-xs space-y-2">
-                <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto opacity-70" />
-                <p>복구 대기 중인 세션 스냅샷이 없습니다.</p>
-                <p className="text-[11px] text-slate-500">모든 작업 세션이 정상이거나 이미 복구되었습니다.</p>
-              </div>
-            ) : pendingSnapshots.length === 1 ? (
-              <div className="space-y-3">
-                <p className="text-xs text-slate-300">
-                  복구 대기 스냅샷 1건이 확인되었습니다. 아래 버튼을 누르면 직결 복구됩니다.
-                </p>
-                <div className="p-3 bg-slate-950 border border-slate-800 rounded-lg text-xs space-y-1">
-                  <div className="flex justify-between font-semibold text-white">
-                    <span>세션 [{pendingSnapshots[0].session_num}]</span>
-                    <span className="text-indigo-400">{pendingSnapshots[0].snapshot_id}</span>
-                  </div>
-                  <p className="text-slate-400 text-[11px]">{pendingSnapshots[0].session_title}</p>
-                  <p className="text-slate-500 text-[11px]">태스크: {pendingSnapshots[0].current_task_name}</p>
-                </div>
-                <button
-                  onClick={() => handleRestore(pendingSnapshots[0].snapshot_id)}
-                  disabled={restoring}
-                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-2"
-                >
-                  {restoring && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <span>원터치 직결 복구 실행</span>
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <p className="text-xs text-slate-300">복구 대기 세션이 여러 건 존재합니다. 복구할 세션을 선택하세요:</p>
-                <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
-                  {pendingSnapshots.map((item) => (
+              ) : (
+                snapshots.map((s) => {
+                  const isSelected = selectedSnapshot?.snapshot_id === s.snapshot_id;
+                  return (
                     <div
-                      key={item.snapshot_id}
-                      className="p-3 bg-slate-950 border border-slate-800 hover:border-indigo-500/50 rounded-lg text-xs flex items-center justify-between transition cursor-pointer"
-                      onClick={() => handleRestore(item.snapshot_id)}
+                      key={s.snapshot_id}
+                      className={`p-3.5 bg-slate-950 border rounded-xl space-y-2.5 transition ${
+                        isSelected ? 'border-indigo-500 shadow-md shadow-indigo-950/40' : 'border-slate-800/80'
+                      }`}
                     >
-                      <div className="space-y-0.5">
-                        <div className="font-semibold text-white flex items-center gap-2">
-                          <span>[{item.session_num}]</span>
-                          <span className="text-[11px] text-slate-400">{item.snapshot_id}</span>
-                        </div>
-                        <p className="text-slate-400 text-[11px]">{item.session_title}</p>
-                        <p className="text-slate-500 text-[10px]">{new Date(item.created_at).toLocaleString('ko-KR')}</p>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-indigo-300 text-sm">{s.snapshot_id}</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-300">
+                          {s.session_title}
+                        </span>
+                        <span className="text-[10px] text-slate-500">{new Date(s.created_at).toLocaleString()}</span>
                       </div>
-                      <button className="px-2.5 py-1 bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 rounded text-xs font-medium hover:bg-indigo-600 hover:text-white transition">
-                        선택 복구
+                      <button
+                        onClick={() => handleCopyPrompt(s.snapshot_id)}
+                        className="px-2.5 py-1 bg-indigo-900/60 hover:bg-indigo-800 text-indigo-200 rounded-lg text-[11px] font-mono flex items-center gap-1 border border-indigo-700/60"
+                      >
+                        {copiedSnapshotId === s.snapshot_id ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <span className="text-emerald-300 font-sans">복사됨!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5 text-indigo-300" />
+                            <span>#세션복구:{s.snapshot_id}</span>
+                          </>
+                        )}
                       </button>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
+
+                    {/* Residual Tasks Section */}
+                    <div className="p-2.5 bg-slate-900/90 border border-slate-800 rounded-lg space-y-1">
+                      <span className="text-[11px] font-semibold text-amber-300 flex items-center gap-1">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        정리 못한 잔여 태스크 (Unfinalized Tasks)
+                      </span>
+                      {s.unfinalized_tasks && s.unfinalized_tasks.length > 0 ? (
+                        <div className="space-y-1 mt-1">
+                          {s.unfinalized_tasks.map((t, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-center justify-between text-[11px] py-0.5 px-2 bg-slate-950/70 rounded border border-slate-800"
+                            >
+                              <span className="font-mono text-slate-300">
+                                [{t.task_id}] {t.task_name}
+                              </span>
+                              <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                {t.status_cd}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-slate-500">정리 못한 잔여 태스크 없음 (완결 상태)</p>
+                      )}
+                    </div>
+
+                    {/* File Path & Meta */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-400 pt-1">
+                      <div>
+                        <span>📄 JSON 파일: </span>
+                        <code className="text-indigo-400 font-mono">{s.json_file_path || `data/snapshots/${s.snapshot_id}.json`}</code>
+                      </div>
+                      <div>
+                        <span>📝 MD 보고서: </span>
+                        <code className="text-indigo-400 font-mono">{s.md_file_path || `data/snapshots/${s.snapshot_id}.md`}</code>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3 border-t border-slate-800 bg-slate-950 flex justify-between items-center text-xs">
+              <span className="text-slate-400">
+                복구 명령어를 복사한 후 신규 세션 채팅창에서 입력하세요.
+              </span>
+              <button
+                onClick={() => setSnapshotDetailModal(false)}
+                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-semibold"
+              >
+                닫기
+              </button>
+            </div>
           </div>
         </div>
       )}
