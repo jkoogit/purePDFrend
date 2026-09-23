@@ -11,6 +11,11 @@
 
 우분투 서버(PostgreSQL 구동 중인 단일 서버)에 그래픽카드(GPU)가 없는 환경에서도, PaddleOCR의 OpenVINO/MKLDNN CPU 가속 옵션을 활용하면 한글/영문/한자 스캔 도서의 OCR 처리를 빠르고 안정적으로 수행할 수 있습니다.
 
+<div align="center">
+  <img src="./images/15-06_우분투_서버_PaddleOCR_CPU_도커_배포_및_FastAPI_연동_가이드_diag_1.svg" alt="15-06. 우분투 서버 PaddleOCR (CPU 전용) 도커 컨테이너 배포 및 FastAPI 브릿지 연동 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1" style="max-width: 100%; height: auto; border: 1px solid #334155; border-radius: 12px;" />
+  <p><em>[그림] 15-06. 우분투 서버 PaddleOCR (CPU 전용) 도커 컨테이너 배포 및 FastAPI 브릿지 연동 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1</em></p>
+</div>
+
 ```mermaid
 flowchart LR
     Browser["purePDFrend (웹 브라우저)"] --> NodeServer["Express 백엔드 (localhost:3000)"]
@@ -216,3 +221,11 @@ curl http://localhost:8000/health
 
 1. **지능형 폴백**: 우분투 서버가 기동 전이거나 응답하지 않는 경우, purePDFrend는 즉각 로컬 Tesseract.js 및 Gemini 2.5 Flash로 안전하게 폴백합니다.
 2. **비용 0원**: 온프레미스 CPU 연산으로 외부 클라우드 API 호출 토큰 소비 없이 무제한 OCR 배치가 가능합니다.
+
+---
+
+## 📋 편집 이력 (Revision History)
+
+| 작업일자 | 이슈 | 태스크 | 작업자 | 작업내용 | 사용 AI 모델명 | 에이전트 | 참고링크 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 2026-09-24 | #12 | TASK-0013 | gemini | 거버넌스 4대 ID 포맷 개선 및 18대 문서 체계 편집이력/다이어그램 표준화 | Gemini 1.5 Pro | Google Antigravity | [03-01. 문서 정책](../03.정책/03-01_문서작성_및_편집이력_정책.md) |

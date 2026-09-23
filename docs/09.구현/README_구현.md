@@ -9,6 +9,11 @@
 | `09-01` | `09-01_가상화_스크롤_구현_명세.md` | 가상화 스크롤 구현 명세 | 800쪽 렌더링 시 DOM 윈도잉 및 ResizeObserver 버퍼 계산식 |
 | `09-02` | `09-02_토큰관리_텔레메트리_및_하네스인계_구현명세.md` | 토큰관리 텔레메트리 및 하네스인계 구현 명세 | 4계층 텔레메트리, TokenBurnoutGauge, HandoffDossier, API 명세 |
 
+<div align="center">
+  <img src="./images/README_구현_diag_1.svg" alt="09. 구현 (Implementation Specs) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1" style="max-width: 100%; height: auto; border: 1px solid #334155; border-radius: 12px;" />
+  <p><em>[그림] 09. 구현 (Implementation Specs) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1</em></p>
+</div>
+
 ```mermaid
 graph LR
     Scroll[스크롤 이벤트 감지] --> Calc[현재 뷰포트 인덱스 계산]

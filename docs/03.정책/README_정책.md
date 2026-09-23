@@ -22,6 +22,11 @@
 | `03-14` | `03-14_모바일반응형_카드전환_및_가로스크롤_원천방지_디자인가이드.md` | 모바일 반응형 카드전환 및 가로스크롤 원천방지 디자인가이드 | Table-to-Card 패턴, 색상단일화(Indigo/Emerald/Slate), z-index 계층 표준 |
 | `03-15` | `03-15_토큰소진_선제방지_및_무손실_세션인계_운영정책.md` | 토큰소진 선제방지 및 무손실 세션인계 운영정책 | 4계층 텔레메트리(v, B, LSM, BRI), 자가적응형 스코어카드(EMA), Git 3대 기준점 인계 규약 |
 
+<div align="center">
+  <img src="./images/README_정책_diag_1.svg" alt="03. 정책 (Policies & Standards) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1" style="max-width: 100%; height: auto; border: 1px solid #334155; border-radius: 12px;" />
+  <p><em>[그림] 03. 정책 (Policies & Standards) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1</em></p>
+</div>
+
 ```mermaid
 stateDiagram-v2
     [*] --> START: 세션/태스크 시작

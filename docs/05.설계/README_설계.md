@@ -15,6 +15,12 @@
 | `05-08` | `05-08_비LLM_긴급푸시_쿼터차감엔진_및_세션DR_설계.md` | 비-LLM 긴급푸시 및 세션 DR 설계 | EmergencyGitPushEngine, QuotaDeductionEngine 및 세션 재해복구 체계 |
 | `05-09` | `05-09_관리자_메타원장_대시보드_및_스냅샷_파일화_설계.md` | 관리자 메타원장 대시보드 및 스냅샷 파일화 설계 | PostgreSQL 5대 메타원장 관리 대시보드 및 DR 스냅샷 영속화 |
 | `05-10` | `05-10_PDF_이미지_전처리_및_3대_OCR_엔진_어댑터_설계.md` | PDF 이미지 전처리 및 3대 OCR 어댑터 설계 | 이미지 Deskew/이진화 파이프라인 및 Tesseract/Gemini/PaddleOCR Docker 어댑터 |
+| `05-11` | `05-11_거버넌스_4대_식별자_포맷_및_문서_다이어그램_표준화_설계.md` | 거버넌스 4대 식별자 포맷 및 문서 다이어그램 표준화 설계 | 세션/태스크/루프/대화턴 4대 ID 포맷 및 Mermaid 대체 텍스트/하단 편집이력 규격 |
+
+<div align="center">
+  <img src="./images/README_설계_diag_1.svg" alt="05. 설계 (Architecture & Design Specs) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1" style="max-width: 100%; height: auto; border: 1px solid #334155; border-radius: 12px;" />
+  <p><em>[그림] 05. 설계 (Architecture & Design Specs) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1</em></p>
+</div>
 
 ```mermaid
 graph TD
@@ -25,4 +31,3 @@ graph TD
     Client --> Comp3[작업그래프 시각화기]
     Client --> Comp4[3대 OCR 엔진 & 전처리 파이프라인]
 ```
-
