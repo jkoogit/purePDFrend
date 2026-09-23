@@ -12,6 +12,11 @@ export interface AccountQuotaLedgerProps {
   totalGrantedQuota: number;
   usedQuota: number;
   remainingQuota: number;
+  proRequestsLimit?: number;
+  proRequestsUsed?: number;
+  flashRequestsLimit?: number;
+  flashRequestsUsed?: number;
+  quotaResetAt?: string | null;
   isFrozen?: boolean;
   overageAllowed?: boolean;
   lastDeductedAt?: string | null;
@@ -36,6 +41,10 @@ export interface DeductionResult {
   deductedTokens: number;
   balanceAfter: number;
   isFrozen: boolean;
+  proRequestsRemaining?: number;
+  flashRequestsRemaining?: number;
+  fallbackRecommended?: boolean;
+  fallbackModelId?: string;
   log?: QuotaTransactionLog;
   errorMessage?: string;
 }
@@ -47,6 +56,11 @@ export class AccountQuotaLedger {
   private _totalGrantedQuota: number;
   private _usedQuota: number;
   private _remainingQuota: number;
+  private _proRequestsLimit: number;
+  private _proRequestsUsed: number;
+  private _flashRequestsLimit: number;
+  private _flashRequestsUsed: number;
+  private _quotaResetAt: string | null;
   private _isFrozen: boolean;
   public readonly overageAllowed: boolean;
   private _lastDeductedAt: string | null;
@@ -64,6 +78,11 @@ export class AccountQuotaLedger {
     this._totalGrantedQuota = Math.max(0, Number(props.totalGrantedQuota) || 0);
     this._usedQuota = Math.max(0, Number(props.usedQuota) || 0);
     this._remainingQuota = Number(props.remainingQuota) || 0;
+    this._proRequestsLimit = props.proRequestsLimit !== undefined ? Number(props.proRequestsLimit) : 250;
+    this._proRequestsUsed = Math.max(0, Number(props.proRequestsUsed) || 0);
+    this._flashRequestsLimit = props.flashRequestsLimit !== undefined ? Number(props.flashRequestsLimit) : 2500;
+    this._flashRequestsUsed = Math.max(0, Number(props.flashRequestsUsed) || 0);
+    this._quotaResetAt = props.quotaResetAt || null;
     this._isFrozen = Boolean(props.isFrozen);
     this.overageAllowed = Boolean(props.overageAllowed);
     this._lastDeductedAt = props.lastDeductedAt || null;
@@ -75,6 +94,13 @@ export class AccountQuotaLedger {
   public get totalGrantedQuota(): number { return this._totalGrantedQuota; }
   public get usedQuota(): number { return this._usedQuota; }
   public get remainingQuota(): number { return this._remainingQuota; }
+  public get proRequestsLimit(): number { return this._proRequestsLimit; }
+  public get proRequestsUsed(): number { return this._proRequestsUsed; }
+  public get proRequestsRemaining(): number { return Math.max(0, this._proRequestsLimit - this._proRequestsUsed); }
+  public get flashRequestsLimit(): number { return this._flashRequestsLimit; }
+  public get flashRequestsUsed(): number { return this._flashRequestsUsed; }
+  public get flashRequestsRemaining(): number { return Math.max(0, this._flashRequestsLimit - this._flashRequestsUsed); }
+  public get quotaResetAt(): string | null { return this._quotaResetAt; }
   public get isFrozen(): boolean { return this._isFrozen; }
   public get lastDeductedAt(): string | null { return this._lastDeductedAt; }
   public get version(): number { return this._version; }
@@ -127,6 +153,20 @@ export class AccountQuotaLedger {
     this.updatedAt = this._lastDeductedAt;
     this._version += 1;
 
+    let fallbackRecommended = false;
+    let fallbackModelId: string | undefined = undefined;
+
+    const isPro = context.modelId?.toLowerCase().includes('pro');
+    if (isPro) {
+      this._proRequestsUsed += 1;
+      if (this._proRequestsUsed >= this._proRequestsLimit) {
+        fallbackRecommended = true;
+        fallbackModelId = 'gemini-1.5-flash';
+      }
+    } else {
+      this._flashRequestsUsed += 1;
+    }
+
     // 만약 차감 후 잔여량이 0 이하이고 초과가 불허된 경우 자동 동결
     if (this._remainingQuota <= 0 && !this.overageAllowed) {
       this._isFrozen = true;
@@ -156,6 +196,10 @@ export class AccountQuotaLedger {
       deductedTokens: requiredTokens,
       balanceAfter: this._remainingQuota,
       isFrozen: this._isFrozen,
+      proRequestsRemaining: this.proRequestsRemaining,
+      flashRequestsRemaining: this.flashRequestsRemaining,
+      fallbackRecommended,
+      fallbackModelId,
       log,
     };
   }
