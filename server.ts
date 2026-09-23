@@ -10,6 +10,9 @@ import {
   QuotaDeductionEngine,
   SessionDisasterRecoveryService,
   AccountQuotaLedger,
+  VendorAttribute,
+  UserAiAccount,
+  SessionResourceManager,
 } from './src/aiagent/domain/token-quota';
 import { HarnessAutomationService } from './src/aiagent/services/HarnessAutomationService';
 import { EmergencyGitPushEngine } from './src/aiagent/services/EmergencyGitPushEngine';
@@ -71,12 +74,15 @@ interface LocalStoreData {
   tasks: any[];
   loops: any[];
   traces: any[];
+  currentSessionId?: string;
   plans?: any[];
   models?: any[];
   users?: any[];
   ledgers?: any[];
   quota_logs?: any[];
   snapshots?: any[];
+  vendor_attributes?: any[];
+  user_ai_accounts?: any[];
 }
 
 function getLocalStore(): LocalStoreData {
@@ -89,18 +95,35 @@ function getLocalStore(): LocalStoreData {
         tasks: parsed.tasks || [],
         loops: parsed.loops || [],
         traces: parsed.traces || [],
+        currentSessionId: parsed.currentSessionId,
         plans: parsed.plans || [],
         models: parsed.models || [],
         users: parsed.users || [],
         ledgers: parsed.ledgers || [],
         quota_logs: parsed.quota_logs || [],
         snapshots: parsed.snapshots || [],
+        vendor_attributes: parsed.vendor_attributes || [],
+        user_ai_accounts: parsed.user_ai_accounts || [],
       };
     }
   } catch (e) {
     console.error('Error reading local agent store:', e);
   }
-  return { sessions: [], tasks: [], loops: [], traces: [], plans: [], models: [], users: [], ledgers: [], quota_logs: [], snapshots: [] };
+  return { 
+    sessions: [], 
+    tasks: [], 
+    loops: [], 
+    traces: [], 
+    currentSessionId: undefined,
+    plans: [], 
+    models: [], 
+    users: [], 
+    ledgers: [], 
+    quota_logs: [], 
+    snapshots: [],
+    vendor_attributes: [],
+    user_ai_accounts: [],
+  };
 }
 
 function saveLocalStore(data: LocalStoreData): void {
@@ -2702,6 +2725,279 @@ app.get('/api/agent/quota/ledger', (req, res) => {
   }
 });
 
+// =========================================================================
+// 6. 사용자·복수 AI계정 토큰정책 및 세션 자원 현행화(Re-sync) API
+// =========================================================================
+
+// 6.1 벤더 속성 목록 조회 (Vendor Attributes: AI수집 vs 시스템등록)
+app.get('/api/agent/system/vendor-attributes', (req, res) => {
+  try {
+    const store = getLocalStore();
+    if (!store.vendor_attributes || store.vendor_attributes.length === 0) {
+      const defaultGoogle = VendorAttribute.createDefaultGoogleVendor();
+      store.vendor_attributes = [defaultGoogle];
+      saveLocalStore(store);
+    }
+    res.json({ success: true, vendors: store.vendor_attributes });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 6.2 벤더 속성 등록/수정
+app.post('/api/agent/system/vendor-attributes', (req, res) => {
+  try {
+    const { vendorId, vendorName, originType, status, subscriptionPlans, agentEngines } = req.body;
+    if (!vendorId || !vendorName) {
+      return res.status(400).json({ success: false, error: 'vendorId and vendorName are required.' });
+    }
+    const store = getLocalStore();
+    if (!store.vendor_attributes) store.vendor_attributes = [];
+
+    const existingIdx = store.vendor_attributes.findIndex((v: any) => v.vendorId === vendorId);
+    const newVendor = new VendorAttribute(
+      vendorId,
+      vendorName,
+      originType || 'SYSTEM_CONFIRMED',
+      status || 'ACTIVE',
+      subscriptionPlans || [],
+      agentEngines || []
+    );
+
+    if (existingIdx >= 0) {
+      store.vendor_attributes[existingIdx] = newVendor;
+    } else {
+      store.vendor_attributes.push(newVendor);
+    }
+    saveLocalStore(store);
+    res.json({ success: true, vendor: newVendor });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 6.3 사용자 복수 AI 계정 목록 조회 (User AI Accounts)
+app.get('/api/agent/user/ai-accounts', (req, res) => {
+  try {
+    const userId = (req.query.userId as string) || 'USER-DEV-001';
+    const store = getLocalStore();
+    if (!store.user_ai_accounts || store.user_ai_accounts.length === 0) {
+      const defaultAccounts = UserAiAccount.createDefaultUserAccounts(userId, 'jkoogit@gmail.com');
+      store.user_ai_accounts = defaultAccounts;
+      saveLocalStore(store);
+    }
+    const userAccounts = store.user_ai_accounts.filter((a: any) => a.userId === userId || !a.userId);
+    res.json({ success: true, accounts: userAccounts.length > 0 ? userAccounts : store.user_ai_accounts });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 6.4 사용자 AI 계정 등록/수정/오버라이드 설정
+app.post('/api/agent/user/ai-accounts', (req, res) => {
+  try {
+    const { accountId, userId = 'USER-DEV-001', vendorId = 'GOOGLE', accountEmail, accountLabel, planId, isDefault, tierOverride } = req.body;
+    if (!accountId || !accountEmail) {
+      return res.status(400).json({ success: false, error: 'accountId and accountEmail are required.' });
+    }
+    const store = getLocalStore();
+    if (!store.user_ai_accounts) store.user_ai_accounts = [];
+
+    if (isDefault) {
+      store.user_ai_accounts.forEach((a: any) => {
+        if (a.userId === userId) a.isDefault = false;
+      });
+    }
+
+    const existingIdx = store.user_ai_accounts.findIndex((a: any) => a.accountId === accountId);
+    const updatedAccount = new UserAiAccount(
+      accountId,
+      userId,
+      vendorId,
+      accountEmail,
+      accountLabel || accountEmail,
+      planId || 'PLAN-GOOGLE-ADVANCED',
+      Boolean(isDefault),
+      tierOverride
+    );
+
+    if (existingIdx >= 0) {
+      store.user_ai_accounts[existingIdx] = updatedAccount;
+    } else {
+      store.user_ai_accounts.push(updatedAccount);
+    }
+    saveLocalStore(store);
+    res.json({ success: true, account: updatedAccount });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 6.5 세션 시작 시 자원 및 티어 정책 확정 바인딩 (Init Quota Baseline)
+app.post('/api/agent/session/init-quota', (req, res) => {
+  try {
+    const { sessionId, userId = 'USER-DEV-001', accountId, promptTierConfig } = req.body;
+    const store = getLocalStore();
+    const targetSessionId = sessionId || store.sessions?.[0]?.session_id || 'SESSION-20260923-007';
+
+    // 1. 대상 계정 결정
+    const accounts = store.user_ai_accounts || [];
+    let selectedAccount = accounts.find((a: any) => a.accountId === accountId);
+    if (!selectedAccount) {
+      selectedAccount = accounts.find((a: any) => a.isDefault) || accounts[0] || UserAiAccount.createDefaultUserAccounts(userId, 'jkoogit@gmail.com')[0];
+    }
+
+    // 2. 벤더 속성 결정
+    const vendors = store.vendor_attributes || [];
+    const vendor = vendors.find((v: any) => v.vendorId === selectedAccount.vendorId) || VendorAttribute.createDefaultGoogleVendor();
+
+    // 3. 자원 스냅샷 생성
+    const resourceSnapshot = SessionResourceManager.initSessionResource(
+      targetSessionId,
+      selectedAccount,
+      vendor,
+      promptTierConfig
+    );
+
+    // 4. 세션 정보에 바인딩
+    const targetSession = store.sessions.find((s: any) => s.session_id === targetSessionId || s.id === targetSessionId);
+    if (targetSession) {
+      if (!targetSession.doc_payload) targetSession.doc_payload = {};
+      targetSession.doc_payload.resource_snapshot = resourceSnapshot;
+      targetSession.doc_payload.active_ai_account_id = selectedAccount.accountId;
+      targetSession.doc_payload.tier_model_policy = resourceSnapshot.tierPolicy;
+      saveLocalStore(store);
+    }
+
+    res.json({ success: true, snapshot: resourceSnapshot });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 6.6 세션 진행 중 자원 현황 재동기화 (On-Demand Quota Re-sync)
+app.post('/api/agent/session/resync-quota', async (req, res) => {
+  try {
+    const { sessionId, userId = 'USER-DEV-001' } = req.body;
+    const store = getLocalStore();
+    const targetSessionId = sessionId || store.sessions?.[0]?.session_id || store.currentSessionId;
+    const session = store.sessions.find((s: any) => s.session_id === targetSessionId || s.id === targetSessionId);
+
+    let currentSnapshot = session?.doc_payload?.resource_snapshot;
+    if (!currentSnapshot) {
+      const defaultAccount = (store.user_ai_accounts || [])[0] || UserAiAccount.createDefaultUserAccounts(userId, 'jkoogit@gmail.com')[0];
+      const defaultVendor = (store.vendor_attributes || [])[0] || VendorAttribute.createDefaultGoogleVendor();
+      currentSnapshot = SessionResourceManager.initSessionResource(targetSessionId, defaultAccount, defaultVendor);
+    }
+
+    // DB 또는 로컬 원장에서 최신 수치 조회
+    let ledgerBalance = currentSnapshot.resourceBaseline.currentTokenBalance;
+    let ledgerRpd = currentSnapshot.resourceBaseline.dailyRpdConsumed;
+    let syncSource = 'LOCAL_MEMORY';
+
+    try {
+      const dbRes: any = await executeSql(`
+        SELECT remaining_quota, used_quota, pro_requests_used
+        FROM aiagent.agent_account_quota_ledger
+        WHERE user_id = '${userId.replace(/'/g, "''")}'
+        LIMIT 1;
+      `);
+      if (dbRes?.rows?.[0]) {
+        ledgerBalance = Number(dbRes.rows[0].remaining_quota) || ledgerBalance;
+        ledgerRpd = Number(dbRes.rows[0].pro_requests_used) || ledgerRpd;
+        syncSource = 'REMOTE_DB';
+      }
+    } catch (e) {
+      // fallback
+    }
+
+    const { updated, deltaTokens, deltaRpd } = SessionResourceManager.resyncResource(
+      currentSnapshot,
+      ledgerBalance,
+      ledgerRpd
+    );
+
+    if (session) {
+      if (!session.doc_payload) session.doc_payload = {};
+      session.doc_payload.resource_snapshot = updated;
+      saveLocalStore(store);
+    }
+
+    res.json({
+      success: true,
+      message: '세션 자원 현황이 최신 원장과 성공적으로 현행화(Re-sync)되었습니다.',
+      syncSource,
+      deltaTokens,
+      deltaRpd,
+      snapshot: updated,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 6.7 정수 단위 결정론적 쿼터 차감 API (AI 산수 배제)
+app.post('/api/agent/quota/consume', (req, res) => {
+  try {
+    const { sessionId, tokensSpent = 0, tier = 'tier2' } = req.body;
+    const store = getLocalStore();
+    const targetSessionId = sessionId || store.sessions?.[0]?.session_id || store.currentSessionId;
+    const session = store.sessions.find((s: any) => s.session_id === targetSessionId || s.id === targetSessionId);
+
+    if (!session || !session.doc_payload?.resource_snapshot) {
+      return res.status(404).json({ success: false, error: '활성 세션의 자원 스냅샷을 찾을 수 없습니다.' });
+    }
+
+    const updated = SessionResourceManager.recordConsumption(
+      session.doc_payload.resource_snapshot,
+      Number(tokensSpent) || 0,
+      tier as 'tier1' | 'tier2' | 'tier3'
+    );
+
+    session.doc_payload.resource_snapshot = updated;
+    saveLocalStore(store);
+
+    res.json({
+      success: true,
+      remainingTokens: updated.resourceBaseline.currentTokenBalance,
+      totalConsumedTokens: updated.resourceBaseline.totalSessionConsumedTokens,
+      dailyRpdConsumed: updated.resourceBaseline.dailyRpdConsumed,
+      snapshot: updated,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 6.8 세션 마감 시 차기 세션 프롬프트 생성용 데이터 API
+app.get('/api/agent/session/handoff-summary', (req, res) => {
+  try {
+    const sessionId = (req.query.sessionId as string) || '';
+    const store = getLocalStore();
+    const targetSessionId = sessionId || store.sessions?.[0]?.session_id || store.currentSessionId;
+    const session = store.sessions.find((s: any) => s.session_id === targetSessionId || s.id === targetSessionId);
+
+    const snapshot = session?.doc_payload?.resource_snapshot;
+    if (!snapshot) {
+      return res.status(404).json({ success: false, error: '세션 자원 스냅샷이 존재하지 않습니다.' });
+    }
+
+    const nextPrompt = SessionResourceManager.buildNextSessionPrompt(
+      '0011',
+      '신규 태스크 업무명',
+      snapshot
+    );
+
+    res.json({
+      success: true,
+      sessionId: targetSessionId,
+      snapshot,
+      nextPrompt,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // 4.2 Comprehensive Turn Completion API (Syncs State, Logs Trace & Registers Review)
 app.post('/api/agent/turn/complete', async (req, res) => {
@@ -3346,9 +3642,13 @@ app.get('/api/agent/audit/integrity', async (req, res) => {
     }
 
     // 2. Local Store vs Remote DB Parity (Self-Cross Check) for Active Session
-    const activeSession = store.sessions[0];
+    const activeSession = store.sessions.find((s: any) => (s.session_id || s.id) === store.currentSessionId) 
+      || store.sessions.find((s: any) => s.status_cd === '진행중' || s.status === '진행중')
+      || store.sessions[store.sessions.length - 1] 
+      || store.sessions[0];
+    const targetSessionId = activeSession ? (activeSession.session_id || (activeSession as any).id) : null;
     let sessionParity = {
-      activeSessionId: activeSession?.session_id || null,
+      activeSessionId: targetSessionId,
       sessionMatch: false,
       tasksLocalCount: store.tasks.length,
       tasksDbCount: 0,
@@ -3361,7 +3661,7 @@ app.get('/api/agent/audit/integrity', async (req, res) => {
 
     if (activeSession) {
       try {
-        const safeSessId = activeSession.session_id.replace(/'/g, "''");
+        const safeSessId = (activeSession.session_id || (activeSession as any).id).replace(/'/g, "''");
         const sessCheckRes: any = await executeSql(`SELECT session_id, status_cd FROM aiagent.harness_session_meta WHERE session_id = '${safeSessId}';`);
         sessionParity.sessionMatch = (sessCheckRes.rows || []).length > 0;
 
@@ -3374,11 +3674,15 @@ app.get('/api/agent/audit/integrity', async (req, res) => {
         const tracesCountRes: any = await executeSql(`SELECT count(*) as cnt FROM aiagent.agent_conversation_trace WHERE session_id = '${safeSessId}';`);
         sessionParity.tracesDbCount = parseInt(tracesCountRes.rows?.[0]?.cnt || '0', 10);
 
-        const totalLocal = 1 + store.tasks.length + store.loops.length + store.traces.length;
+        const sessionTasksCount = store.tasks.filter((t: any) => t.session_id === (activeSession.session_id || (activeSession as any).id)).length;
+        const sessionLoopsCount = store.loops.filter((l: any) => l.session_id === (activeSession.session_id || (activeSession as any).id)).length;
+        const sessionTracesCount = store.traces.filter((tr: any) => tr.session_id === (activeSession.session_id || (activeSession as any).id)).length;
+
+        const totalLocal = 1 + sessionTasksCount + sessionLoopsCount + sessionTracesCount;
         let matched = (sessionParity.sessionMatch ? 1 : 0) +
-          Math.min(store.tasks.length, sessionParity.tasksDbCount) +
-          Math.min(store.loops.length, sessionParity.loopsDbCount) +
-          Math.min(store.traces.length, sessionParity.tracesDbCount);
+          Math.min(sessionTasksCount, sessionParity.tasksDbCount) +
+          Math.min(sessionLoopsCount, sessionParity.loopsDbCount) +
+          Math.min(sessionTracesCount, sessionParity.tracesDbCount);
         sessionParity.parityPercentage = totalLocal > 0 ? Math.round((matched / totalLocal) * 100) : 100;
       } catch (e) {
         sessionParity.parityPercentage = 90; // Fallback

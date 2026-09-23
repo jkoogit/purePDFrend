@@ -6,7 +6,8 @@ import AgentUsageViewer from './AgentUsageViewer';
 import IntegrityAuditManager from './IntegrityAuditManager';
 import OcrEngineManager from '../../ppdf/components/OcrEngineManager';
 import DocsGovernanceManager from './DocsGovernanceManager';
-import { Bot, Network, Search, BarChart3, Cpu, ShieldCheck, Settings } from 'lucide-react';
+import ModelPolicyGovernanceView from './ModelPolicyGovernanceView';
+import { Bot, Network, Search, BarChart3, Cpu, ShieldCheck, Settings, Sparkles } from 'lucide-react';
 
 interface SystemSettingsViewProps {
   settings: SystemSettings | null;
@@ -39,8 +40,8 @@ export default function SystemSettingsView({
     }
   }, [initialMainTab]);
 
-  // Sub Tab inside 'ai-agent': 'graph' | 'task-search' | 'usage' | 'audit'
-  const [agentSubTab, setAgentSubTab] = useState<'graph' | 'task-search' | 'usage' | 'audit'>('graph');
+  // Sub Tab inside 'ai-agent': 'graph' | 'task-search' | 'usage' | 'audit' | 'policy'
+  const [agentSubTab, setAgentSubTab] = useState<'graph' | 'task-search' | 'usage' | 'audit' | 'policy'>('graph');
   const [traceFilter, setTraceFilter] = useState<string>('');
 
   const handleNavigateToTrace = (keyword: string) => {
@@ -154,6 +155,18 @@ export default function SystemSettingsView({
               <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
               <span>3계층 무결성 감사</span>
             </button>
+
+            <button
+              onClick={() => setAgentSubTab('policy')}
+              className={`px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 select-none break-keep ${
+                agentSubTab === 'policy'
+                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-semibold'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+              <span>모델·토큰정책 거버넌스</span>
+            </button>
           </div>
         </div>
       )}
@@ -180,6 +193,10 @@ export default function SystemSettingsView({
 
         {mainTab === 'ai-agent' && agentSubTab === 'audit' && (
           <IntegrityAuditManager dbStatus={dbStatus} />
+        )}
+
+        {mainTab === 'ai-agent' && agentSubTab === 'policy' && (
+          <ModelPolicyGovernanceView dbStatus={dbStatus} />
         )}
 
         {mainTab === 'ocr-engine' && (
