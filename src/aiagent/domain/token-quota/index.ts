@@ -17,3 +17,5 @@ export * from './models/AccountQuotaLedger';
 export * from './models/QuotaTransactionLog';
 export * from './builders/HandoffDossierBuilder';
 export * from './services/SessionScorecardCalculator';
+export * from './services/QuotaDeductionEngine';
+export * from './services/SessionDisasterRecoveryService';
