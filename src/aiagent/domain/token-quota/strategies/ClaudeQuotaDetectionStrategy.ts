@@ -1,69 +1,49 @@
 /**
  * @file ClaudeQuotaDetectionStrategy.ts
- * @description Anthropic Claude API 전용 토큰/쿼터 한도 소진 감지 전략
+ * @description Anthropic Claude 에이전트 전용 토큰 쿼터 소진 감지 전략
  */
 
 import { AgentProvider, AgentTurnPayload, TokenQuotaCheckResult } from '../types';
-import { AbstractTokenQuotaStrategy } from './TokenQuotaStrategy';
+import { TokenQuotaStrategy } from './TokenQuotaStrategy';
 
-export class ClaudeQuotaDetectionStrategy extends AbstractTokenQuotaStrategy {
+export class ClaudeQuotaDetectionStrategy extends TokenQuotaStrategy {
   readonly provider: AgentProvider = 'claude';
 
+  private readonly patterns = [
+    /rate_limit_error/i,
+    /usage_limits/i,
+    /credit_balance_too_low/i,
+    /exceeded your current quota/i,
+    /overloaded_error/i,
+  ];
+
   supports(providerOrModel: string): boolean {
-    const target = providerOrModel.toLowerCase();
-    return target.includes('claude') || target.includes('anthropic');
+    const lower = providerOrModel.toLowerCase();
+    return lower.includes('claude') || lower.includes('anthropic');
   }
 
   evaluate(payload: AgentTurnPayload): TokenQuotaCheckResult {
-    const text = this.extractSearchableText(payload);
-    const httpStatus = payload.httpStatus;
-    const retryAfter = this.extractRetryAfter(payload);
+    if (payload.httpStatus === 429) {
+      return this.createExhaustedResult(
+        'HTTP_429',
+        'Claude API HTTP 429 Rate/Quota limit exceeded',
+        429,
+        'CLAUDE_429'
+      );
+    }
 
-    const claudePatterns: Array<{ pattern: RegExp; code: string; message: string }> = [
-      {
-        pattern: /rate_limit_error/i,
-        code: 'CLAUDE_RATE_LIMIT_ERROR',
-        message: 'Anthropic Claude rate_limit_error 감지',
-      },
-      {
-        pattern: /overloaded_error/i,
-        code: 'CLAUDE_OVERLOADED_ERROR',
-        message: 'Anthropic 서버 과부하 (overloaded_error)',
-      },
-      {
-        pattern: /credit balance is too low/i,
-        code: 'CLAUDE_INSUFFICIENT_CREDITS',
-        message: 'Anthropic 계정 크레딧 잔액 부족',
-      },
-      {
-        pattern: /tokens? per minute/i,
-        code: 'CLAUDE_TPM_LIMIT',
-        message: 'Anthropic 분당 토큰수 한도 초과',
-      },
-    ];
-
-    for (const { pattern, code, message } of claudePatterns) {
+    const text = this.extractCombinedText(payload);
+    for (const pattern of this.patterns) {
       if (pattern.test(text)) {
-        return this.createExhaustedResult({
-          matchedPattern: pattern.source,
-          reasonCode: code,
-          diagnosticMessage: message,
-          httpStatus: httpStatus || 429,
-          retryAfterSeconds: retryAfter,
-        });
+        return this.createExhaustedResult(
+          pattern.source,
+          `Claude quota limit detected matching pattern: ${pattern.source}`,
+          429,
+          'CLAUDE_QUOTA_EXHAUSTED'
+        );
       }
     }
 
-    if (httpStatus === 429) {
-      return this.createExhaustedResult({
-        matchedPattern: 'HTTP_429',
-        reasonCode: 'CLAUDE_HTTP_429',
-        diagnosticMessage: 'Anthropic API HTTP 429 Too Many Requests',
-        httpStatus: 429,
-        retryAfterSeconds: retryAfter,
-      });
-    }
-
-    return this.createNormalResult();
+    return this.createNormalResult('Claude quota status normal');
   }
 }

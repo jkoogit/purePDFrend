@@ -4,8 +4,17 @@ import fs from 'fs';
 import crypto from 'crypto';
 import https from 'https';
 import { createServer as createViteServer } from 'vite';
-import { TokenQuotaDetectionService, TokenUsageEstimator } from './src/aiagent/domain/token-quota';
+import { 
+  TokenQuotaDetectionService, 
+  TokenUsageEstimator,
+  QuotaDeductionEngine,
+  SessionDisasterRecoveryService,
+  AccountQuotaLedger,
+} from './src/aiagent/domain/token-quota';
 import { HarnessAutomationService } from './src/aiagent/services/HarnessAutomationService';
+import { EmergencyGitPushEngine } from './src/aiagent/services/EmergencyGitPushEngine';
+
+const quotaEngine = new QuotaDeductionEngine();
 
 const app = express();
 const PORT = 3000;
@@ -1537,11 +1546,77 @@ app.post('/api/agent/trace/turn', async (req, res) => {
       dbError = dbErr.message;
     }
 
+    // 3. 다차원 토큰 쿼터 및 Pro/Flash 호출 횟수 자동 차감 (Turn Pipeline Integration)
+    let deductionResult: any = null;
+    const defaultUserId = 'USER-DEV-001';
+    const ledgerRaw = (store.ledgers || []).find((l: any) => l.user_id === defaultUserId);
+    if (ledgerRaw) {
+      try {
+        const ledger = new AccountQuotaLedger({
+          ledgerId: ledgerRaw.ledger_id,
+          userId: ledgerRaw.user_id,
+          planId: ledgerRaw.plan_id,
+          totalGrantedQuota: ledgerRaw.total_granted_quota,
+          usedQuota: ledgerRaw.used_quota,
+          remainingQuota: ledgerRaw.remaining_quota,
+          proRequestsLimit: ledgerRaw.pro_requests_limit ?? 250,
+          proRequestsUsed: ledgerRaw.pro_requests_used ?? 0,
+          flashRequestsLimit: ledgerRaw.flash_requests_limit ?? 2500,
+          flashRequestsUsed: ledgerRaw.flash_requests_used ?? 0,
+          isFrozen: ledgerRaw.is_frozen,
+          overageAllowed: ledgerRaw.overage_allowed,
+          version: ledgerRaw.version,
+        });
+
+        const dedRes = quotaEngine.executeDeduction(ledger, {
+          userId: defaultUserId,
+          modelId: model_name,
+          promptTokens: finalPromptTokens,
+          completionTokens: finalCompletionTokens,
+          context: { sessionId: session_id, taskId: task_id, turnId: finalTraceId },
+        });
+
+        if (dedRes.success) {
+          ledgerRaw.used_quota = ledger.usedQuota;
+          ledgerRaw.remaining_quota = ledger.remainingQuota;
+          ledgerRaw.pro_requests_used = ledger.proRequestsUsed;
+          ledgerRaw.flash_requests_used = ledger.flashRequestsUsed;
+          ledgerRaw.is_frozen = ledger.isFrozen;
+          ledgerRaw.version = ledger.version;
+          ledgerRaw.updated_at = ledger.updatedAt;
+
+          if (dedRes.log) {
+            if (!store.quota_logs) store.quota_logs = [];
+            store.quota_logs.unshift({
+              tx_id: dedRes.log.txId,
+              ledger_id: dedRes.log.ledgerId,
+              user_id: dedRes.log.userId,
+              session_id: dedRes.log.sessionId,
+              task_id: dedRes.log.taskId,
+              turn_id: dedRes.log.turnId,
+              model_id: dedRes.log.modelId,
+              tx_type: dedRes.log.txType,
+              token_delta: dedRes.log.tokenDelta,
+              balance_after: dedRes.log.balanceAfter,
+              unit_cost_applied: dedRes.log.unitCostApplied,
+              reason_desc: dedRes.log.reasonDesc,
+              created_at: dedRes.log.createdAt,
+            });
+          }
+          saveLocalStore(store);
+          deductionResult = dedRes;
+        }
+      } catch (dedErr) {
+        console.warn('[QuotaDeduction] Auto deduction error:', dedErr);
+      }
+    }
+
     res.json({
       success: true,
       message: `대화 턴(#${step_index}) 기록이 저장되었습니다.`,
       traceId: finalTraceId,
       telemetry,
+      quotaDeduction: deductionResult,
       verified: dbVerified,
       dbError,
       dbRecord: dbRecord || traceRecord,
@@ -2196,6 +2271,334 @@ app.post('/api/agent/meta/ledger/grant', async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+// =========================================================================
+// 5.9 [재해복구] 비-LLM(Non-LLM) 긴급 소스 GitHub Push API
+// =========================================================================
+app.post('/api/agent/emergency/push', async (req, res) => {
+  try {
+    const { targetBranch = 'dev', commitMessage } = req.body;
+    console.log(`[EmergencyPush] 긴급 Git Push 요청 수신 (대상 브랜치: ${targetBranch})`);
+
+    const result = await EmergencyGitPushEngine.executeEmergencyPush({
+      targetBranch,
+      commitMessage: commitMessage || `[EMERGENCY-PUSH] non-llm backup checkpoint (${new Date().toISOString()})`,
+    });
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        error: result.error || '긴급 Git Push 실패',
+        result,
+      });
+    }
+
+    // 로컬 스냅샷 메타정보에도 최신 커밋 SHA 기록
+    const store = getLocalStore();
+    if (!store.snapshots) store.snapshots = [];
+    store.snapshots.push({
+      snapshot_id: `SNAP-${Date.now()}`,
+      session_num: store.sessions?.[0]?.session_id?.split('-')[1] || '0009',
+      session_title: store.sessions?.[0]?.session_name || '현재 활성 세션',
+      last_task_id: store.tasks?.[0]?.task_id || '',
+      current_task_name: store.tasks?.[0]?.task_name || '',
+      latest_commit_sha: result.commitSha || '',
+      branch: targetBranch,
+      status: 'PENDING_RECOVERY',
+      created_at: new Date().toISOString(),
+    });
+    saveLocalStore(store);
+
+    res.json({
+      success: true,
+      message: `성공적으로 ${result.filesSyncedCount}개 파일이 원격 '${targetBranch}' 브랜치에 긴급 Push되었습니다!`,
+      commitSha: result.commitSha,
+      commitUrl: result.commitUrl,
+      filesSyncedCount: result.filesSyncedCount,
+      branch: targetBranch,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// =========================================================================
+// 5.10 [세션DR] 세션 스냅샷 생성 및 목록 조회 API
+// =========================================================================
+app.post('/api/agent/session/snapshot', async (req, res) => {
+  try {
+    const store = getLocalStore();
+    const activeSession = store.sessions?.[0];
+    const activeTask = store.tasks?.[0];
+
+    const snapshotId = `SNAP-${Date.now()}`;
+    const newSnapshot = {
+      snapshot_id: snapshotId,
+      session_num: activeSession?.session_id?.split('-')[1] || '0009',
+      session_title: activeSession?.session_name || '활성 세션 백업',
+      last_task_id: activeTask?.task_id || '',
+      current_task_name: activeTask?.task_name || '',
+      latest_commit_sha: '7109f1c922e4ae6c123cb34e6d0e6a0df1c69542',
+      branch: 'dev',
+      status: 'PENDING_RECOVERY',
+      total_context_tokens: Number(req.body.contextTokens) || 106510,
+      hang_reason: req.body.hangReason || 'NORMAL',
+      created_at: new Date().toISOString(),
+    };
+
+    if (!store.snapshots) store.snapshots = [];
+    store.snapshots.unshift(newSnapshot);
+    saveLocalStore(store);
+
+    // PostgreSQL aiagent.harness_session_meta에 snapshot 백업 보존 시도
+    let dbSuccess = false;
+    try {
+      if (activeSession?.session_id) {
+        const payloadJson = JSON.stringify({ recovery_snapshot: newSnapshot }).replace(/'/g, "''");
+        await executeSql(`
+          UPDATE aiagent.harness_session_meta 
+          SET doc_payload = COALESCE(doc_payload, '{}'::jsonb) || '${payloadJson}'::jsonb
+          WHERE session_id = '${activeSession.session_id}';
+        `);
+        dbSuccess = true;
+      }
+    } catch (e) {
+      // db failure fallback
+    }
+
+    res.json({
+      success: true,
+      message: `세션 스냅샷(${snapshotId})이 성공적으로 영속화되었습니다.`,
+      snapshot: newSnapshot,
+      dbSuccess,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/agent/session/snapshots', async (req, res) => {
+  try {
+    const store = getLocalStore();
+    const snapshots = store.snapshots || [];
+    res.json({
+      success: true,
+      snapshots,
+      totalCount: snapshots.length,
+      pendingCount: snapshots.filter((s: any) => s.status === 'PENDING_RECOVERY').length,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// =========================================================================
+// 5.11 [세션DR] #세션복구 타겟팅 및 복원 처리 API
+// =========================================================================
+app.post('/api/agent/session/restore', async (req, res) => {
+  try {
+    const { targetId } = req.body;
+    const store = getLocalStore();
+    const snapshots = (store.snapshots || []).map((s: any) => ({
+      snapshotId: s.snapshot_id,
+      sessionNum: s.session_num,
+      sessionTitle: s.session_title,
+      lastTaskId: s.last_task_id,
+      currentTaskName: s.current_task_name,
+      latestCommitSha: s.latest_commit_sha,
+      branch: s.branch,
+      status: s.status,
+      createdAt: s.created_at,
+    }));
+
+    const decision = SessionDisasterRecoveryService.resolveRecoveryTarget(snapshots, targetId);
+
+    if (decision.strategy === 'NO_SNAPSHOT') {
+      return res.status(404).json({ success: false, message: decision.message });
+    }
+
+    if (decision.strategy === 'SHOW_SELECTION_LIST') {
+      return res.json({
+        success: true,
+        strategy: 'SHOW_SELECTION_LIST',
+        message: decision.message,
+        candidates: decision.candidates,
+      });
+    }
+
+    // DIRECT_RESTORE 확정
+    const target = decision.targetSnapshot!;
+    // 상태를 RESTORED로 전이
+    const rawSnap = store.snapshots.find((s: any) => s.snapshot_id === target.snapshotId);
+    if (rawSnap) {
+      rawSnap.status = 'RESTORED';
+      rawSnap.restored_at = new Date().toISOString();
+      saveLocalStore(store);
+    }
+
+    res.json({
+      success: true,
+      strategy: 'DIRECT_RESTORE',
+      message: `[${target.sessionNum}] 세션 스냅샷이 성공적으로 복원되었습니다!`,
+      restoredSession: target,
+      recommendedPrompt: `#태스크처리 [02] 비-LLM 긴급 Push 및 세션 재해복구 체계 구축`,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// =========================================================================
+// 5.12 [행 상태 진단 API] (Hang Reason & Status Badge)
+// =========================================================================
+app.get('/api/agent/session/hang-status', (req, res) => {
+  try {
+    const { httpStatus, errorMessage, contextTokens, silentSeconds } = req.query;
+    const assessment = SessionDisasterRecoveryService.assessHangStatus({
+      httpStatus: httpStatus ? Number(httpStatus) : undefined,
+      errorMessage: errorMessage ? String(errorMessage) : undefined,
+      contextTokens: contextTokens ? Number(contextTokens) : 106510,
+      silentDurationSeconds: silentSeconds ? Number(silentSeconds) : 0,
+    });
+    res.json({ success: true, assessment });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// =========================================================================
+// 5.13 [다차원 쿼터 차감 API] (Tokens + Pro/Flash Turn Increments)
+// =========================================================================
+app.post('/api/agent/quota/deduct', async (req, res) => {
+  try {
+    const {
+      userId = 'USER-DEV-001',
+      modelId = 'gemini-1.5-flash',
+      promptTokens = 0,
+      completionTokens = 0,
+      sessionId,
+      taskId,
+      turnId,
+      reason,
+    } = req.body;
+
+    const store = getLocalStore();
+    const ledgerRaw = (store.ledgers || []).find((l: any) => l.user_id === userId);
+
+    if (!ledgerRaw) {
+      return res.status(404).json({ success: false, error: `사용자(${userId})의 원장을 찾을 수 없습니다.` });
+    }
+
+    const ledger = new AccountQuotaLedger({
+      ledgerId: ledgerRaw.ledger_id,
+      userId: ledgerRaw.user_id,
+      planId: ledgerRaw.plan_id,
+      totalGrantedQuota: ledgerRaw.total_granted_quota,
+      usedQuota: ledgerRaw.used_quota,
+      remainingQuota: ledgerRaw.remaining_quota,
+      proRequestsLimit: ledgerRaw.pro_requests_limit ?? 250,
+      proRequestsUsed: ledgerRaw.pro_requests_used ?? 0,
+      flashRequestsLimit: ledgerRaw.flash_requests_limit ?? 2500,
+      flashRequestsUsed: ledgerRaw.flash_requests_used ?? 0,
+      isFrozen: ledgerRaw.is_frozen,
+      overageAllowed: ledgerRaw.overage_allowed,
+      version: ledgerRaw.version,
+    });
+
+    const result = quotaEngine.executeDeduction(ledger, {
+      userId,
+      modelId,
+      promptTokens: Number(promptTokens),
+      completionTokens: Number(completionTokens),
+      context: { sessionId, taskId, turnId, reason },
+    });
+
+    if (result.success) {
+      ledgerRaw.used_quota = ledger.usedQuota;
+      ledgerRaw.remaining_quota = ledger.remainingQuota;
+      ledgerRaw.pro_requests_used = ledger.proRequestsUsed;
+      ledgerRaw.flash_requests_used = ledger.flashRequestsUsed;
+      ledgerRaw.is_frozen = ledger.isFrozen;
+      ledgerRaw.version = ledger.version;
+      ledgerRaw.updated_at = ledger.updatedAt;
+
+      if (result.log) {
+        if (!store.quota_logs) store.quota_logs = [];
+        store.quota_logs.unshift({
+          tx_id: result.log.txId,
+          ledger_id: result.log.ledgerId,
+          user_id: result.log.userId,
+          session_id: result.log.sessionId,
+          task_id: result.log.taskId,
+          turn_id: result.log.turnId,
+          model_id: result.log.modelId,
+          tx_type: result.log.txType,
+          token_delta: result.log.tokenDelta,
+          balance_after: result.log.balanceAfter,
+          unit_cost_applied: result.log.unitCostApplied,
+          reason_desc: result.log.reasonDesc,
+          created_at: result.log.createdAt,
+        });
+      }
+      saveLocalStore(store);
+    }
+
+    res.json({
+      success: result.success,
+      deduction: result,
+      ledger: {
+        remainingTokens: ledger.remainingQuota,
+        proRequestsRemaining: ledger.proRequestsRemaining,
+        flashRequestsRemaining: ledger.flashRequestsRemaining,
+        isFrozen: ledger.isFrozen,
+      },
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/agent/quota/ledger', (req, res) => {
+  try {
+    const userId = (req.query.userId as string) || 'USER-DEV-001';
+    const store = getLocalStore();
+    const raw = (store.ledgers || []).find((l: any) => l.user_id === userId) || store.ledgers?.[0];
+
+    if (!raw) {
+      return res.status(404).json({ success: false, error: '원장을 찾을 수 없습니다.' });
+    }
+
+    const proLimit = raw.pro_requests_limit ?? 250;
+    const proUsed = raw.pro_requests_used ?? 0;
+    const flashLimit = raw.flash_requests_limit ?? 2500;
+    const flashUsed = raw.flash_requests_used ?? 0;
+
+    res.json({
+      success: true,
+      ledger: {
+        ledgerId: raw.ledger_id,
+        userId: raw.user_id,
+        planId: raw.plan_id,
+        totalGrantedTokens: raw.total_granted_quota,
+        usedTokens: raw.used_quota,
+        remainingTokens: raw.remaining_quota,
+        isFrozen: raw.is_frozen,
+        proRequestsLimit: proLimit,
+        proRequestsUsed: proUsed,
+        proRequestsRemaining: Math.max(0, proLimit - proUsed),
+        flashRequestsLimit: flashLimit,
+        flashRequestsUsed: flashUsed,
+        flashRequestsRemaining: Math.max(0, flashLimit - flashUsed),
+        fallbackRecommended: proUsed >= proLimit,
+        fallbackModelId: 'gemini-1.5-flash',
+        resetAtKst: '16:00 KST',
+      },
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 
 // 4.2 Comprehensive Turn Completion API (Syncs State, Logs Trace & Registers Review)
 app.post('/api/agent/turn/complete', async (req, res) => {
