@@ -39,11 +39,33 @@
   ],
   "tasks": [
     {
+      "task_id": "TASK-20260923-003",
+      "session_id": "SESSION-20260922-006",
+      "task_name": "[03] 재해복구 관제실 UI/스냅샷 파일화 개선 및 관리자 백오피스 메타 거버넌스 대시보드 구축",
+      "git_branch": "dev",
+      "status_cd": "진행중",
+      "started_at": "2026-09-23T01:30:00.000Z",
+      "ended_at": null,
+      "doc_payload": {
+        "implemented_components": [
+          "EmergencyRecoveryPanel (UI정돈, 에이전트통계 전용 배치, 슬레이트 다크 테마, 세션복구 복사 UX)",
+          "Snapshot File Persistence (JSON & MD 파일화 및 미완료 잔여 태스크/루프 추적)",
+          "Hang Diagnosis Detailed Trigger & Recovery Assessment",
+          "MetaGovernanceBackoffice (4대 요금제, 멀티 모델 카탈로그, 원장 동결/해제, 긴급 쿼터 충전, 감사로그)"
+        ]
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 2
+    },
+    {
       "task_id": "TASK-20260923-002",
       "session_id": "SESSION-20260922-006",
       "task_name": "[02] 비-LLM 긴급 Push, 다차원 토큰 쿼터 엔진 및 세션 재해복구 체계 구축",
       "git_branch": "dev",
-      "status_cd": "완료대기",
+      "status_cd": "완료",
       "started_at": "2026-09-23T00:45:00.000Z",
       "ended_at": "2026-09-23T01:04:00.000Z",
       "doc_payload": {
@@ -396,6 +418,32 @@
       "unit_cost_applied": 0,
       "reason_desc": "Free 요금제 초기 쿼터 지급",
       "created_at": "2026-09-22T14:43:00.000Z"
+    }
+  ],
+  "snapshots": [
+    {
+      "snapshot_id": "SNAP-1790152911085",
+      "session_id": "SESSION-20260922-006",
+      "session_num": "20260922",
+      "session_title": "[0009]에이전트 사용자·모델·요금제 메타 거버넌스 및 다차원 쿼터 시스템 구축",
+      "last_task_id": "TASK-20260923-003",
+      "current_task_name": "[03] 재해복구 관제실 UI/스냅샷 파일화 개선 및 관리자 백오피스 메타 거버넌스 대시보드 구축",
+      "latest_commit_sha": "e3ce53534e1e1e3d78a0bca681d3ee21b2c49719",
+      "branch": "dev",
+      "status": "PENDING_RECOVERY",
+      "total_context_tokens": 108500,
+      "hang_reason": "NORMAL",
+      "unfinalized_tasks": [
+        {
+          "task_id": "TASK-20260923-003",
+          "task_name": "[03] 재해복구 관제실 UI/스냅샷 파일화 개선 및 관리자 백오피스 메타 거버넌스 대시보드 구축",
+          "status_cd": "진행중"
+        }
+      ],
+      "unfinalized_loops": [],
+      "created_at": "2026-09-23T08:41:51.085Z",
+      "json_file_path": "data/snapshots/SNAP-1790152911085.json",
+      "md_file_path": "data/snapshots/SNAP-1790152911085.md"
     }
   ]
 }

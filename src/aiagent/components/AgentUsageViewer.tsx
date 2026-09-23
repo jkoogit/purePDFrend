@@ -24,6 +24,7 @@ import remarkGfm from 'remark-gfm';
 import { TokenBurnoutGauge } from './TokenBurnoutGauge';
 import { HandoffDossierModal } from './HandoffDossierModal';
 import { ScorecardModal } from './ScorecardModal';
+import { MetaGovernanceBackoffice } from './MetaGovernanceBackoffice';
 
 interface AgentUsageViewerProps {
   initialFilter?: string;
@@ -34,6 +35,7 @@ type SortField = 'step_index' | 'trace_id' | 'loop_id' | 'model_name' | 'user_pr
 type SortOrder = 'asc' | 'desc' | 'init';
 
 export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED' }: AgentUsageViewerProps = {}) {
+  const [usageTab, setUsageTab] = useState<'traces' | 'meta'>('traces');
   const [traces, setTraces] = useState<ConversationTrace[]>([]);
   const [activeModel, setActiveModel] = useState('models/gemini-3.8-flash');
   const [isLoading, setIsLoading] = useState(false);
@@ -220,8 +222,46 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
 
   return (
     <div className="flex flex-col h-full bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
-      {/* Top Metric Cards */}
-      <div className="p-3 sm:p-4 border-b border-slate-800 bg-slate-900/60 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+      {/* Top Tab Switcher */}
+      <div className="bg-slate-900 border-b border-slate-800 p-2.5 sm:px-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+          <button
+            onClick={() => setUsageTab('traces')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-semibold transition ${
+              usageTab === 'traces'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>대화 턴 추적 및 텔레메트리</span>
+          </button>
+          <button
+            onClick={() => setUsageTab('meta')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-semibold transition ${
+              usageTab === 'meta'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>관리자 메타 거버넌스 원장</span>
+          </button>
+        </div>
+
+        <div className="text-[11px] text-slate-400 hidden sm:block">
+          {usageTab === 'traces' ? 'AGENTS.md 대화 턴 자동 영속화' : '5대 메타 원장 & 멀티 모델 쿼터 제어'}
+        </div>
+      </div>
+
+      {usageTab === 'meta' ? (
+        <div className="p-3 sm:p-4">
+          <MetaGovernanceBackoffice />
+        </div>
+      ) : (
+        <>
+          {/* Top Metric Cards */}
+          <div className="p-3 sm:p-4 border-b border-slate-800 bg-slate-900/60 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
         <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-3">
           <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
             <Bot className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -761,6 +801,8 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
           sessionId={sessionFilter !== 'ALL' ? sessionFilter : availableSessions[0]?.id}
           onClose={() => setIsScorecardModalOpen(false)}
         />
+      )}
+        </>
       )}
     </div>
   );
