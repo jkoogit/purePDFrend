@@ -35,9 +35,9 @@
       "session_id": "SESSION-20260923-008",
       "task_name": "[0012]PDF 이미지 전처리 엔진 및 다국어 OCR(WASM/클라우드/PaddleOCR 도커 어댑터) 파이프라인 구현",
       "git_branch": "task/pdf-ocr-correction-studio_Gemini",
-      "status_cd": "정리완료",
+      "status_cd": "완료",
       "started_at": "2026-09-23T13:32:53.406Z",
-      "ended_at": null,
+      "ended_at": "2026-09-23T13:58:17.977Z",
       "doc_payload": {
         "tests_passed": "13/13 PASS (100%)",
         "lint_status": "0 errors (clean)",
@@ -51,13 +51,14 @@
           "OcrEngineManager (3대 엔진 관제 및 실시간 벤치마크)",
           "Express REST API 프록시 및 브릿지 엔드포인트 7종",
           "설계(05-10), 학습(15-06, 15-07), 리뷰(10-24) 문서 발행"
-        ]
+        ],
+        "promoted_at": "2026-09-23T13:58:17.977Z"
       },
       "created_sys": "agent-harness",
       "created_by": "system",
       "updated_sys": "agent-harness",
       "updated_by": "system",
-      "version": 2
+      "version": 3
     }
   ],
   "loops": [],
