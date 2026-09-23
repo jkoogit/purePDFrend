@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="cardGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#312e81"/>
+    </linearGradient>
+    <linearGradient id="cardGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#064e3b"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+    <linearGradient id="cardGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#701a75"/>
+      <stop offset="100%" stop-color="#86198f"/>
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="420" rx="16" fill="url(#bgGrad)" stroke="#334155" stroke-width="2"/>
+
+  <!-- Title -->
+  <text x="450" y="45" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="bold" text-anchor="middle">
+    800쪽 대용량 가상 뷰어(VirtualViewer) &amp; LRU 메모리가드 파이프라인
+  </text>
+  <text x="450" y="70" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" text-anchor="middle">
+    Virtual Viewport Windowing (2~3 DOM Slots) + 10-Page LRU Eviction (38MB Memory Guard)
+  </text>
+
+  <!-- Card 1: Virtual Scroll Engine -->
+  <g transform="translate(40, 100)" filter="url(#shadow)">
+    <rect width="250" height="270" rx="12" fill="url(#cardGrad1)" stroke="#6366f1" stroke-width="2"/>
+    <text x="125" y="35" fill="#e0e7ff" font-family="sans-serif" font-size="15" font-weight="bold" text-anchor="middle">
+      1. 가상 윈도잉 엔진
+    </text>
+    <line x1="20" y1="50" x2="230" y2="50" stroke="#4f46e5" stroke-width="1.5"/>
+    
+    <rect x="20" y="65" width="210" height="40" rx="6" fill="#1e1b4b" stroke="#6366f1"/>
+    <text x="30" y="85" fill="#c7d2fe" font-family="sans-serif" font-size="11" font-weight="bold">800P 가상 높이 산출</text>
+    <text x="30" y="98" fill="#a5b4fc" font-family="monospace" font-size="9.5">H_total = 800 × 1,124px</text>
+
+    <rect x="20" y="115" width="210" height="40" rx="6" fill="#1e1b4b" stroke="#6366f1"/>
+    <text x="30" y="135" fill="#c7d2fe" font-family="sans-serif" font-size="11" font-weight="bold">상하 스페이서 높이</text>
+    <text x="30" y="148" fill="#a5b4fc" font-family="monospace" font-size="9.5">Top/Bottom Spacer px</text>
+
+    <rect x="20" y="165" width="210" height="40" rx="6" fill="#1e1b4b" stroke="#6366f1"/>
+    <text x="30" y="185" fill="#c7d2fe" font-family="sans-serif" font-size="11" font-weight="bold">단면 / 양면 펼침면</text>
+    <text x="30" y="198" fill="#a5b4fc" font-family="sans-serif" font-size="9.5">표지 단독 + 2장 페어링</text>
+
+    <rect x="20" y="215" width="210" height="35" rx="6" fill="#312e81" stroke="#818cf8"/>
+    <text x="125" y="237" fill="#ffffff" font-family="sans-serif" font-size="11" font-weight="bold" text-anchor="middle">DOM 2~3 노드만 유지</text>
+  </g>
+
+  <!-- Arrow 1 -> 2 -->
+  <g transform="translate(300, 230)">
+    <line x1="0" y1="0" x2="25" y2="0" stroke="#818cf8" stroke-width="3" stroke-dasharray="4"/>
+    <polygon points="25,-5 35,0 25,5" fill="#818cf8"/>
+  </g>
+
+  <!-- Card 2: LRU Memory Guard -->
+  <g transform="translate(345, 100)" filter="url(#shadow)">
+    <rect width="250" height="270" rx="12" fill="url(#cardGrad2)" stroke="#10b981" stroke-width="2"/>
+    <text x="125" y="35" fill="#d1fae5" font-family="sans-serif" font-size="15" font-weight="bold" text-anchor="middle">
+      2. 38MB 메모리 가드
+    </text>
+    <line x1="20" y1="50" x2="230" y2="50" stroke="#059669" stroke-width="1.5"/>
+
+    <rect x="20" y="65" width="210" height="40" rx="6" fill="#064e3b" stroke="#10b981"/>
+    <text x="30" y="85" fill="#a7f3d0" font-family="sans-serif" font-size="11" font-weight="bold">LRU 10-Page 캐시</text>
+    <text x="30" y="98" fill="#6ee7b7" font-family="sans-serif" font-size="9.5">최대 10개 페이지만 보존</text>
+
+    <rect x="20" y="115" width="210" height="40" rx="6" fill="#064e3b" stroke="#10b981"/>
+    <text x="30" y="135" fill="#a7f3d0" font-family="sans-serif" font-size="11" font-weight="bold">자동 축출 (Eviction)</text>
+    <text x="30" y="148" fill="#6ee7b7" font-family="sans-serif" font-size="9.5">초과 시 오래된 캐시 정리</text>
+
+    <rect x="20" y="165" width="210" height="40" rx="6" fill="#064e3b" stroke="#10b981"/>
+    <text x="30" y="185" fill="#a7f3d0" font-family="sans-serif" font-size="11" font-weight="bold">자원 해제 파이프라인</text>
+    <text x="30" y="198" fill="#6ee7b7" font-family="monospace" font-size="9.5">URL.revokeObjectURL()</text>
+
+    <rect x="20" y="215" width="210" height="35" rx="6" fill="#047857" stroke="#34d399"/>
+    <text x="125" y="237" fill="#ffffff" font-family="sans-serif" font-size="11" font-weight="bold" text-anchor="middle">메모리 38MB 철벽 방어</text>
+  </g>
+
+  <!-- Arrow 2 -> 3 -->
+  <g transform="translate(605, 230)">
+    <line x1="0" y1="0" x2="25" y2="0" stroke="#34d399" stroke-width="3" stroke-dasharray="4"/>
+    <polygon points="25,-5 35,0 25,5" fill="#34d399"/>
+  </g>
+
+  <!-- Card 3: Multi-Page Navigator & OCR Link -->
+  <g transform="translate(650, 100)" filter="url(#shadow)">
+    <rect width="210" height="270" rx="12" fill="url(#cardGrad3)" stroke="#d946ef" stroke-width="2"/>
+    <text x="105" y="35" fill="#fae8ff" font-family="sans-serif" font-size="15" font-weight="bold" text-anchor="middle">
+      3. 탐색기 &amp; 교정 연계
+    </text>
+    <line x1="20" y1="50" x2="190" y2="50" stroke="#a21caf" stroke-width="1.5"/>
+
+    <rect x="15" y="65" width="180" height="40" rx="6" fill="#701a75" stroke="#d946ef"/>
+    <text x="25" y="85" fill="#f5d0fe" font-family="sans-serif" font-size="11" font-weight="bold">800P 썸네일 탐색기</text>
+    <text x="25" y="98" fill="#e879f9" font-family="sans-serif" font-size="9.5">TOC 북마크 &amp; OCR 배지</text>
+
+    <rect x="15" y="115" width="180" height="40" rx="6" fill="#701a75" stroke="#d946ef"/>
+    <text x="25" y="135" fill="#f5d0fe" font-family="sans-serif" font-size="11" font-weight="bold">일괄 / 개별 90° 회전</text>
+    <text x="25" y="148" fill="#e879f9" font-family="sans-serif" font-size="9.5">홀수/짝수/전체 회전</text>
+
+    <rect x="15" y="165" width="180" height="40" rx="6" fill="#701a75" stroke="#d946ef"/>
+    <text x="25" y="185" fill="#f5d0fe" font-family="sans-serif" font-size="11" font-weight="bold">BBox 오버레이 투영</text>
+    <text x="25" y="198" fill="#e879f9" font-family="sans-serif" font-size="9.5">텍스트 영역 즉각 시각화</text>
+
+    <rect x="15" y="215" width="180" height="35" rx="6" fill="#86198f" stroke="#f0abfc"/>
+    <text x="105" y="237" fill="#ffffff" font-family="sans-serif" font-size="11" font-weight="bold" text-anchor="middle">1-Click 교정 스튜디오</text>
+  </g>
+</svg>

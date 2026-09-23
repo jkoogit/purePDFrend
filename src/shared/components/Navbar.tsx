@@ -24,6 +24,7 @@ import {
   Pin,
   PinOff,
   SplitSquareVertical,
+  BookOpen,
 } from 'lucide-react';
 import { ActiveViewId, DomainGroupId } from '../../types';
 
@@ -104,6 +105,13 @@ export const DOMAIN_GROUPS: {
     name: 'PDF 스튜디오',
     description: '대용량 스캔 PDF 교정 및 듀얼 OCR 엔진 파이프라인',
     views: [
+      {
+        id: 'viewer',
+        label: '대용량가상뷰어',
+        description: '800쪽 가상 윈도잉 & 썸네일 탐색기',
+        domain: 'studio',
+        icon: BookOpen,
+      },
       {
         id: 'ocr',
         label: 'OCR엔진관리',

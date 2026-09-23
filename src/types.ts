@@ -198,9 +198,38 @@ export type ActiveViewId =
   | 'audit'
   | 'docs'
   | 'settings'
+  | 'viewer'
+  | 'correction'
   | 'ocr'
-  | 'scenarios'
-  | 'correction';
+  | 'scenarios';
+
+export type ViewerLayoutMode = 'single' | 'facing'; // 단면 / 양면 펼침면 보기
+
+export interface PdfPageItem {
+  id: string | number;
+  pageNum: number;
+  title: string;
+  imageSrc: string;
+  thumbnailSrc?: string;
+  width: number;
+  height: number;
+  rotation: number; // 0, 90, 180, 270
+  isOcrDone?: boolean;
+  ocrConfidence?: number;
+  ocrBoxes?: BoundingBoxItem[];
+  hasTocBookmark?: boolean;
+  tocTitle?: string;
+  isDeleted?: boolean;
+}
+
+export interface VirtualScrollState {
+  startIndex: number;
+  endIndex: number;
+  topSpacerHeight: number;
+  bottomSpacerHeight: number;
+  totalVirtualHeight: number;
+  visiblePages: PdfPageItem[];
+}
 
 export interface ViewNavItem {
   id: ActiveViewId;
