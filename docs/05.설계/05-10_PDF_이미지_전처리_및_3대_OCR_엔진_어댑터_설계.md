@@ -25,6 +25,11 @@
 
 ## 2. 3계층 엔진 아키텍처 다이어그램 (Mermaid)
 
+<div align="center">
+  <img src="./images/05-10_PDF_이미지_전처리_및_3대_OCR_엔진_어댑터_설계_diag_1.svg" alt="05-10. PDF 이미지 전처리 및 3대 OCR 엔진 어댑터 아키텍처 설계서 - 아키텍처 및 상태 흐름도 다이어그램 1" style="max-width: 100%; height: auto; border: 1px solid #334155; border-radius: 12px;" />
+  <p><em>[그림] 05-10. PDF 이미지 전처리 및 3대 OCR 엔진 어댑터 아키텍처 설계서 - 아키텍처 및 상태 흐름도 다이어그램 1</em></p>
+</div>
+
 ```mermaid
 graph TD
     UI["프론트엔드 UI (OcrEngineManager / BoundingBox Studio)"] --> Pipeline["ImagePreprocessingPipeline (전처리)"]
@@ -93,3 +98,11 @@ export interface BoundingBoxItem {
 - **엔드포인트**: `http://<ubuntu-host>:8000/predict/ocr`
 - **CPU 전용 최적화**: OpenVINO / MKLDNN 최적화 엔진 활용, 2~4 코어 병렬 연산
 - **응답 변환**: PaddleOCR 4-point polygon `[[x1,y1],[x2,y2],[x3,y3],[x4,y4]]` $\rightarrow$ Axis-Aligned Bounding Box `[x, y, w, h]` 정규화.
+
+---
+
+## 📋 편집 이력 (Revision History)
+
+| 작업일자 | 이슈 | 태스크 | 작업자 | 작업내용 | 사용 AI 모델명 | 에이전트 | 참고링크 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 2026-09-24 | #12 | TASK-0013 | gemini | 거버넌스 4대 ID 포맷 개선 및 18대 문서 체계 편집이력/다이어그램 표준화 | Gemini 1.5 Pro | Google Antigravity | [03-01. 문서 정책](../03.정책/03-01_문서작성_및_편집이력_정책.md) |

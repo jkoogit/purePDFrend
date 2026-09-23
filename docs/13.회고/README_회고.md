@@ -15,6 +15,11 @@
 | `13-07` | `13-07_SESSION-20260922-006_세션종합_KPT_회고록.md` | SESSION-20260922-006 세션 종합 KPT 회고록 | Keep(비-LLM 긴급 Push 우회로, 스냅샷 JSON/MD 파일화, 관리자 백오피스 메타원장, 100점 감사), Problem(PDF 비즈니스 코어 집중 분산, 스냅샷 보관주기 미비), Try(PDF OCR/변환 코어 고도화) |
 | `13-08` | `13-08_SESSION-20260923-007_세션종합_KPT_회고록.md` | SESSION-20260923-007 세션 종합 KPT 회고록 | Keep(온디맨드 자원현행화, 복수AI계정 티어오버라이드, 정수단위 무오차쿼터차감, 4단계전수점검 100점), Problem(PDF 비즈니스기능 지연), Try(PDF OCR/교정 스튜디오 고도화) |
 
+<div align="center">
+  <img src="./images/README_회고_diag_1.svg" alt="13. 회고 (Retrospectives) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1" style="max-width: 100%; height: auto; border: 1px solid #334155; border-radius: 12px;" />
+  <p><em>[그림] 13. 회고 (Retrospectives) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1</em></p>
+</div>
+
 ```mermaid
 pie title 회고 이슈 비중
     "유지 (Keep)" : 45

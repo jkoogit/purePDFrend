@@ -14,6 +14,7 @@ import {
   UserAiAccount,
   SessionResourceManager,
 } from './src/aiagent/domain/token-quota';
+import { GovernanceIdGenerator } from './src/aiagent/domain/governance/GovernanceIdGenerator';
 import { HarnessAutomationService } from './src/aiagent/services/HarnessAutomationService';
 import { EmergencyGitPushEngine } from './src/aiagent/services/EmergencyGitPushEngine';
 
@@ -1473,7 +1474,8 @@ app.post('/api/agent/trace/turn', async (req, res) => {
       });
     }
 
-    const finalTraceId = trace_id || `TRACE-${Date.now()}`;
+    const finalSessionNum = GovernanceIdGenerator.extractSessionNumber(session_id);
+    const finalTraceId = trace_id || GovernanceIdGenerator.generateTraceId(finalSessionNum, step_index || 1);
     const escapedPrompt = String(user_prompt || '').replace(/'/g, "''");
     const escapedResponse = String(agent_response || '').replace(/'/g, "''");
     const escapedSummary = String(response_summary || '').replace(/'/g, "''");
@@ -3042,7 +3044,8 @@ app.post('/api/agent/turn/complete', async (req, res) => {
 
     const isQuotaError = isQuotaLimitError(user_prompt) || isQuotaLimitError(agent_response) || isQuotaLimitError(response_summary);
 
-    const finalTraceId = trace_id || `TRACE-${Date.now()}`;
+    const finalSessionNum = GovernanceIdGenerator.extractSessionNumber(session_id);
+    const finalTraceId = trace_id || GovernanceIdGenerator.generateTraceId(finalSessionNum, Date.now() % 10000);
     const safePrompt = String(user_prompt).replace(/'/g, "''");
     const safeResponse = String(agent_response).replace(/'/g, "''");
     const safeSummary = String(response_summary || '').replace(/'/g, "''");
