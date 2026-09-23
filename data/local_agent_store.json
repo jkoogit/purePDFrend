@@ -184,6 +184,19 @@
   "quota_logs": [],
   "snapshots": [
     {
+      "snapshot_id": "SNAP-1790184522949",
+      "session_id": "SESSION-20260923-008",
+      "session_num": "20260923",
+      "session_title": "[0011]PDF 비즈니스 코어 고도화 (다국어 OCR 전처리 및 바운딩 박스 교정 스튜디오 구현)",
+      "last_task_id": "TASK-20260923-005",
+      "current_task_name": "[0012]PDF 이미지 전처리 엔진 및 다국어 OCR(WASM/클라우드/PaddleOCR 도커 어댑터) 파이프라인 구현",
+      "latest_commit_sha": "0cf95be5eda3455b9b8f28a9bc5c1d34c1b05ba9",
+      "branch": "dev",
+      "status": "RESTORED",
+      "restored_at": "2026-09-23T17:33:30.000Z",
+      "created_at": "2026-09-23T17:28:42.950Z"
+    },
+    {
       "snapshot_id": "SNAP-1790184491967",
       "session_id": "SESSION-20260923-008",
       "session_num": "20260923",
@@ -192,7 +205,7 @@
       "current_task_name": "[0012]PDF 이미지 전처리 엔진 및 다국어 OCR(WASM/클라우드/PaddleOCR 도커 어댑터) 파이프라인 구현",
       "latest_commit_sha": "e3ce53534e1e1e3d78a0bca681d3ee21b2c49719",
       "branch": "dev",
-      "status": "PENDING_RECOVERY",
+      "status": "ARCHIVED",
       "total_context_tokens": 106510,
       "hang_reason": "NORMAL",
       "unfinalized_tasks": [],
@@ -200,6 +213,17 @@
       "created_at": "2026-09-23T17:28:11.968Z",
       "json_file_path": "data/snapshots/SNAP-1790184491967.json",
       "md_file_path": "data/snapshots/SNAP-1790184491967.md"
+    },
+    {
+      "snapshot_id": "SNAP-1790184461600",
+      "session_num": "20260923",
+      "session_title": "[0011]PDF 비즈니스 코어 고도화 (다국어 OCR 전처리 및 바운딩 박스 교정 스튜디오 구현)",
+      "last_task_id": "TASK-20260923-005",
+      "current_task_name": "[0012]PDF 이미지 전처리 엔진 및 다국어 OCR(WASM/클라우드/PaddleOCR 도커 어댑터) 파이프라인 구현",
+      "latest_commit_sha": "fe3eaec11725ab8a3bd77c59be11761eda99cd75",
+      "branch": "dev",
+      "status": "ARCHIVED",
+      "created_at": "2026-09-23T17:27:41.600Z"
     },
     {
       "snapshot_id": "SNAP-1790183628971",
@@ -210,7 +234,7 @@
       "current_task_name": "[0012]PDF 이미지 전처리 엔진 및 다국어 OCR(WASM/클라우드/PaddleOCR 도커 어댑터) 파이프라인 구현",
       "latest_commit_sha": "e3ce53534e1e1e3d78a0bca681d3ee21b2c49719",
       "branch": "dev",
-      "status": "PENDING_RECOVERY",
+      "status": "ARCHIVED",
       "total_context_tokens": 106510,
       "hang_reason": "NORMAL",
       "unfinalized_tasks": [],
@@ -228,7 +252,7 @@
       "current_task_name": "[0012]PDF 이미지 전처리 엔진 및 다국어 OCR(WASM/클라우드/PaddleOCR 도커 어댑터) 파이프라인 구현",
       "latest_commit_sha": "e3ce53534e1e1e3d78a0bca681d3ee21b2c49719",
       "branch": "dev",
-      "status": "PENDING_RECOVERY",
+      "status": "ARCHIVED",
       "total_context_tokens": 106510,
       "hang_reason": "NORMAL",
       "unfinalized_tasks": [],
@@ -246,7 +270,7 @@
       "current_task_name": "[0012]PDF 이미지 전처리 엔진 및 다국어 OCR(WASM/클라우드/PaddleOCR 도커 어댑터) 파이프라인 구현",
       "latest_commit_sha": "e3ce53534e1e1e3d78a0bca681d3ee21b2c49719",
       "branch": "dev",
-      "status": "PENDING_RECOVERY",
+      "status": "ARCHIVED",
       "total_context_tokens": 106510,
       "hang_reason": "NORMAL",
       "unfinalized_tasks": [],
@@ -254,17 +278,6 @@
       "created_at": "2026-09-23T17:04:18.089Z",
       "json_file_path": "data/snapshots/SNAP-1790183058089.json",
       "md_file_path": "data/snapshots/SNAP-1790183058089.md"
-    },
-    {
-      "snapshot_id": "SNAP-1790184461600",
-      "session_num": "20260923",
-      "session_title": "[0011]PDF 비즈니스 코어 고도화 (다국어 OCR 전처리 및 바운딩 박스 교정 스튜디오 구현)",
-      "last_task_id": "TASK-20260923-005",
-      "current_task_name": "[0012]PDF 이미지 전처리 엔진 및 다국어 OCR(WASM/클라우드/PaddleOCR 도커 어댑터) 파이프라인 구현",
-      "latest_commit_sha": "fe3eaec11725ab8a3bd77c59be11761eda99cd75",
-      "branch": "dev",
-      "status": "PENDING_RECOVERY",
-      "created_at": "2026-09-23T17:27:41.600Z"
     }
   ],
   "vendor_attributes": [],
