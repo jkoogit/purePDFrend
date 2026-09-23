@@ -23,6 +23,7 @@ import {
   ChevronRight,
   Pin,
   PinOff,
+  SplitSquareVertical,
 } from 'lucide-react';
 import { ActiveViewId, DomainGroupId } from '../../types';
 
@@ -106,9 +107,16 @@ export const DOMAIN_GROUPS: {
       {
         id: 'ocr',
         label: 'OCR엔진관리',
-        description: 'Tesseract vs Gemini 듀얼 엔진 설정',
+        description: 'Tesseract vs Gemini vs PaddleOCR 설정',
         domain: 'studio',
         icon: Cpu,
+      },
+      {
+        id: 'correction',
+        label: 'BBox교정스튜디오',
+        description: '2-Way 캔버스 줌/팬 & 텍스트 인라인 교정',
+        domain: 'studio',
+        icon: SplitSquareVertical,
       },
       {
         id: 'scenarios',

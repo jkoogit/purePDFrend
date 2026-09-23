@@ -111,6 +111,8 @@ export interface GraphEdge {
   type: string;
 }
 
+export type OcrEngineType = 'tesseract' | 'gemini' | 'paddleocr';
+
 export interface OcrEngineConfig {
   enabled: boolean;
   name: string;
@@ -120,13 +122,65 @@ export interface OcrEngineConfig {
   defaultLanguage: string;
   cacheStatus: string;
   accuracyRating: string;
+  serverUrl?: string;
+  timeoutMs?: number;
+  cpuMode?: boolean;
+  isOnline?: boolean;
+}
+
+export interface BoundingBoxItem {
+  id: string | number;
+  text: string;
+  confidence: number;
+  x: number; // 0-100 percentage or px
+  y: number;
+  w: number;
+  h: number;
+  lineIndex?: number;
+  isEnsembleRefined?: boolean;
+  originalText?: string;
+  words?: Array<{ text: string; confidence: number; x: number; y: number; w: number; h: number }>;
+}
+
+export interface OcrResult {
+  engine: OcrEngineType | 'ensemble';
+  engineName: string;
+  language: string;
+  cost: string;
+  executionTimeMs: number;
+  accuracyEstimated: string;
+  fullText: string;
+  boxes: BoundingBoxItem[];
+  boxesDetected: number;
+  status: 'SUCCESS' | 'FALLBACK' | 'ERROR';
+  timestamp: string;
+  preprocessed?: boolean;
+  deskewAngle?: number;
+  message?: string;
+  ensembleStats?: {
+    lowConfidenceCount: number;
+    refinedCount: number;
+    savedCostEstimated: string;
+  };
+}
+
+export interface ImagePreprocessingOptions {
+  grayscale?: boolean;
+  binarization?: boolean;
+  binarizationThreshold?: number; // 0 - 255
+  deskew?: boolean; // 자동 기울기 보정
+  denoise?: boolean; // 노이즈 필터링
+  contrastEnhance?: boolean; // 대비 향상
+  splitSpread?: boolean; // 양면 스캔 분할 (책 접힘선 감지)
+  autoCrop?: boolean; // 스캐너 검은 테두리/여백 자동 트리밍
 }
 
 export interface SystemSettings {
   ocr: {
     tesseract: OcrEngineConfig;
     gemini: OcrEngineConfig;
-    primaryEngine: 'tesseract' | 'gemini';
+    paddleocr: OcrEngineConfig;
+    primaryEngine: OcrEngineType;
     autoFallback: boolean;
   };
   graphView: {
@@ -145,7 +199,8 @@ export type ActiveViewId =
   | 'docs'
   | 'settings'
   | 'ocr'
-  | 'scenarios';
+  | 'scenarios'
+  | 'correction';
 
 export interface ViewNavItem {
   id: ActiveViewId;

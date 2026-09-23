@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Navbar, ErrorBoundary, ScrollToTopFab } from './shared';
-import { ScenarioDesignView, OcrEngineManager } from './ppdf';
+import { ScenarioDesignView, OcrEngineManager, OCRCorrectionStudio } from './ppdf';
 import {
   WorkGraphViewer,
   TaskInfoManager,
@@ -209,7 +209,7 @@ export default function App() {
             </div>
           )}
 
-          {/* [3. PDF 스튜디오 도메인 2대 뷰] */}
+          {/* [3. PDF 스튜디오 도메인 3대 뷰] */}
           {activeView === 'ocr' && (
             <div className="w-full space-y-4">
               <OcrEngineManager
@@ -217,6 +217,12 @@ export default function App() {
                 onUpdateSettings={handleUpdateSettings}
                 dbStatus={dbStatus}
               />
+            </div>
+          )}
+
+          {activeView === 'correction' && (
+            <div className="w-full">
+              <OCRCorrectionStudio />
             </div>
           )}
 
