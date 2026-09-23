@@ -6,34 +6,25 @@
       "work_group": "purePDFrend",
       "ai_agent": "gemini",
       "ai_model": "models/gemini-3.8-flash",
-      "status_cd": "진행중",
+      "status_cd": "완료",
       "started_at": "2026-09-22T14:17:50.455Z",
-      "ended_at": null,
+      "ended_at": "2026-09-23T08:53:30.000Z",
       "doc_payload": {
-        "objective": "PostgreSQL aiagent 4대 메타/쿼터 테이블 신설, 다차원 차감 우선순위 및 CBRI 지수 구현, 백오피스 메타 거버넌스 UI 구축",
+        "objective": "PostgreSQL aiagent 5대 메타/쿼터 테이블 신설, 비-LLM 긴급 Push 우회로, 세션 DR 스냅샷 파일화 및 관리자 백오피스 구축",
         "issue_number": 10,
-        "branch": "task/메타거버넌스_쿼터시스템_Gemini",
-        "token_scorecard": {
-          "session_id": "SESSION-20260922-006",
-          "total_turns": 0,
-          "total_loops": 0,
-          "total_tokens": 0,
-          "avg_tokens_per_turn": 0,
-          "burn_rate_acceleration": 0,
-          "predicted_tokens": 0,
-          "actual_tokens": 0,
-          "mape_percent": 0,
-          "calibration_weight_alpha": 1,
-          "hang_risk_detected": false,
-          "recommended_max_turns_next_session": 15,
-          "api_candidate_proposals": []
-        }
+        "branch": "dev",
+        "retrospective_doc": "docs/13.회고/13-07_SESSION-20260922-006_세션종합_KPT_회고록.md",
+        "tasks_summary": [
+          "TASK-20260923-001 (완료): PostgreSQL 5대 메타원장 DDL 및 도메인 엔티티 구축",
+          "TASK-20260923-002 (완료): 비-LLM 긴급 Push, 다차원 쿼터 엔진 및 세션 재해복구 체계 구축",
+          "TASK-20260923-003 (완료): 재해복구 관제실 UI/스냅샷 파일화 개선 및 관리자 메타거버넌스 대시보드 구축"
+        ]
       },
       "created_sys": "agent-harness",
       "created_by": "system",
       "updated_sys": "agent-harness",
       "updated_by": "system",
-      "version": 1,
+      "version": 2,
       "calibration_alpha": 1
     }
   ],
@@ -43,22 +34,24 @@
       "session_id": "SESSION-20260922-006",
       "task_name": "[03] 재해복구 관제실 UI/스냅샷 파일화 개선 및 관리자 백오피스 메타 거버넌스 대시보드 구축",
       "git_branch": "dev",
-      "status_cd": "진행중",
+      "status_cd": "완료",
       "started_at": "2026-09-23T01:30:00.000Z",
-      "ended_at": null,
+      "ended_at": "2026-09-23T08:52:00.000Z",
       "doc_payload": {
         "implemented_components": [
           "EmergencyRecoveryPanel (UI정돈, 에이전트통계 전용 배치, 슬레이트 다크 테마, 세션복구 복사 UX)",
           "Snapshot File Persistence (JSON & MD 파일화 및 미완료 잔여 태스크/루프 추적)",
           "Hang Diagnosis Detailed Trigger & Recovery Assessment",
           "MetaGovernanceBackoffice (4대 요금제, 멀티 모델 카탈로그, 원장 동결/해제, 긴급 쿼터 충전, 감사로그)"
-        ]
+        ],
+        "review_doc": "docs/10.리뷰/260923_022_재해복구_관제실_UI_스냅샷_파일화_개선_및_관리자_메타거버넌스_대시보드_구축_리뷰.md",
+        "promoted_commit_sha": "ab8d5a60c400cf60caaad826a3beaaa4a8537fc7"
       },
       "created_sys": "agent-harness",
       "created_by": "system",
       "updated_sys": "agent-harness",
       "updated_by": "system",
-      "version": 2
+      "version": 3
     },
     {
       "task_id": "TASK-20260923-002",
@@ -444,6 +437,17 @@
       "created_at": "2026-09-23T08:41:51.085Z",
       "json_file_path": "data/snapshots/SNAP-1790152911085.json",
       "md_file_path": "data/snapshots/SNAP-1790152911085.md"
+    },
+    {
+      "snapshot_id": "SNAP-1790153454913",
+      "session_num": "20260922",
+      "session_title": "[0009]에이전트 사용자·모델·요금제 메타 거버넌스 및 다차원 쿼터 시스템 구축",
+      "last_task_id": "TASK-20260923-003",
+      "current_task_name": "[03] 재해복구 관제실 UI/스냅샷 파일화 개선 및 관리자 백오피스 메타 거버넌스 대시보드 구축",
+      "latest_commit_sha": "f4a000f5473311e64e5e477e958c8b8e99808f76",
+      "branch": "dev",
+      "status": "PENDING_RECOVERY",
+      "created_at": "2026-09-23T08:50:54.913Z"
     }
   ]
 }
