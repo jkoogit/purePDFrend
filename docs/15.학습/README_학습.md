@@ -14,6 +14,7 @@
 | `15-06` | `15-06_우분투_서버_PaddleOCR_CPU_도커_배포_및_FastAPI_연동_가이드.md` | 우분투 PaddleOCR CPU 도커 배포 및 연동 가이드 | 우분투 서버 도커(CPU 모드) 배포용 Dockerfile, docker-compose, FastAPI 래퍼 및 purePDFrend 연동 규격 |
 | `15-07` | `15-07_스캔도서_양면분할_테두리트리밍_및_앙상블OCR_알고리즘_해설.md` | 양면분할, 테두리트리밍 및 앙상블OCR 해설 | 책 접힘선 감지 양면 분할, 스캐너 검은 테두리 자동 트리밍, 신뢰도 기반 앙상블 OCR 라우팅 및 2-Way 교정 스튜디오 |
 | `15-08` | `15-08_마크다운_Mermaid_이미지화_및_하단_편집이력_거버넌스_가이드.md` | 마크다운 Mermaid 이미지화 및 하단 편집이력 가이드 | 마크다운 다이어그램 렌더링 호환성 래퍼, alt 대체 텍스트 및 하단 편집이력 표준화 패턴 |
+| `15-09` | `15-09_브라우저_대용량_PDF_가상스크롤_및_LRU_메모리가드_패턴_해설.md` | 브라우저 대용량 PDF 가상 스크롤 및 LRU 메모리가드 해설 | 800쪽 대용량 도서 뷰포트 윈도잉, 상하 스페이서 계산식, 10페이지 LRU 메모리가드 및 OOM 방지 기법 |
 
 <div align="center">
   <img src="./images/README_학습_diag_1.svg" alt="15. 학습 (Knowledge & Prompt Engineering) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1" style="max-width: 100%; height: auto; border: 1px solid #334155; border-radius: 12px;" />
@@ -30,5 +31,6 @@ graph TD
         L4 --> L6[15-06: 우분투 PaddleOCR Docker 배포]
         L4 --> L7[15-07: 전처리 알고리즘 & 앙상블 OCR]
         L4 --> L8[15-08: 다이어그램 이미지화 & 하단 편집이력]
+        L4 --> L9[15-09: 대용량 가상스크롤 & LRU 메모리가드]
     end
 ```

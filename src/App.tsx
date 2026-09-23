@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Navbar, ErrorBoundary, ScrollToTopFab } from './shared';
-import { ScenarioDesignView, OcrEngineManager, OCRCorrectionStudio } from './ppdf';
+import {
+  ScenarioDesignView,
+  OcrEngineManager,
+  OCRCorrectionStudio,
+  VirtualViewerStudio,
+} from './ppdf';
 import {
   WorkGraphViewer,
   TaskInfoManager,
@@ -209,7 +214,18 @@ export default function App() {
             </div>
           )}
 
-          {/* [3. PDF 스튜디오 도메인 3대 뷰] */}
+          {/* [3. PDF 스튜디오 도메인 4대 뷰] */}
+          {activeView === 'viewer' && (
+            <div className="w-full">
+              <VirtualViewerStudio
+                onNavigateToCorrection={(_page) => {
+                  setActiveDomain('studio');
+                  setActiveView('correction');
+                }}
+              />
+            </div>
+          )}
+
           {activeView === 'ocr' && (
             <div className="w-full space-y-4">
               <OcrEngineManager

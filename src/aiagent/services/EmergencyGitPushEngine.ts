@@ -4,6 +4,7 @@
  * 토큰 소진 또는 세션 행(Hang) 발생 시 웹 UI에서 직접 호출되어 최종 소스를 보존합니다.
  */
 
+import '../../shared/envLoader';
 import fs from 'fs';
 import path from 'path';
 import https from 'https';
@@ -24,6 +25,10 @@ const IGNORE_FILES = new Set([
   '.DS_Store',
   'package-lock.json',
   'yarn.lock',
+  '.env',
+  '.env.local',
+  '.env.production',
+  '.env.development',
 ]);
 
 function requestGitHub<T = any>(
@@ -84,7 +89,11 @@ function getAllFiles(dir: string, baseDir: string = dir): string[] {
         files = files.concat(getAllFiles(fullPath, baseDir));
       }
     } else if (entry.isFile()) {
-      if (!IGNORE_FILES.has(entry.name) && !entry.name.endsWith('.log')) {
+      if (
+        !IGNORE_FILES.has(entry.name) && 
+        !entry.name.startsWith('.env') && 
+        !entry.name.endsWith('.log')
+      ) {
         files.push(relPath);
       }
     }

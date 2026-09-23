@@ -5,4 +5,5 @@ export * from './ocr/GeminiMultimodalAdapter';
 export * from './ocr/PaddleOcrDockerAdapter';
 export * from './ocr/EnsembleOcrRouter';
 export * from './ocr/OcrEngineFactory';
-
+export * from './VirtualScrollEngine';
+export * from './PdfPageStore';
