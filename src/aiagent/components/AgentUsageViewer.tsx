@@ -48,21 +48,21 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
   const [isHandoffModalOpen, setIsHandoffModalOpen] = useState(false);
   const [isScorecardModalOpen, setIsScorecardModalOpen] = useState(false);
 
-  // 3-state cyclic sort: 'init' -> 'asc' -> 'desc' -> 'init'
-  const [sortField, setSortField] = useState<SortField>('step_index');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  // 3-state cyclic sort: 'init' -> 'asc' -> 'desc' -> 'init' (Default: created_at desc)
+  const [sortField, setSortField] = useState<SortField>('created_at');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
   const handleHeaderSort = (field: SortField) => {
     if (sortField !== field) {
       setSortField(field);
-      setSortOrder('asc');
+      setSortOrder('desc');
     } else {
-      if (sortOrder === 'asc') {
-        setSortOrder('desc');
-      } else if (sortOrder === 'desc') {
+      if (sortOrder === 'desc') {
+        setSortOrder('asc');
+      } else if (sortOrder === 'asc') {
         setSortOrder('init');
       } else {
-        setSortOrder('asc');
+        setSortOrder('desc');
       }
     }
   };
@@ -203,7 +203,7 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
       if (strA > strB) return sortOrder === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [traces, searchKeyword, sortField, sortOrder]);
+  }, [traces, searchKeyword, sessionFilter, sortField, sortOrder]);
 
   const totalTokensUsed = useMemo(() => {
     return traces.reduce((sum, t) => sum + (Number(t.total_tokens) || Number(t.estimated_tokens) || 0), 0);
@@ -336,25 +336,43 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
 
       {/* Search Header Bar */}
       <div className="p-3 sm:p-3.5 border-b border-slate-800 bg-slate-900/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2 flex-1 max-w-xl">
-          <div className="relative flex-1 min-w-[180px]">
+        <div className="flex flex-wrap items-center gap-2 flex-1 max-w-2xl">
+          <div className="relative flex-1 min-w-[200px]">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchKeyword}
               onChange={(e) => setSearchKeyword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  fetchUsage(searchKeyword);
+                }
+              }}
               placeholder="통합 검색 (trace_id, 세션ID, 에이전트, 프롬프트, 응답)"
               className="w-full pl-9 pr-8 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
             />
             {searchKeyword && (
               <button
-                onClick={() => setSearchKeyword('')}
+                onClick={() => {
+                  setSearchKeyword('');
+                  fetchUsage('');
+                }}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
+
+          <button
+            onClick={() => fetchUsage(searchKeyword)}
+            disabled={isLoading}
+            className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-sm transition disabled:opacity-50"
+            title="대화 턴 검색 실행"
+          >
+            <Search className="w-3.5 h-3.5" />
+            <span>검색</span>
+          </button>
 
           <select
             value={sessionFilter}

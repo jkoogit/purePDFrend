@@ -1,6 +1,38 @@
 {
   "sessions": [
     {
+      "session_id": "SESSION-260924-0013",
+      "session_name": "[0013]Web Worker 백그라운드 컴파일 파이프라인 구축 및 [사용/관리] 서비스 매뉴얼(v1.0) 작성",
+      "work_group": "purePDFrend",
+      "ai_agent": "gemini",
+      "ai_model": "models/gemini-3.7-flash",
+      "status_cd": "진행중",
+      "started_at": "2026-09-24T14:15:40.723Z",
+      "ended_at": null,
+      "doc_payload": {
+        "planned_tasks": [
+          "TASK-260924-0013-01: [0019]docs/18.메뉴얼 폴더 신설 및 [사용/관리] 서비스별 상세 매뉴얼(v1.0) 작성",
+          "TASK-260924-0013-02: [0020]Web Worker 스레드 오프로딩 Searchable PDF 합성 엔진 구현",
+          "TASK-260924-0013-03: [0021]다국어 OCR 병렬 배치 큐(Worker Pool) 및 세부 프로그레스 바 UI 구현",
+          "TASK-260924-0013-04: [0022]PDF 메타데이터 주입기 및 암호화/보안 권한 제어 엔진 구현"
+        ],
+        "branchName": "task/0013_0019_manual-and-worker-pipeline_Gemini",
+        "issueNumber": 16,
+        "objective": "Web Worker 백그라운드 컴파일 파이프라인 구축 및 서비스 매뉴얼(v1.0) 완성",
+        "activeAgent": "Gemini 3.7 Flash",
+        "baseSha": "5596ad0f429312ec517e1b069c33cda412ec2fb8",
+        "theme": "Web Worker 컴파일 파이프라인 및 서비스 매뉴얼",
+        "currentTask": "TASK-0013-01",
+        "lastUpdated": "2026-09-24T14:54:10.694Z"
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 1,
+      "updated_at": "2026-09-24T14:54:10.694Z"
+    },
+    {
       "session_id": "SESSION-260924-0012",
       "session_name": "[0012]PDF 페이지 레이아웃 편집기 및 투명 텍스트 레이어 임베딩 Searchable PDF 내보내기 구현",
       "work_group": "purePDFrend",
@@ -41,6 +73,42 @@
     }
   ],
   "tasks": [
+    {
+      "task_id": "TASK-0013-01",
+      "session_id": "SESSION-260924-0013",
+      "task_name": "[0013-01]docs/18.메뉴얼 폴더 신설 및 [사용/관리] 서비스별 상세 매뉴얼(v1.0) 작성",
+      "status_cd": "처리완료",
+      "git_branch": "task/0013_0019_manual-and-worker-pipeline_Gemini",
+      "started_at": "2026-09-24T14:44:28.000Z",
+      "ended_at": "2026-09-24T14:54:10.694Z",
+      "doc_payload": {
+        "reviewDoc": "docs/10.리뷰/260924_031_docs_18_메뉴얼_신설_및_서비스별_상세매뉴얼_작성_리뷰.md",
+        "manualDocs": [
+          "docs/18.메뉴얼/README_메뉴얼.md",
+          "docs/18.메뉴얼/18-01_사용자_PDF_스튜디오_이용_매뉴얼.md",
+          "docs/18.메뉴얼/18-02_관리자_하네스_및_시스템_운영_매뉴얼.md"
+        ],
+        "svgAssets": [
+          "docs/18.메뉴얼/images/v1.0_260924_pdf_studio_viewer.svg",
+          "docs/18.메뉴얼/images/v1.0_260924_page_layout_editor.svg",
+          "docs/18.메뉴얼/images/v1.0_260924_ocr_correction_studio.svg",
+          "docs/18.메뉴얼/images/v1.0_260924_admin_governance_console.svg"
+        ],
+        "features": [
+          "19대 기술문서 분류체계 확장 (docs/18.메뉴얼 신설)",
+          "18-01 사용자 PDF 스튜디오 이용 매뉴얼 (v1.0) 작성",
+          "18-02 관리자 하네스 및 시스템 운영 매뉴얼 (v1.0) 작성",
+          "하네스 거버넌스 대화턴 추적 등록일자(created_at) Desc 기본 정렬 적용",
+          "세션ID 필터 선택 즉각 반응 및 검색 버튼/Enter 키 이벤트 핸들러 보강"
+        ]
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 1,
+      "updated_at": "2026-09-24T14:54:10.694Z"
+    },
     {
       "task_id": "TASK-260924-0012-01",
       "session_id": "SESSION-260924-0012",
@@ -178,7 +246,7 @@
       "prompt_tokens": 1100,
       "completion_tokens": 850,
       "total_tokens": 1950,
-      "created_at": "2026-09-24T02:44:45.643Z"
+      "created_at": "2026-09-24T15:13:12.270Z"
     },
     {
       "trace_id": "TRACE-SESSION-0003-TASK-007-T02",
@@ -194,7 +262,7 @@
       "prompt_tokens": 1450,
       "completion_tokens": 1200,
       "total_tokens": 2650,
-      "created_at": "2026-09-24T02:44:45.645Z"
+      "created_at": "2026-09-24T15:13:12.271Z"
     },
     {
       "trace_id": "TRACE-SESSION-0003-TASK-007-T03",
@@ -210,7 +278,7 @@
       "prompt_tokens": 950,
       "completion_tokens": 720,
       "total_tokens": 1670,
-      "created_at": "2026-09-24T02:44:45.645Z"
+      "created_at": "2026-09-24T15:13:12.271Z"
     },
     {
       "trace_id": "TRACE-SESSION-0003-TASK-007-T04",
@@ -226,7 +294,7 @@
       "prompt_tokens": 1050,
       "completion_tokens": 880,
       "total_tokens": 1930,
-      "created_at": "2026-09-24T02:44:45.645Z"
+      "created_at": "2026-09-24T15:13:12.271Z"
     },
     {
       "trace_id": "TRACE-SESSION-0003-TASK-008-T01",
@@ -242,7 +310,7 @@
       "prompt_tokens": 1600,
       "completion_tokens": 1350,
       "total_tokens": 2950,
-      "created_at": "2026-09-24T02:44:45.645Z"
+      "created_at": "2026-09-24T15:13:12.271Z"
     },
     {
       "trace_id": "TRACE-SESSION-0003-TASK-009-T01",
@@ -258,7 +326,7 @@
       "prompt_tokens": 1350,
       "completion_tokens": 950,
       "total_tokens": 2300,
-      "created_at": "2026-09-24T02:44:45.645Z"
+      "created_at": "2026-09-24T15:13:12.271Z"
     },
     {
       "trace_id": "TRACE-SESSION-0003-TASK-009-T03",
@@ -274,7 +342,7 @@
       "prompt_tokens": 1200,
       "completion_tokens": 900,
       "total_tokens": 2100,
-      "created_at": "2026-09-24T02:44:45.645Z"
+      "created_at": "2026-09-24T15:13:12.271Z"
     },
     {
       "trace_id": "TRACE-SESSION-0003-TASK-009-T04",
@@ -290,7 +358,7 @@
       "prompt_tokens": 1100,
       "completion_tokens": 800,
       "total_tokens": 1900,
-      "created_at": "2026-09-24T02:44:45.645Z"
+      "created_at": "2026-09-24T15:13:12.271Z"
     },
     {
       "trace_id": "TRACE-SESSION-0003-TASK-009-T05",
@@ -306,7 +374,7 @@
       "prompt_tokens": 1400,
       "completion_tokens": 1150,
       "total_tokens": 2550,
-      "created_at": "2026-09-24T02:44:45.645Z"
+      "created_at": "2026-09-24T15:13:12.271Z"
     },
     {
       "trace_id": "TRACE-SESSION-0003-TASK-009-T06",
@@ -322,7 +390,7 @@
       "prompt_tokens": 1300,
       "completion_tokens": 1000,
       "total_tokens": 2300,
-      "created_at": "2026-09-24T02:44:45.645Z"
+      "created_at": "2026-09-24T15:13:12.271Z"
     },
     {
       "trace_id": "TRACE-SESSION-0012-TASK-0015-T01",
@@ -338,7 +406,7 @@
       "prompt_tokens": 1200,
       "completion_tokens": 650,
       "total_tokens": 1850,
-      "created_at": "2026-09-24T02:00:00.000Z"
+      "created_at": "2026-09-24T15:13:12.271Z"
     },
     {
       "trace_id": "TRACE-SESSION-0012-TASK-0015-T02",
@@ -354,7 +422,7 @@
       "prompt_tokens": 1350,
       "completion_tokens": 900,
       "total_tokens": 2250,
-      "created_at": "2026-09-24T02:05:00.000Z"
+      "created_at": "2026-09-24T15:13:12.271Z"
     },
     {
       "trace_id": "TRACE-SESSION-0012-TASK-0015-T03",
@@ -370,7 +438,7 @@
       "prompt_tokens": 1800,
       "completion_tokens": 1400,
       "total_tokens": 3200,
-      "created_at": "2026-09-24T02:10:00.000Z"
+      "created_at": "2026-09-24T15:13:12.271Z"
     },
     {
       "trace_id": "TRACE-SESSION-0012-TASK-0015-T04",
@@ -386,7 +454,7 @@
       "prompt_tokens": 1100,
       "completion_tokens": 800,
       "total_tokens": 1900,
-      "created_at": "2026-09-24T02:12:00.000Z"
+      "created_at": "2026-09-24T15:13:12.271Z"
     },
     {
       "trace_id": "TRACE-SESSION-0012-TASK-0015-T05",
@@ -409,7 +477,7 @@
       "session_id": "SESSION-260924-0012",
       "task_id": "TASK-260924-0012-02",
       "loop_id": "LOOP-260924-0012-02",
-      "step_index": 6,
+      "step_index": 5,
       "agent_name": "gemini",
       "model_name": "models/gemini-1.5-pro",
       "user_prompt": "#태스크시작 [0016]투명 텍스트 레이어 결합 Searchable PDF 내보내기 파이프라인 구현",
@@ -418,14 +486,14 @@
       "prompt_tokens": 1400,
       "completion_tokens": 950,
       "total_tokens": 2350,
-      "created_at": "2026-09-24T02:30:00.000Z"
+      "created_at": "2026-09-24T15:13:12.271Z"
     },
     {
       "trace_id": "TRACE-SESSION-0012-TASK-0016-T02",
       "session_id": "SESSION-260924-0012",
       "task_id": "TASK-260924-0012-02",
       "loop_id": "LOOP-260924-0012-02",
-      "step_index": 7,
+      "step_index": 6,
       "agent_name": "gemini",
       "model_name": "models/gemini-1.5-flash",
       "user_prompt": "1. 기본폰트를 제공하고 추가폰트를 pdf 관리시스템에 등록하면 선택된 폰트로 반영될 수 있게 구현\n2. [도서제목]_ocr_YYYYMMDD.pdf\n#태스크처리 [0016]투명 텍스트 레이어 결합 Searchable PDF 내보내기 구현",
@@ -434,14 +502,14 @@
       "prompt_tokens": 1950,
       "completion_tokens": 1500,
       "total_tokens": 3450,
-      "created_at": "2026-09-24T02:40:00.000Z"
+      "created_at": "2026-09-24T15:13:12.271Z"
     },
     {
       "trace_id": "TRACE-SESSION-0012-TASK-0016-T03",
       "session_id": "SESSION-260924-0012",
       "task_id": "TASK-260924-0012-02",
       "loop_id": "LOOP-260924-0012-02",
-      "step_index": 8,
+      "step_index": 7,
       "agent_name": "gemini",
       "model_name": "models/gemini-1.5-flash",
       "user_prompt": "#태스크정리 [0016]투명 텍스트 레이어 결합 Searchable PDF 내보내기 파이프라인 구현",
@@ -450,7 +518,7 @@
       "prompt_tokens": 1150,
       "completion_tokens": 850,
       "total_tokens": 2000,
-      "created_at": "2026-09-24T02:45:00.000Z"
+      "created_at": "2026-09-24T15:13:12.271Z"
     },
     {
       "trace_id": "TRACE-SESSION-0012-TASK-0016-T04",

@@ -139,6 +139,7 @@ stateDiagram-v2
     5. 다음 하네스 입력 전까지 처리 작업 반복 진행.
     6. **루프 연계**: 태스크 처리 중에만 루프 처리(`LOOP-xxx`) 가능. 필요 시 `#루프시작` ➔ `#루프처리` ➔ `#루프정리` 순서로 진행.
       - 루프ID : LOOP-260921-[세션번호-태스크번호-루프번호]
+    7. 태스트 수정한 작업내용 작업브랜치 commit
 
 ### [규칙 2.3] `#태스크정리` 인입 시: READ-ONLY (리뷰문서 작성 및 하네스 동기화 제외 파일쓰기 제한)
 - 소스 코드(`src/`) 임의 수정은 금지되며, 오직 리뷰 문서 발행과 하네스/Git 동기화만 수행합니다.
@@ -149,6 +150,7 @@ stateDiagram-v2
     4. **원격 커밋 생성 및 푸시 (Git Data API Push Mandate)**: `npx tsx scripts/github_sync_push.ts` 스크립트를 호출하여 로컬 변경 파일 전체를 GitHub Git Database API(`POST /git/blobs`, `POST /git/trees`, `POST /git/commits`, `PATCH /git/refs`)를 통해 원격 `dev` 브랜치에 실제 신규 커밋으로 생성(Push)합니다.
     5. PR 작성 및 머지 필요 시 `POST /repos/:owner/:repo/pulls` 및 `POST /repos/:owner/:repo/merges`를 수행합니다.
     6. `#태스크정리` 이후 입력되는 프롬프트는 `#태스크승급`으로 제한합니다.
+    7. 테스크 처리과정에서 기능변경, 추가 발생시 /18.메뉴이러 폴더의 메뉴을 현행화
 
 ### [규칙 2.4] `#태스크승급` 명시 시: READ-ONLY (원격 브랜치 배포 승급 및 상태 마감)
 - 소스 및 문서 수정을 엄격히 제한하고 상태 승급 및 원격 브랜치 배포를 처리합니다.

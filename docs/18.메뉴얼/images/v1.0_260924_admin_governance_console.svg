@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="100%" height="100%" style="background:#0b0f19; font-family:'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <defs>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b4b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="dangerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444" />
+      <stop offset="100%" stop-color="#b91c1c" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <rect width="960" height="540" fill="#090d16"/>
+  
+  <!-- Header -->
+  <rect x="20" y="16" width="920" height="54" rx="10" fill="url(#headerGrad)" stroke="#312e81" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="44" y="48" fill="#ffffff" font-size="16" font-weight="bold">🛡️ AI 에이전트 하네스 거버넌스 &amp; 통합 관리 콘솔 (v1.0)</text>
+  
+  <!-- Emergency Action Buttons -->
+  <g transform="translate(560, 26)">
+    <rect x="0" y="0" width="160" height="34" rx="6" fill="url(#dangerGrad)"/>
+    <text x="14" y="22" fill="#ffffff" font-size="11" font-weight="bold">🚨 긴급 소스 GitHub Push</text>
+
+    <rect x="170" y="0" width="130" height="34" rx="6" fill="#1e293b" stroke="#38bdf8"/>
+    <text x="184" y="22" fill="#38bdf8" font-size="11" font-weight="bold">🔄 세션 DR 복구</text>
+  </g>
+
+  <!-- Metric / Telemetry Top Cards -->
+  <g transform="translate(20, 84)">
+    <!-- Card 1: Active Model & Tier -->
+    <rect x="0" y="0" width="215" height="74" rx="8" fill="#0f172a" stroke="#1e293b"/>
+    <text x="16" y="26" fill="#94a3b8" font-size="11">활성 AI 모델 / Tier</text>
+    <text x="16" y="52" fill="#818cf8" font-size="14" font-weight="bold">Gemini 3.7 Flash (Tier 2)</text>
+
+    <!-- Card 2: Daily Token / Quota Gauge -->
+    <rect x="235" y="0" width="215" height="74" rx="8" fill="#0f172a" stroke="#1e293b"/>
+    <text x="251" y="26" fill="#94a3b8" font-size="11">일일 RPD 쿼터 소비율</text>
+    <text x="251" y="52" fill="#34d399" font-size="14" font-weight="bold">0.84% (21/2,500회)</text>
+
+    <!-- Card 3: Governance State Machine -->
+    <rect x="470" y="0" width="215" height="74" rx="8" fill="#0f172a" stroke="#1e293b"/>
+    <text x="486" y="26" fill="#94a3b8" font-size="11">하네스 생명주기 상태</text>
+    <text x="486" y="52" fill="#fbbf24" font-size="14" font-weight="bold">#태스크처리 (TASK-0013-01)</text>
+
+    <!-- Card 4: DB & Store Dual Sync -->
+    <rect x="705" y="0" width="215" height="74" rx="8" fill="#0f172a" stroke="#1e293b"/>
+    <text x="721" y="26" fill="#94a3b8" font-size="11">연동 DB 및 로컬 스토어</text>
+    <text x="721" y="52" fill="#38bdf8" font-size="14" font-weight="bold">CONNECTED (PostgreSQL)</text>
+  </g>
+
+  <!-- Search and Turn Trace List -->
+  <g transform="translate(20, 172)">
+    <rect x="0" y="0" width="920" height="348" rx="10" fill="#0f172a" stroke="#1e293b" stroke-width="1.5"/>
+    
+    <!-- Search Bar & Filters -->
+    <rect x="16" y="16" width="340" height="32" rx="6" fill="#090d16" stroke="#334155"/>
+    <text x="32" y="37" fill="#64748b" font-size="11">🔍 trace_id, 세션ID, 프롬프트 통합 검색</text>
+
+    <rect x="366" y="16" width="60" height="32" rx="6" fill="#4338ca"/>
+    <text x="382" y="37" fill="#ffffff" font-size="11" font-weight="bold">검색</text>
+
+    <rect x="436" y="16" width="220" height="32" rx="6" fill="#090d16" stroke="#334155"/>
+    <text x="448" y="37" fill="#818cf8" font-size="11" font-family="monospace">SESSION-260924-0013 (진행중)</text>
+
+    <text x="740" y="37" fill="#94a3b8" font-size="11">정렬: <strong fill="#818cf8">등록일자 (created_at) Desc ▼</strong></text>
+
+    <!-- Table Header -->
+    <rect x="16" y="60" width="888" height="32" rx="4" fill="#1e293b"/>
+    <text x="30" y="81" fill="#94a3b8" font-size="11" font-weight="bold">대화턴 ID</text>
+    <text x="190" y="81" fill="#94a3b8" font-size="11" font-weight="bold">세션 / 태스크 ID</text>
+    <text x="370" y="81" fill="#94a3b8" font-size="11" font-weight="bold">요청 프롬프트 요약</text>
+    <text x="660" y="81" fill="#94a3b8" font-size="11" font-weight="bold">응답 상태</text>
+    <text x="780" y="81" fill="#94a3b8" font-size="11" font-weight="bold">등록 일시 (KST)</text>
+
+    <!-- Table Row 1 (Latest) -->
+    <rect x="16" y="98" width="888" height="42" rx="4" fill="#111827"/>
+    <text x="30" y="124" fill="#a5b4fc" font-size="11" font-family="monospace">TRACE-0013-0002</text>
+    <text x="190" y="124" fill="#e2e8f0" font-size="11">SESSION-0013 / TASK-01</text>
+    <text x="370" y="124" fill="#cbd5e1" font-size="11">#태스크처리 [0013-01] 서비스 매뉴얼(v1.0) 작성...</text>
+    <rect x="660" y="108" width="70" height="22" rx="4" fill="#064e3b"/>
+    <text x="674" y="123" fill="#34d399" font-size="10" font-weight="bold">DONE (200)</text>
+    <text x="780" y="124" fill="#94a3b8" font-size="11">23:50:41 (최신)</text>
+
+    <!-- Table Row 2 -->
+    <rect x="16" y="146" width="888" height="42" rx="4" fill="#0b1329"/>
+    <text x="30" y="172" fill="#a5b4fc" font-size="11" font-family="monospace">TRACE-0013-0001</text>
+    <text x="190" y="172" fill="#e2e8f0" font-size="11">SESSION-0013 / TASK-01</text>
+    <text x="370" y="172" fill="#cbd5e1" font-size="11">#태스크시작 [0013-01] READ-ONLY 분석 및 계획...</text>
+    <rect x="660" y="156" width="70" height="22" rx="4" fill="#064e3b"/>
+    <text x="674" y="171" fill="#34d399" font-size="10" font-weight="bold">DONE (200)</text>
+    <text x="780" y="172" fill="#94a3b8" font-size="11">23:44:28</text>
+
+    <!-- Table Row 3 -->
+    <rect x="16" y="194" width="888" height="42" rx="4" fill="#111827"/>
+    <text x="30" y="220" fill="#a5b4fc" font-size="11" font-family="monospace">TRACE-0013-0000</text>
+    <text x="190" y="220" fill="#e2e8f0" font-size="11">SESSION-0013 (Init)</text>
+    <text x="370" y="220" fill="#cbd5e1" font-size="11">#세션시작 [0013] Web Worker 파이프라인 및 매뉴얼...</text>
+    <rect x="660" y="204" width="70" height="22" rx="4" fill="#064e3b"/>
+    <text x="674" y="219" fill="#34d399" font-size="10" font-weight="bold">DONE (200)</text>
+    <text x="780" y="220" fill="#94a3b8" font-size="11">23:14:42</text>
+  </g>
+</svg>
