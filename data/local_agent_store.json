@@ -30,7 +30,7 @@
       "updated_sys": "agent-harness",
       "updated_by": "system",
       "version": 1,
-      "updated_at": "2026-09-24T16:08:10.735Z"
+      "updated_at": "2026-09-24T16:05:45.690Z"
     },
     {
       "session_id": "SESSION-260924-0012",
@@ -77,10 +77,10 @@
       "task_id": "TASK-0013-03",
       "session_id": "SESSION-260924-0013",
       "task_name": "[0013-03]다국어 OCR 병렬 배치 큐(Worker Pool) 및 세부 프로그레스 바 UI 구현",
-      "status_cd": "완료",
+      "status_cd": "처리완료",
       "git_branch": "task/0013_0019_manual-and-worker-pipeline_Gemini",
       "started_at": "2026-09-24T16:00:00.000Z",
-      "ended_at": "2026-09-24T16:08:10.733Z",
+      "ended_at": "2026-09-24T16:05:45.688Z",
       "doc_payload": {
         "reviewDoc": "docs/10.리뷰/260925_033_다국어_OCR_병렬_배치_큐_및_프로그레스_UI_구현_리뷰.md",
         "designDoc": "docs/05.설계/05-18_다국어_OCR_병렬_배치_큐_Worker_Pool_및_프로그레스_엔진_설계.md",
@@ -95,17 +95,15 @@
           "실시간 TPS 및 ETA(남은 시간) 계산기 및 옵저버 스트리밍",
           "OcrBatchProgressModal UI 신설 및 VirtualViewerStudio 연동",
           "18-01 사용자 PDF 스튜디오 매뉴얼 현행화 (v1.2)"
-        ],
-        "promotedAt": "2026-09-24T16:08:10.734Z",
-        "promotedSha": "0a23cc143d31fae80685f6412636c333ac0bda45"
+        ]
       },
       "created_sys": "agent-harness",
       "created_by": "system",
       "updated_sys": "agent-harness",
       "updated_by": "system",
-      "version": 6,
+      "version": 4,
       "created_at": "2026-09-24T16:00:28.801Z",
-      "updated_at": "2026-09-24T16:08:10.735Z"
+      "updated_at": "2026-09-24T16:05:45.690Z"
     },
     {
       "task_id": "TASK-0013-02",
