@@ -22,7 +22,7 @@
         "activeAgent": "Gemini 3.7 Flash",
         "baseSha": "5596ad0f429312ec517e1b069c33cda412ec2fb8",
         "theme": "Web Worker 컴파일 파이프라인 및 서비스 매뉴얼",
-        "currentTask": "TASK-0013-01",
+        "currentTask": "TASK-0013-02",
         "lastUpdated": "2026-09-24T14:54:10.694Z"
       },
       "created_sys": "agent-harness",
@@ -30,7 +30,7 @@
       "updated_sys": "agent-harness",
       "updated_by": "system",
       "version": 1,
-      "updated_at": "2026-09-24T14:54:10.694Z"
+      "updated_at": "2026-09-24T15:32:41.145Z"
     },
     {
       "session_id": "SESSION-260924-0012",
@@ -74,13 +74,42 @@
   ],
   "tasks": [
     {
+      "task_id": "TASK-0013-02",
+      "session_id": "SESSION-260924-0013",
+      "task_name": "[0013-02]Web Worker 스레드 오프로딩 Searchable PDF 합성 엔진 구현",
+      "status_cd": "처리중",
+      "git_branch": "task/0013_0019_manual-and-worker-pipeline_Gemini",
+      "started_at": "2026-09-24T15:25:00.000Z",
+      "ended_at": null,
+      "doc_payload": {
+        "designDoc": "docs/05.설계/05-15_Web_Worker_Searchable_PDF_백그라운드_컴파일_엔진_설계.md",
+        "learningDoc": "docs/15.학습/15-14_Web_Worker_스레드_오프로딩_및_Transferable_Zero_Copy_기법.md",
+        "unitTest": "tests/searchable_pdf_worker.test.ts",
+        "features": [
+          "Web Worker 백그라운드 스레드 오프로딩 (SearchablePdfWorker.ts)",
+          "pdf-lib 및 폰트 임베딩 0ms UI 블로킹 무프리징 합성",
+          "Transferable Objects (ArrayBuffer) 0-Copy 전송 최적화",
+          "SearchablePdfWorkerClient 싱글톤 파사드 및 취소/에러/진행률 스트림",
+          "Node.js 및 미지원 환경 자동 인라인 폴백 (Graceful Fallback)",
+          "가상 뷰어 스튜디오(VirtualViewerStudio.tsx) UI 연동 및 컴파일 취소 기능"
+        ]
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 3,
+      "created_at": "2026-09-24T15:32:28.703Z",
+      "updated_at": "2026-09-24T15:32:41.146Z"
+    },
+    {
       "task_id": "TASK-0013-01",
       "session_id": "SESSION-260924-0013",
       "task_name": "[0013-01]docs/18.메뉴얼 폴더 신설 및 [사용/관리] 서비스별 상세 매뉴얼(v1.0) 작성",
-      "status_cd": "처리완료",
+      "status_cd": "완료",
       "git_branch": "task/0013_0019_manual-and-worker-pipeline_Gemini",
       "started_at": "2026-09-24T14:44:28.000Z",
-      "ended_at": "2026-09-24T14:54:10.694Z",
+      "ended_at": "2026-09-24T15:18:23.170Z",
       "doc_payload": {
         "reviewDoc": "docs/10.리뷰/260924_031_docs_18_메뉴얼_신설_및_서비스별_상세매뉴얼_작성_리뷰.md",
         "manualDocs": [
@@ -100,14 +129,16 @@
           "18-02 관리자 하네스 및 시스템 운영 매뉴얼 (v1.0) 작성",
           "하네스 거버넌스 대화턴 추적 등록일자(created_at) Desc 기본 정렬 적용",
           "세션ID 필터 선택 즉각 반응 및 검색 버튼/Enter 키 이벤트 핸들러 보강"
-        ]
+        ],
+        "promotedAt": "2026-09-24T15:18:23.170Z",
+        "promotedSha": "56fd54ae8fa59e22fed127f19913cb047a6f21bb"
       },
       "created_sys": "agent-harness",
       "created_by": "system",
       "updated_sys": "agent-harness",
       "updated_by": "system",
-      "version": 1,
-      "updated_at": "2026-09-24T14:54:10.694Z"
+      "version": 2,
+      "updated_at": "2026-09-24T15:18:23.170Z"
     },
     {
       "task_id": "TASK-260924-0012-01",

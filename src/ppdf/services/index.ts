@@ -11,3 +11,4 @@ export * from './PageLayoutEngine';
 export * from './PageHistoryManager';
 export * from './SearchablePdfExportEngine';
 export * from './PdfConfigManager';
+export * from './SearchablePdfWorkerClient';

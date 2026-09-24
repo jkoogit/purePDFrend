@@ -33,6 +33,7 @@ import {
   HistoryManager,
   HistoryStats,
   SearchablePdfExportEngine,
+  SearchablePdfWorkerClient,
   FontRegistry,
 } from '../services';
 import { PageThumbnailSidebar } from './PageThumbnailSidebar';
@@ -286,7 +287,7 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
     syncHistoryAndState(nextPages, `소프트 삭제 ${deletedCount}건 영구 정리 (클린징)`);
   };
 
-  // Searchable PDF 내보내기 및 다운로드 실행
+  // Searchable PDF 내보내기 및 다운로드 실행 (Web Worker 백그라운드 오프로딩)
   const handleExportSearchablePdf = async () => {
     const activePages = PageLayoutEngine.getActivePages(pages);
     if (activePages.length === 0) {
@@ -299,10 +300,10 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
       setExportProgress({
         current: 0,
         total: activePages.length,
-        message: 'Searchable PDF 생성 파이프라인 초기화 중...',
+        message: 'Web Worker 백그라운드 컴파일 파이프라인 초기화 중...',
       });
 
-      const result = await SearchablePdfExportEngine.createSearchablePdf(pages, {
+      const result = await SearchablePdfWorkerClient.getInstance().compileSearchablePdfAsync(pages, {
         bookTitle,
         author: 'purePDFrend High-Resolution Scan Archive',
         fontId: selectedFontId,
@@ -315,13 +316,19 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
       SearchablePdfExportEngine.downloadBlob(result.pdfBytes, result.fileName);
 
       const sizeKb = Math.round(result.totalBytes / 1024);
-      showToast(`📥 ${result.fileName} (${result.pageCount}P, ${sizeKb}KB, ${result.durationMs}ms) 다운로드 완료`);
+      showToast(`📥 ${result.fileName} (${result.pageCount}P, ${sizeKb}KB, ${result.durationMs}ms, 0ms UI 블로킹) 다운로드 완료`);
     } catch (err: any) {
       console.error('PDF Export Error:', err);
       showToast(`❌ PDF 내보내기 실패: ${err.message}`);
     } finally {
       setIsExporting(false);
     }
+  };
+
+  const handleCancelExport = () => {
+    SearchablePdfWorkerClient.getInstance().cancelCurrentJob();
+    setIsExporting(false);
+    showToast('⚠️ PDF 내보내기 작업이 취소되었습니다.');
   };
 
   // BBox 교정 스튜디오로 인계
@@ -349,16 +356,25 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
       {isExporting && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-indigo-500/20 rounded-xl">
-                <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-indigo-500/20 rounded-xl">
+                  <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="text-sm font-bold text-slate-100">Searchable PDF 내보내는 중...</h3>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-indigo-950 text-indigo-300 border border-indigo-800 font-semibold">Web Worker</span>
+                  </div>
+                  <p className="text-xs text-slate-400">{exportProgress.message}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-100">
-                  Searchable PDF 내보내는 중...
-                </h3>
-                <p className="text-xs text-slate-400">{exportProgress.message}</p>
-              </div>
+              <button
+                onClick={handleCancelExport}
+                className="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-rose-200 transition"
+              >
+                취소
+              </button>
             </div>
 
             {/* Progress Bar */}

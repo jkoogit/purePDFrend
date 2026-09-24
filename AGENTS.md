@@ -139,25 +139,29 @@ stateDiagram-v2
     5. 다음 하네스 입력 전까지 처리 작업 반복 진행.
     6. **루프 연계**: 태스크 처리 중에만 루프 처리(`LOOP-xxx`) 가능. 필요 시 `#루프시작` ➔ `#루프처리` ➔ `#루프정리` 순서로 진행.
       - 루프ID : LOOP-260921-[세션번호-태스크번호-루프번호]
-    7. 태스트 수정한 작업내용 작업브랜치 commit
+    7. 태스크 수정한 작업내용 staged 처리 후 작업브랜치 commit.
 
-### [규칙 2.3] `#태스크정리` 인입 시: READ-ONLY (리뷰문서 작성 및 하네스 동기화 제외 파일쓰기 제한)
-- 소스 코드(`src/`) 임의 수정은 금지되며, 오직 리뷰 문서 발행과 하네스/Git 동기화만 수행합니다.
+### [규칙 2.3] `#태스크정리` 인입 시: READ-ONLY (리뷰/매뉴얼 작성 및 원격 PR/dev 머지 동기화)
+- 소스 코드(`src/`) 임의 수정은 금지되며, 오직 리뷰/매뉴얼 문서 발행과 하네스/Git 동기화만 수행합니다.
   - **수행 사항**:
     1. 테스트 및 서비스 점검 후 오류 확인 시 피드백 안내.
     2. `docs/10.리뷰/`에 완료 코드리뷰 문서를 발행하고 인덱스(`README_리뷰.md`)를 현행화.
-    3. 작업한 태스크 정보를 하네스 스토어(`data/local_agent_store.json` 및 DB)에 반영하여 등록 후 현행화.
-    4. **원격 커밋 생성 및 푸시 (Git Data API Push Mandate)**: `npx tsx scripts/github_sync_push.ts` 스크립트를 호출하여 로컬 변경 파일 전체를 GitHub Git Database API(`POST /git/blobs`, `POST /git/trees`, `POST /git/commits`, `PATCH /git/refs`)를 통해 원격 `dev` 브랜치에 실제 신규 커밋으로 생성(Push)합니다.
-    5. PR 작성 및 머지 필요 시 `POST /repos/:owner/:repo/pulls` 및 `POST /repos/:owner/:repo/merges`를 수행합니다.
+    3. 태스크 처리 과정에서 기능 변경 또는 추가 발생 시 `docs/18.메뉴얼/` 폴더의 서비스 매뉴얼을 최신 버전으로 현행화.
+    4. 작업한 태스크 정보를 하네스 스토어(`data/local_agent_store.json` 및 DB)에 '처리완료' 상태로 반영하여 등록 후 현행화.
+    5. **[필수 원칙] 작업브랜치 Commit & Push ➔ PR 작성 ➔ 원격 dev 브랜치 머지 완결**:
+       - 변경된 소스 전체를 staged 처리 후 GitHub Git Database API(`POST /git/blobs`, `POST /git/trees`, `POST /git/commits`, `PATCH /git/refs`)를 통해 작업 브랜치(`task/...`)에 실제 신규 커밋으로 Push합니다.
+       - GitHub REST API(`POST /repos/:owner/:repo/pulls`)를 호출하여 해당 작업 브랜치의 Pull Request를 자동 작성합니다.
+       - 이어 GitHub REST API(`POST /repos/:owner/:repo/merges` 또는 Fast-forward ref patch)를 통해 해당 작업 내용을 원격 `dev` 브랜치에 즉시 머지 완료합니다.
     6. `#태스크정리` 이후 입력되는 프롬프트는 `#태스크승급`으로 제한합니다.
-    7. 테스크 처리과정에서 기능변경, 추가 발생시 /18.메뉴이러 폴더의 메뉴을 현행화
 
-### [규칙 2.4] `#태스크승급` 명시 시: READ-ONLY (원격 브랜치 배포 승급 및 상태 마감)
+### [규칙 2.4] `#태스크승급` 명시 시: READ-ONLY (원격 dev 기준 stg/main 배포 승급 및 상태 마감)
 - 소스 및 문서 수정을 엄격히 제한하고 상태 승급 및 원격 브랜치 배포를 처리합니다.
   - **수행 사항**:
-    1. **원격 브랜치 배포 승급**: GitHub REST API(`POST /repos/:owner/:repo/merges`)를 호출하여 최신 커밋이 반영된 `dev` 브랜치 내용을 `stg` 브랜치에 머지하고, 이어 `stg` 브랜치를 `main` 브랜치에 즉시 배포 승급합니다. 3개 브랜치의 커밋 SHA 일치 여부를 검증합니다.(불일치 시 피드백 확인)
-    2. **하네스 스토어 동기화**: 작업한 태스크 정보를 하네스 스토어(`data/local_agent_store.json` 및 DB)에 반영하여 상태를 `완료`로 최종 수정합니다.
-    3. 승급 이후 입력되는 프롬프트는 `#태스크시작` 또는 `#세션정리`로 제한합니다.
+    1. **원격 dev 기준 stg 및 main 브랜치 배포 승급**:
+       - 최신 커밋이 머지된 원격 `dev` 브랜치 내용을 기준으로 GitHub REST API(`POST /repos/:owner/:repo/merges` 또는 Fast-forward ref update)를 호출하여 `stg` 브랜치에 머지하고, 이어 `stg` 브랜치를 프로덕션 `main` 브랜치에 즉시 배포 승급합니다.
+       - 3개 원격 브랜치(`dev`, `stg`, `main`)의 커밋 SHA 100% 일치 여부를 최종 검증합니다. (불일치 시 피드백 확인)
+    2. **하네스 스토어 동기화**: 작업한 태스크 정보를 하네스 스토어(`data/local_agent_store.json` 및 DB)에 반영하여 상태를 `완료`로 최종 수정 마감합니다.
+    3. 승급 이후 입력되는 프롬프트는 후속 `#태스크시작` 또는 `#세션정리`로 제한합니다.
 
 ---
 

@@ -19,6 +19,7 @@
 | `15-11` | `15-11_pdf-lib_기반_투명_텍스트_레이어_임베딩_및_Searchable_PDF_생성_기법.md` | pdf-lib 기반 투명 텍스트 레이어 임베딩 및 Searchable PDF 생성 | BBox 좌표계 ↔ PDF 포인트 변환, opacity:0 투명 텍스트 오버레이, 동적 폰트 레지스트리 및 [도서명]_ocr_YYYYMMDD.pdf 포맷 |
 | `15-12` | `15-12_In_Memory_Write_Through_설정_레지스트리_및_2Way_BBox_인라인_교정_패턴_해설.md` | In-Memory Write-Through 설정 및 2-Way 교정 패턴 해설 | In-Memory Fast Read 캐시, Observer Pub-Sub, React 18 useSyncExternalStore, 2-Way BBox 및 프리셋 전략 |
 | `15-13` | `15-13_세션_DR_스냅샷_디둡_롤링아카이빙_및_UTF8_인코딩_가드레일_해설.md` | 세션 DR 스냅샷 디둡·롤링 아카이빙 및 UTF-8 가드레일 해설 | SHA-256 상태지문 중복억제, 10개 롤링 보관/Cold 2계층 복구, 전역 UTF-8/NFC 정규화 |
+| `15-14` | `15-14_Web_Worker_스레드_오프로딩_및_Transferable_Zero_Copy_기법.md` | Web Worker 스레드 오프로딩 및 Transferable Zero-Copy 기법 | Web Worker 독립 OS 스레드 분리, Transferable ArrayBuffer 제로 카피, 0ms 메인스레드 프리징 방어 |
 
 <div align="center">
   <img src="./images/README_학습_diag_1.svg" alt="15. 학습 (Knowledge & Prompt Engineering) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1" style="max-width: 100%; height: auto; border: 1px solid #334155; border-radius: 12px;" />
