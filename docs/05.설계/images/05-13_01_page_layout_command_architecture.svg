@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 380" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="boxGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b4b" />
+      <stop offset="100%" stop-color="#312e81" />
+    </linearGradient>
+    <linearGradient id="boxGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#064e3b" />
+      <stop offset="100%" stop-color="#065f46" />
+    </linearGradient>
+    <linearGradient id="boxGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#701a75" />
+      <stop offset="100%" stop-color="#86198f" />
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.4" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="380" fill="url(#bgGrad)" rx="16" />
+
+  <!-- Title -->
+  <text x="450" y="36" fill="#f8fafc" font-size="18" font-weight="bold" font-family="system-ui, sans-serif" text-anchor="middle">
+    PDF 페이지 레이아웃 &amp; 무한 Undo/Redo 커맨드 아키텍처
+  </text>
+  <text x="450" y="60" fill="#94a3b8" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">
+    Command Pattern &amp; Memento Snapshot for High Performance 800-page Virtual Studio
+  </text>
+
+  <!-- Box 1: PageHistoryManager -->
+  <g transform="translate(40, 90)" filter="url(#shadow)">
+    <rect width="250" height="240" fill="url(#boxGrad1)" stroke="#6366f1" stroke-width="1.5" rx="12" />
+    <rect width="250" height="38" fill="#4338ca" rx="12" />
+    <rect width="250" height="12" y="26" fill="#4338ca" />
+    <text x="125" y="24" fill="#ffffff" font-size="14" font-weight="bold" text-anchor="middle" font-family="system-ui, sans-serif">
+      1. PageHistoryManager
+    </text>
+    <text x="20" y="68" fill="#c7d2fe" font-size="12" font-family="monospace">
+      - undoStack: State[] (무제한)
+    </text>
+    <text x="20" y="92" fill="#c7d2fe" font-size="12" font-family="monospace">
+      - redoStack: State[]
+    </text>
+    <text x="20" y="116" fill="#c7d2fe" font-size="12" font-family="monospace">
+      - currentState: PdfPageItem[]
+    </text>
+    <path d="M 15 130 L 235 130" stroke="#4f46e5" stroke-dasharray="4 2" />
+    <text x="20" y="152" fill="#e0e7ff" font-size="12" font-family="monospace">
+      + execute(command): void
+    </text>
+    <text x="20" y="174" fill="#e0e7ff" font-size="12" font-family="monospace">
+      + undo(): PdfPageItem[]
+    </text>
+    <text x="20" y="196" fill="#e0e7ff" font-size="12" font-family="monospace">
+      + redo(): PdfPageItem[]
+    </text>
+    <text x="20" y="218" fill="#38bdf8" font-size="11" font-family="sans-serif">
+      ✓ canUndo / canRedo 제어
+    </text>
+  </g>
+
+  <!-- Arrow 1 -> 2 -->
+  <path d="M 290 210 L 330 210" stroke="#818cf8" stroke-width="2" marker-end="url(#arrow)" />
+  <polygon points="330,205 340,210 330,215" fill="#818cf8" />
+
+  <!-- Box 2: PageLayoutEngine -->
+  <g transform="translate(340, 90)" filter="url(#shadow)">
+    <rect width="250" height="240" fill="url(#boxGrad2)" stroke="#10b981" stroke-width="1.5" rx="12" />
+    <rect width="250" height="38" fill="#047857" rx="12" />
+    <rect width="250" height="12" y="26" fill="#047857" />
+    <text x="125" y="24" fill="#ffffff" font-size="14" font-weight="bold" text-anchor="middle" font-family="system-ui, sans-serif">
+      2. PageLayoutEngine
+    </text>
+    <text x="20" y="68" fill="#a7f3d0" font-size="12" font-family="monospace">
+      + rotatePage(pageNum, angle)
+    </text>
+    <text x="20" y="92" fill="#a7f3d0" font-size="12" font-family="monospace">
+      + batchRotate(pageNums, angle)
+    </text>
+    <text x="20" y="116" fill="#a7f3d0" font-size="12" font-family="monospace">
+      + reorderPages(from, to)
+    </text>
+    <text x="20" y="140" fill="#a7f3d0" font-size="12" font-family="monospace">
+      + softDeletePage(pageNum)
+    </text>
+    <text x="20" y="164" fill="#a7f3d0" font-size="12" font-family="monospace">
+      + restorePage(pageNum)
+    </text>
+    <text x="20" y="188" fill="#a7f3d0" font-size="12" font-family="monospace">
+      + cleanDeletedPages()
+    </text>
+    <text x="20" y="218" fill="#34d399" font-size="11" font-family="sans-serif">
+      ✓ 순수 함수 &amp; 불변식 보장
+    </text>
+  </g>
+
+  <!-- Arrow 2 -> 3 -->
+  <path d="M 590 210 L 630 210" stroke="#34d399" stroke-width="2" />
+  <polygon points="630,205 640,210 630,215" fill="#34d399" />
+
+  <!-- Box 3: UI Layer -->
+  <g transform="translate(640, 90)" filter="url(#shadow)">
+    <rect width="220" height="240" fill="url(#boxGrad3)" stroke="#e879f9" stroke-width="1.5" rx="12" />
+    <rect width="220" height="38" fill="#a21caf" rx="12" />
+    <rect width="220" height="12" y="26" fill="#a21caf" />
+    <text x="110" y="24" fill="#ffffff" font-size="14" font-weight="bold" text-anchor="middle" font-family="system-ui, sans-serif">
+      3. UI Studio Layer
+    </text>
+    <text x="15" y="70" fill="#f5d0fe" font-size="12" font-family="sans-serif" font-weight="bold">
+      • PageThumbnailSidebar
+    </text>
+    <text x="25" y="92" fill="#fae8ff" font-size="11" font-family="sans-serif">
+      - HTML5 Drag &amp; Drop
+    </text>
+    <text x="25" y="112" fill="#fae8ff" font-size="11" font-family="sans-serif">
+      - 다중 선택 &amp; 퀵 액션
+    </text>
+    <text x="15" y="142" fill="#f5d0fe" font-size="12" font-family="sans-serif" font-weight="bold">
+      • VirtualViewerStudio
+    </text>
+    <text x="25" y="164" fill="#fae8ff" font-size="11" font-family="sans-serif">
+      - Undo / Redo 상단 툴바
+    </text>
+    <text x="25" y="184" fill="#fae8ff" font-size="11" font-family="sans-serif">
+      - 회전 CSS Transform
+    </text>
+    <text x="25" y="218" fill="#f0abfc" font-size="11" font-family="sans-serif">
+      ✓ 60fps 부드러운 반응성
+    </text>
+  </g>
+</svg>

@@ -7,3 +7,7 @@ export * from './ocr/EnsembleOcrRouter';
 export * from './ocr/OcrEngineFactory';
 export * from './VirtualScrollEngine';
 export * from './PdfPageStore';
+export * from './PageLayoutEngine';
+export * from './PageHistoryManager';
+export * from './SearchablePdfExportEngine';
+export * from './PdfConfigManager';

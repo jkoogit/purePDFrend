@@ -15,6 +15,10 @@
 | `15-07` | `15-07_스캔도서_양면분할_테두리트리밍_및_앙상블OCR_알고리즘_해설.md` | 양면분할, 테두리트리밍 및 앙상블OCR 해설 | 책 접힘선 감지 양면 분할, 스캐너 검은 테두리 자동 트리밍, 신뢰도 기반 앙상블 OCR 라우팅 및 2-Way 교정 스튜디오 |
 | `15-08` | `15-08_마크다운_Mermaid_이미지화_및_하단_편집이력_거버넌스_가이드.md` | 마크다운 Mermaid 이미지화 및 하단 편집이력 가이드 | 마크다운 다이어그램 렌더링 호환성 래퍼, alt 대체 텍스트 및 하단 편집이력 표준화 패턴 |
 | `15-09` | `15-09_브라우저_대용량_PDF_가상스크롤_및_LRU_메모리가드_패턴_해설.md` | 브라우저 대용량 PDF 가상 스크롤 및 LRU 메모리가드 해설 | 800쪽 대용량 도서 뷰포트 윈도잉, 상하 스페이서 계산식, 10페이지 LRU 메모리가드 및 OOM 방지 기법 |
+| `15-10` | `15-10_커맨드_패턴_기반_PDF_무한_실행취소_다시실행_및_불변_상태관리_해설.md` | 커맨드 패턴 기반 PDF 무한 실행취소/다시실행 해설 | Command/Memento 패턴, 800쪽 불변 메타데이터 스택, 소프트 삭제/복구/클린징 및 제네릭 상태관리 |
+| `15-11` | `15-11_pdf-lib_기반_투명_텍스트_레이어_임베딩_및_Searchable_PDF_생성_기법.md` | pdf-lib 기반 투명 텍스트 레이어 임베딩 및 Searchable PDF 생성 | BBox 좌표계 ↔ PDF 포인트 변환, opacity:0 투명 텍스트 오버레이, 동적 폰트 레지스트리 및 [도서명]_ocr_YYYYMMDD.pdf 포맷 |
+| `15-12` | `15-12_In_Memory_Write_Through_설정_레지스트리_및_2Way_BBox_인라인_교정_패턴_해설.md` | In-Memory Write-Through 설정 및 2-Way 교정 패턴 해설 | In-Memory Fast Read 캐시, Observer Pub-Sub, React 18 useSyncExternalStore, 2-Way BBox 및 프리셋 전략 |
+| `15-13` | `15-13_세션_DR_스냅샷_디둡_롤링아카이빙_및_UTF8_인코딩_가드레일_해설.md` | 세션 DR 스냅샷 디둡·롤링 아카이빙 및 UTF-8 가드레일 해설 | SHA-256 상태지문 중복억제, 10개 롤링 보관/Cold 2계층 복구, 전역 UTF-8/NFC 정규화 |
 
 <div align="center">
   <img src="./images/README_학습_diag_1.svg" alt="15. 학습 (Knowledge & Prompt Engineering) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1" style="max-width: 100%; height: auto; border: 1px solid #334155; border-radius: 12px;" />
@@ -32,5 +36,7 @@ graph TD
         L4 --> L7[15-07: 전처리 알고리즘 & 앙상블 OCR]
         L4 --> L8[15-08: 다이어그램 이미지화 & 하단 편집이력]
         L4 --> L9[15-09: 대용량 가상스크롤 & LRU 메모리가드]
+        L4 --> L10[15-10: 무한 실행취소/다시실행 커맨드 패턴]
+        L4 --> L11[15-11: pdf-lib 투명 텍스트 레이어 임베딩]
     end
 ```

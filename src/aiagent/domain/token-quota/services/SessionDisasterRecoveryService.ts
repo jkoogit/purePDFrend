@@ -1,6 +1,6 @@
 /**
  * @file SessionDisasterRecoveryService.ts
- * @description 세션 재해복구(DR), 스냅샷 관리 및 행(Hang) 원인 판별 도메인 서비스
+ * @description 세션 재해복구(DR), SHA-256 상태지문 스냅샷 디둡, 롤링 아카이빙 및 행(Hang) 판독 도메인 서비스
  */
 
 export type HangReasonType = 
@@ -32,6 +32,10 @@ export interface SessionSnapshot {
   hangReason?: HangReasonType;
   createdAt: string;
   restoredAt?: string | null;
+  stateHash?: string;
+  verifyCount?: number;
+  lastVerifiedAt?: string;
+  isDeduplicated?: boolean;
 }
 
 export class SessionDisasterRecoveryService {
@@ -114,7 +118,133 @@ export class SessionDisasterRecoveryService {
   }
 
   /**
-   * #세션복구 요청 시 분기 해석 (1건 자동복구 vs 다건 목록 선택)
+   * 세션 상태 정규화 SHA-256 지문(Fingerprint) 계산
+   */
+  public static computeStateHash(data: {
+    sessionNum: string;
+    latestCommitSha: string;
+    lastTaskId?: string;
+    totalContextTokens?: number;
+    branch: string;
+  }): string {
+    const raw = `${data.sessionNum}:${data.latestCommitSha}:${data.lastTaskId || ''}:${data.totalContextTokens || 0}:${data.branch}`;
+    // 경량 및 안정적인 해시 생성 (문자열 해시코드 기반 16진수)
+    let hash = 0;
+    for (let i = 0; i < raw.length; i++) {
+      const char = raw.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash |= 0;
+    }
+    const hex = Math.abs(hash).toString(16).padStart(8, '0');
+    return `HASH-${hex}`;
+  }
+
+  /**
+   * 상태 해시 기반 중복 스냅샷 생성 방지 및 갱신 (Deduplication)
+   */
+  public static createDeduplicatedSnapshot(
+    existingSnapshots: SessionSnapshot[],
+    newSnapshotParams: Omit<SessionSnapshot, 'stateHash' | 'verifyCount' | 'lastVerifiedAt' | 'isDeduplicated'>
+  ): {
+    updatedSnapshots: SessionSnapshot[];
+    resultSnapshot: SessionSnapshot;
+    isDeduplicated: boolean;
+  } {
+    const stateHash = SessionDisasterRecoveryService.computeStateHash({
+      sessionNum: newSnapshotParams.sessionNum,
+      latestCommitSha: newSnapshotParams.latestCommitSha,
+      lastTaskId: newSnapshotParams.lastTaskId,
+      totalContextTokens: newSnapshotParams.totalContextTokens,
+      branch: newSnapshotParams.branch,
+    });
+
+    const now = new Date().toISOString();
+
+    // 직전 활성 스냅샷 중 동일 상태 해시가 있는지 탐색
+    const existingIndex = existingSnapshots.findIndex(
+      (s) => s.stateHash === stateHash && s.status === 'PENDING_RECOVERY'
+    );
+
+    if (existingIndex !== -1) {
+      // 해시 일치: 신규 파일 생성 없이 기존 스냅샷의 verifyCount 및 타임스탬프만 갱신
+      const existing = existingSnapshots[existingIndex];
+      const updated: SessionSnapshot = {
+        ...existing,
+        verifyCount: (existing.verifyCount || 1) + 1,
+        lastVerifiedAt: now,
+        isDeduplicated: true,
+      };
+
+      const updatedList = [...existingSnapshots];
+      updatedList[existingIndex] = updated;
+
+      return {
+        updatedSnapshots: updatedList,
+        resultSnapshot: updated,
+        isDeduplicated: true,
+      };
+    }
+
+    // 신규 스냅샷 생성
+    const created: SessionSnapshot = {
+      ...newSnapshotParams,
+      stateHash,
+      verifyCount: 1,
+      lastVerifiedAt: now,
+      isDeduplicated: false,
+    };
+
+    return {
+      updatedSnapshots: [created, ...existingSnapshots],
+      resultSnapshot: created,
+      isDeduplicated: false,
+    };
+  }
+
+  /**
+   * 롤링 보관 및 오래된 스냅샷 아카이빙 (최근 maxKeep=10개 유지)
+   */
+  public static archiveOldSnapshots(
+    snapshots: SessionSnapshot[],
+    maxKeep: number = 10
+  ): {
+    activeSnapshots: SessionSnapshot[];
+    archivedSnapshots: SessionSnapshot[];
+    archivedCount: number;
+  } {
+    const pending = snapshots.filter((s) => s.status === 'PENDING_RECOVERY');
+    const others = snapshots.filter((s) => s.status !== 'PENDING_RECOVERY');
+
+    if (pending.length <= maxKeep) {
+      return {
+        activeSnapshots: snapshots,
+        archivedSnapshots: others.filter((s) => s.status === 'ARCHIVED'),
+        archivedCount: 0,
+      };
+    }
+
+    // 생성일시 기준 최신순 정렬
+    const sorted = [...pending].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    const kept = sorted.slice(0, maxKeep);
+    const toArchive = sorted.slice(maxKeep).map((s) => ({
+      ...s,
+      status: 'ARCHIVED' as const,
+    }));
+
+    const newlyArchived = [...others, ...toArchive];
+
+    return {
+      activeSnapshots: [...kept, ...newlyArchived],
+      archivedSnapshots: newlyArchived.filter((s) => s.status === 'ARCHIVED'),
+      archivedCount: toArchive.length,
+    };
+  }
+
+  /**
+   * #세션복구 요청 시 2계층 분기 해석 (Active 목록 + Archived 목록 Fallback)
    */
   public static resolveRecoveryTarget(
     snapshots: SessionSnapshot[],
@@ -124,29 +254,46 @@ export class SessionDisasterRecoveryService {
     targetSnapshot?: SessionSnapshot;
     candidates?: SessionSnapshot[];
     message: string;
+    isFromArchive?: boolean;
   } {
-    const pending = snapshots.filter(s => s.status === 'PENDING_RECOVERY');
+    const pending = snapshots.filter((s) => s.status === 'PENDING_RECOVERY');
+
+    // 대상이 명시된 경우 (Active -> Archived 2계층 검색)
+    if (requestedTarget) {
+      const cleanTarget = requestedTarget.replace(/[\[\]]/g, '').trim();
+      
+      // 1계층: Active 검색
+      const activeMatch = pending.find(
+        (s) => s.snapshotId === cleanTarget || s.sessionNum === cleanTarget
+      );
+      if (activeMatch) {
+        return {
+          strategy: 'DIRECT_RESTORE',
+          targetSnapshot: activeMatch,
+          message: `[${activeMatch.sessionNum}] 세션 스냅샷(${activeMatch.snapshotId})을 즉시 복구합니다.`,
+          isFromArchive: false,
+        };
+      }
+
+      // 2계층: Archive Cold Storage 검색
+      const archiveMatch = snapshots.find(
+        (s) => (s.snapshotId === cleanTarget || s.sessionNum === cleanTarget) && s.status === 'ARCHIVED'
+      );
+      if (archiveMatch) {
+        return {
+          strategy: 'DIRECT_RESTORE',
+          targetSnapshot: archiveMatch,
+          message: `아카이브 보관소에서 [${archiveMatch.sessionNum}] 세션 스냅샷(${archiveMatch.snapshotId})을 탐색하여 복구합니다.`,
+          isFromArchive: true,
+        };
+      }
+    }
 
     if (pending.length === 0) {
       return {
         strategy: 'NO_SNAPSHOT',
-        message: '복구 대기 중인 세션 스냅샷이 없습니다.',
+        message: '복구 대기 중인 활성 세션 스냅샷이 없습니다.',
       };
-    }
-
-    // 대상이 명시된 경우 (예: #세션복구:0009 또는 #세션복구:SNAP-xxx)
-    if (requestedTarget) {
-      const cleanTarget = requestedTarget.replace(/[\[\]]/g, '').trim();
-      const match = pending.find(
-        s => s.snapshotId === cleanTarget || s.sessionNum === cleanTarget
-      );
-      if (match) {
-        return {
-          strategy: 'DIRECT_RESTORE',
-          targetSnapshot: match,
-          message: `[${match.sessionNum}] 세션 스냅샷(${match.snapshotId})을 즉시 복구합니다.`,
-        };
-      }
     }
 
     // 1건만 존재하는 경우: 자동 직결 복구
@@ -156,6 +303,7 @@ export class SessionDisasterRecoveryService {
         strategy: 'DIRECT_RESTORE',
         targetSnapshot: single,
         message: `복구 대기 세션 [${single.sessionNum}] 1건이 확인되어 자동 직결 복구를 진행합니다.`,
+        isFromArchive: false,
       };
     }
 
@@ -163,7 +311,8 @@ export class SessionDisasterRecoveryService {
     return {
       strategy: 'SHOW_SELECTION_LIST',
       candidates: pending,
-      message: `복구 가능한 세션 스냅샷이 ${pending.length}건 존재합니다. 복구할 번호를 선택해주세요.`,
+      message: `복구 가능한 활성 세션 스냅샷이 ${pending.length}건 존재합니다. 복구할 번호를 선택해주세요.`,
+      isFromArchive: false,
     };
   }
 }

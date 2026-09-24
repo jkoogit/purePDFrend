@@ -606,12 +606,32 @@ export const EmergencyRecoveryPanel: React.FC = () => {
                 <FileText className="w-5 h-5 text-indigo-400" />
                 <h3 className="text-sm font-bold text-white">세션 스냅샷 파일 및 미완료 작업 상세</h3>
               </div>
-              <button
-                onClick={() => setSnapshotDetailModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await fetch('/api/agent/session/snapshot/archive', { method: 'POST' });
+                      const data = await res.json();
+                      if (data.success) {
+                        alert(`10건 초과 스냅샷 아카이빙 완료: ${data.archivedCount}건 Cold 보관소 이동`);
+                        await fetchStatus();
+                      }
+                    } catch (e) {
+                      console.error('Archiving failed', e);
+                    }
+                  }}
+                  title="최근 10건을 제외한 오래된 스냅샷을 data/archives/snapshots/로 이동합니다."
+                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700 transition"
+                >
+                  🧹 10건 초과 아카이빙
+                </button>
+                <button
+                  onClick={() => setSnapshotDetailModal(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Modal Body */}
@@ -636,6 +656,9 @@ export const EmergencyRecoveryPanel: React.FC = () => {
                         <span className="font-mono font-bold text-indigo-300 text-sm">{s.snapshot_id}</span>
                         <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-300">
                           {s.session_title}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-indigo-950 text-indigo-300 border border-indigo-800/50">
+                          SHA-256 디둡
                         </span>
                         <span className="text-[10px] text-slate-500">{new Date(s.created_at).toLocaleString()}</span>
                       </div>
