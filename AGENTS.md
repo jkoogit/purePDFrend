@@ -139,7 +139,8 @@ stateDiagram-v2
     5. 다음 하네스 입력 전까지 처리 작업 반복 진행.
     6. **루프 연계**: 태스크 처리 중에만 루프 처리(`LOOP-xxx`) 가능. 필요 시 `#루프시작` ➔ `#루프처리` ➔ `#루프정리` 순서로 진행.
       - 루프ID : LOOP-260921-[세션번호-태스크번호-루프번호]
-    7. 태스크 수정한 작업내용 staged 처리 후 작업브랜치 commit.
+    7. **작업내용 로컬 Staged & 커밋 처리**:
+       - 로컬 Git 환경(Antigravity IDE 등)이 존재하는 경우, `git checkout -B [작업브랜치]`, `git add .`, `git commit -m "[커밋메시지]"`를 실행하여 로컬 변경사항(Changes)을 깨끗하게 정리(Clean Working Tree)하고 작업 브랜치에 로컬 커밋합니다.
 
 ### [규칙 2.3] `#태스크정리` 인입 시: READ-ONLY (리뷰/매뉴얼 작성 및 원격 PR/dev 머지 동기화)
 - 소스 코드(`src/`) 임의 수정은 금지되며, 오직 리뷰/매뉴얼 문서 발행과 하네스/Git 동기화만 수행합니다.
@@ -148,8 +149,9 @@ stateDiagram-v2
     2. `docs/10.리뷰/`에 완료 코드리뷰 문서를 발행하고 인덱스(`README_리뷰.md`)를 현행화.
     3. 태스크 처리 과정에서 기능 변경 또는 추가 발생 시 `docs/18.메뉴얼/` 폴더의 서비스 매뉴얼을 최신 버전으로 현행화.
     4. 작업한 태스크 정보를 하네스 스토어(`data/local_agent_store.json` 및 DB)에 '처리완료' 상태로 반영하여 등록 후 현행화.
-    5. **[필수 원칙] 작업브랜치 Commit & Push ➔ PR 작성 ➔ 원격 dev 브랜치 머지 완결**:
-       - 변경된 소스 전체를 staged 처리 후 GitHub Git Database API(`POST /git/blobs`, `POST /git/trees`, `POST /git/commits`, `PATCH /git/refs`)를 통해 작업 브랜치(`task/...`)에 실제 신규 커밋으로 Push합니다.
+    5. **[필수 원칙] 로컬 Staged/Commit ➔ 작업브랜치 원격 Push ➔ PR 작성 ➔ 원격 dev 브랜치 머지 완결**:
+       - 로컬 Git 환경이 있는 경우 `git add .` 및 `git commit`으로 로컬 Changes를 즉시 비우고 로컬 커밋을 생성합니다.
+       - GitHub Git Database API(`POST /git/blobs`, `POST /git/trees`, `POST /git/commits`, `PATCH /git/refs`)를 통해 원격 작업 브랜치(`task/...`)에 실제 신규 커밋으로 Push합니다.
        - GitHub REST API(`POST /repos/:owner/:repo/pulls`)를 호출하여 해당 작업 브랜치의 Pull Request를 자동 작성합니다.
        - 이어 GitHub REST API(`POST /repos/:owner/:repo/merges` 또는 Fast-forward ref patch)를 통해 해당 작업 내용을 원격 `dev` 브랜치에 즉시 머지 완료합니다.
     6. `#태스크정리` 이후 입력되는 프롬프트는 `#태스크승급`으로 제한합니다.
@@ -159,7 +161,8 @@ stateDiagram-v2
   - **수행 사항**:
     1. **원격 dev 기준 stg 및 main 브랜치 배포 승급**:
        - 최신 커밋이 머지된 원격 `dev` 브랜치 내용을 기준으로 GitHub REST API(`POST /repos/:owner/:repo/merges` 또는 Fast-forward ref update)를 호출하여 `stg` 브랜치에 머지하고, 이어 `stg` 브랜치를 프로덕션 `main` 브랜치에 즉시 배포 승급합니다.
-       - 3개 원격 브랜치(`dev`, `stg`, `main`)의 커밋 SHA 100% 일치 여부를 최종 검증합니다. (불일치 시 피드백 확인)
+       - 3개 원격 브랜치(`dev`, `stg`, `main`) 및 작업 브랜치의 커밋 SHA 100% 일치 여부를 최종 검증합니다. (불일치 시 피드백 확인)
+       - 로컬 Git 환경이 존재하는 경우 `git fetch origin` 및 로컬 `dev`, `stg`, `main` 브랜치를 원격 SHA와 100% 동기화(`git reset --hard origin/[브랜치]`)합니다.
     2. **하네스 스토어 동기화**: 작업한 태스크 정보를 하네스 스토어(`data/local_agent_store.json` 및 DB)에 반영하여 상태를 `완료`로 최종 수정 마감합니다.
     3. 승급 이후 입력되는 프롬프트는 후속 `#태스크시작` 또는 `#세션정리`로 제한합니다.
 
