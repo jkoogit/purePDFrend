@@ -12,3 +12,4 @@ export * from './PageHistoryManager';
 export * from './SearchablePdfExportEngine';
 export * from './PdfConfigManager';
 export * from './SearchablePdfWorkerClient';
+export * from './ocr/OcrBatchQueueManager';

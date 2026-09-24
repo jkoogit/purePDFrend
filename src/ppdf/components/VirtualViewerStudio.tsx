@@ -38,6 +38,8 @@ import {
 } from '../services';
 import { PageThumbnailSidebar } from './PageThumbnailSidebar';
 import PdfSettingsModal from './PdfSettingsModal';
+import { OcrBatchProgressModal } from './OcrBatchProgressModal';
+import { PageOcrJob } from '../services/ocr/OcrBatchQueueManager';
 
 interface VirtualViewerStudioProps {
   onNavigateToCorrection?: (page: PdfPageItem) => void;
@@ -88,6 +90,7 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
   const [showBBoxOverlay, setShowBBoxOverlay] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const [isBatchOcrOpen, setIsBatchOcrOpen] = useState<boolean>(false);
 
   // 6. Virtual Scroll Engine State
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -331,6 +334,25 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
     showToast('⚠️ PDF 내보내기 작업이 취소되었습니다.');
   };
 
+  // 일괄 OCR 완료 시 페이지 상태 동기화
+  const handleBatchOcrComplete = (jobs: PageOcrJob[]) => {
+    const updatedMap = new Map(jobs.filter(j => j.status === 'COMPLETED' && j.result).map(j => [j.pageNumber, j.result!]));
+    if (updatedMap.size > 0) {
+      const nextPages = pages.map(p => {
+        const ocrRes = updatedMap.get(p.pageNumber);
+        if (ocrRes) {
+          return {
+            ...p,
+            ocrResult: ocrRes,
+            text: ocrRes.text,
+          };
+        }
+        return p;
+      });
+      syncHistoryAndState(nextPages, `${updatedMap.size}개 페이지 다국어 일괄 OCR 적용 완료`);
+    }
+  };
+
   // BBox 교정 스튜디오로 인계
   const handleOpenCorrection = (page: PdfPageItem) => {
     if (onNavigateToCorrection) {
@@ -409,6 +431,21 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
           </div>
         </div>
       )}
+
+      {/* Multilingual OCR Batch Progress Modal */}
+      <OcrBatchProgressModal
+        isOpen={isBatchOcrOpen}
+        onClose={() => setIsBatchOcrOpen(false)}
+        pages={pages.filter(p => !p.isDeleted).map(p => ({
+          pageNumber: p.pageNumber,
+          imageBlobUrl: p.imageUrl,
+          imageBase64: p.imageUrl,
+        }))}
+        language="kor+eng"
+        engineType="ensemble"
+        concurrency={3}
+        onComplete={handleBatchOcrComplete}
+      />
 
       {/* 1. Left Thumbnail Sidebar (DnD & Layout) */}
       <PageThumbnailSidebar
@@ -645,6 +682,16 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
               <span>전체회전</span>
             </button>
 
+            {/* Multilingual Batch OCR Button */}
+            <button
+              onClick={() => setIsBatchOcrOpen(true)}
+              title="Worker Pool 기반 다국어 OCR 병렬 배치 실행"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-lg text-xs font-bold shadow-lg shadow-purple-500/20 transition-all hover:scale-105"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>다국어 일괄 OCR</span>
+            </button>
+
             {/* Searchable PDF Export Button */}
             <button
               onClick={handleExportSearchablePdf}
@@ -653,7 +700,7 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
               className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg text-xs font-bold shadow-lg shadow-emerald-500/20 transition-all hover:scale-105"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Searchable PDF 다운로드</span>
+              <span>Searchable PDF</span>
             </button>
 
             {/* Link to BBox Correction Studio */}

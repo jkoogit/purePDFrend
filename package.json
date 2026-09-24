@@ -9,7 +9,7 @@
     "start": "node dist/server.cjs",
     "lint": "tsc --noEmit",
     "test": "tsx tests/virtual_viewer.test.ts",
-    "test:all": "tsx tests/governance_id.test.ts && tsx tests/virtual_viewer.test.ts && tsx tests/token_quota_domain.test.ts && tsx tests/ocr_preprocessing.test.ts && tsx tests/emergency_push_and_quota_dr.test.ts && tsx tests/page_layout_and_history.test.ts && tsx tests/searchable_pdf_export.test.ts && tsx tests/searchable_pdf_worker.test.ts && tsx tests/ocr_correction_and_config.test.ts && tsx tests/session_dr_and_encoding.test.ts",
+    "test:all": "tsx tests/governance_id.test.ts && tsx tests/virtual_viewer.test.ts && tsx tests/token_quota_domain.test.ts && tsx tests/ocr_preprocessing.test.ts && tsx tests/emergency_push_and_quota_dr.test.ts && tsx tests/page_layout_and_history.test.ts && tsx tests/searchable_pdf_export.test.ts && tsx tests/searchable_pdf_worker.test.ts && tsx tests/ocr_batch_queue.test.ts && tsx tests/ocr_correction_and_config.test.ts && tsx tests/session_dr_and_encoding.test.ts",
     "check:service": "tsx scripts/service_health_check.ts",
     "sync:branches": "tsx scripts/sync_remote_branches.ts",
     "push:github": "tsx scripts/github_sync_push.ts"

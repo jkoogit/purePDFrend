@@ -20,6 +20,7 @@
 | `15-12` | `15-12_In_Memory_Write_Through_설정_레지스트리_및_2Way_BBox_인라인_교정_패턴_해설.md` | In-Memory Write-Through 설정 및 2-Way 교정 패턴 해설 | In-Memory Fast Read 캐시, Observer Pub-Sub, React 18 useSyncExternalStore, 2-Way BBox 및 프리셋 전략 |
 | `15-13` | `15-13_세션_DR_스냅샷_디둡_롤링아카이빙_및_UTF8_인코딩_가드레일_해설.md` | 세션 DR 스냅샷 디둡·롤링 아카이빙 및 UTF-8 가드레일 해설 | SHA-256 상태지문 중복억제, 10개 롤링 보관/Cold 2계층 복구, 전역 UTF-8/NFC 정규화 |
 | `15-14` | `15-14_Web_Worker_스레드_오프로딩_및_Transferable_Zero_Copy_기법.md` | Web Worker 스레드 오프로딩 및 Transferable Zero-Copy 기법 | Web Worker 독립 OS 스레드 분리, Transferable ArrayBuffer 제로 카피, 0ms 메인스레드 프리징 방어 |
+| `15-15` | `15-15_Worker_Pool_기반_병렬_배치_큐_및_동시성_제어_알고리즘_해설.md` | Worker Pool 기반 병렬 배치 큐 및 동시성 제어 알고리즘 해설 | 동시성 풀 제한, FIFO 스케줄링, 지수 백오프 자동 재시도, 옵저버 텔레메트리 스트리밍 기법 |
 
 <div align="center">
   <img src="./images/README_학습_diag_1.svg" alt="15. 학습 (Knowledge & Prompt Engineering) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1" style="max-width: 100%; height: auto; border: 1px solid #334155; border-radius: 12px;" />

@@ -22,6 +22,7 @@
 | `05-15` | `05-15_2Way_BBox_캔버스_인라인_텍스트_교정기_설계.md` | 2-Way BBox 캔버스 인라인 텍스트 교정기 설계 | 실시간 양방향 포커스 동기화, BBox 이동/리사이즈, HistoryManager Undo/Redo |
 | `05-16` | `05-16_PDF_시스템_설정_및_기능_거버넌스_설계.md` | PDF 시스템 설정 및 기능 거버넌스 설계 | In-Memory Write-Through 설정 레지스트리, 6대 도메인 15개 설정, 논리적 모순 방어 |
 | `05-17` | `05-17_세션_DR_스냅샷_디둡_클린징_및_전역_UTF8_가드레일_설계.md` | 세션 DR 스냅샷 디둡·클린징 및 UTF-8 가드레일 설계 | SHA-256 상태지문 중복억제, 10개 롤링 보관/Cold 아카이빙, 전역 UTF-8/NFC 정규화 방어 |
+| `05-18` | `05-18_다국어_OCR_병렬_배치_큐_Worker_Pool_및_프로그레스_엔진_설계.md` | 다국어 OCR 병렬 배치 큐(Worker Pool) 및 프로그레스 엔진 설계 | Worker Pool 동시성 제어, 다국어 어댑터 라우팅, 실시간 TPS/ETA 계산기, Pause/Resume/Cancel 가드레일 |
 
 <div align="center">
   <img src="./images/README_설계_diag_1.svg" alt="05. 설계 (Architecture & Design Specs) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1" style="max-width: 100%; height: auto; border: 1px solid #334155; border-radius: 12px;" />
