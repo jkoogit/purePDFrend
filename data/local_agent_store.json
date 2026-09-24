@@ -30,7 +30,7 @@
       "updated_sys": "agent-harness",
       "updated_by": "system",
       "version": 1,
-      "updated_at": "2026-09-24T15:38:01.862Z"
+      "updated_at": "2026-09-24T15:48:40.664Z"
     },
     {
       "session_id": "SESSION-260924-0012",
@@ -77,10 +77,10 @@
       "task_id": "TASK-0013-02",
       "session_id": "SESSION-260924-0013",
       "task_name": "[0013-02]Web Worker 스레드 오프로딩 Searchable PDF 합성 엔진 구현",
-      "status_cd": "처리완료",
+      "status_cd": "완료",
       "git_branch": "task/0013_0019_manual-and-worker-pipeline_Gemini",
       "started_at": "2026-09-24T15:25:00.000Z",
-      "ended_at": "2026-09-24T15:38:01.861Z",
+      "ended_at": "2026-09-24T15:48:40.658Z",
       "doc_payload": {
         "reviewDoc": "docs/10.리뷰/260925_032_Web_Worker_Searchable_PDF_컴파일_엔진_구현_리뷰.md",
         "designDoc": "docs/05.설계/05-15_Web_Worker_Searchable_PDF_백그라운드_컴파일_엔진_설계.md",
@@ -94,15 +94,17 @@
           "SearchablePdfWorkerClient 싱글톤 파사드 및 Graceful Fallback",
           "컴파일 취소(cancelCurrentJob) 안전 가드레일",
           "18-01 사용자 PDF 스튜디오 매뉴얼 현행화 (v1.1)"
-        ]
+        ],
+        "promotedAt": "2026-09-24T15:48:40.662Z",
+        "promotedSha": "4de9e94d29b4bb3ea1b1eaac2b29ff562bef53f3"
       },
       "created_sys": "agent-harness",
       "created_by": "system",
       "updated_sys": "agent-harness",
       "updated_by": "system",
-      "version": 5,
+      "version": 7,
       "created_at": "2026-09-24T15:32:28.703Z",
-      "updated_at": "2026-09-24T15:38:01.862Z"
+      "updated_at": "2026-09-24T15:48:40.664Z"
     },
     {
       "task_id": "TASK-0013-01",
