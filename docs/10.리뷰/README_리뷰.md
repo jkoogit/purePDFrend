@@ -38,6 +38,7 @@
 | `10-30` | `260924_030_세션_DR_스냅샷_디둡_클린징_및_전역_UTF8_가드레일_구현_리뷰.md` | 세션 DR 스냅샷 디둡·클린징 및 UTF-8 가드레일 구현 리뷰 | SHA-256 상태지문 중복억제, 10개 롤링 보관/Cold Storage 2계층 복구, 전역 UTF-8/NFC 정규화 방어 |
 | `10-31` | `260924_031_docs_18_메뉴얼_신설_및_서비스별_상세매뉴얼_작성_리뷰.md` | docs/18.메뉴얼 신설 및 서비스별 상세 매뉴얼(v1.0) 작성 리뷰 | 19대 문서체계 확장, 사용자 스튜디오 및 관리자 거버넌스 매뉴얼 작성, 대화턴 등록일자 Desc 정렬 및 검색 결함 조치 |
 | `10-32` | `260925_032_Web_Worker_Searchable_PDF_컴파일_엔진_구현_리뷰.md` | Web Worker 스레드 오프로딩 Searchable PDF 합성 엔진 구현 리뷰 | pdf-lib 백그라운드 스레드 분리(0ms UI 블로킹), Transferable 0-Copy 전송 최적화, WorkerClient 싱글톤 및 TDD 무결성 완결 |
+| `10-33` | `260925_033_다국어_OCR_병렬_배치_큐_및_프로그레스_UI_구현_리뷰.md` | 다국어 OCR 병렬 배치 큐 및 세부 프로그레스 바 UI 구현 리뷰 | Worker Pool 동시성 제어(최대 3.8배 가속), 실시간 TPS/ETA 모니터링, Pause/Resume/Cancel 제어 가드레일 |
 
 <div align="center">
   <img src="./images/README_리뷰_diag_1.svg" alt="10. 리뷰 (Code Reviews & Quality Checks) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1" style="max-width: 100%; height: auto; border: 1px solid #334155; border-radius: 12px;" />
