@@ -16,6 +16,7 @@
 | `13-08` | `13-08_SESSION-20260923-007_세션종합_KPT_회고록.md` | SESSION-20260923-007 세션 종합 KPT 회고록 | Keep(온디맨드 자원현행화, 복수AI계정 티어오버라이드, 정수단위 무오차쿼터차감, 4단계전수점검 100점), Problem(PDF 비즈니스기능 지연), Try(PDF OCR/교정 스튜디오 고도화) |
 | `13-09` | `13-09_SESSION-20260923-008_세션종합_KPT_회고록.md` | SESSION-20260923-008 세션 종합 KPT 회고록 | Keep(대용량 가상뷰어 & LRU 메모리가드, 이미지전처리 & 3대 다국어OCR, 거버넌스 4대 ID채번, 로컬 .env로더 & 비-LLM 긴급Push 보안격리, 100점 감사), Problem(Searchable PDF 내보내기 결합 필요), Try(PDF 페이지 레이아웃 편집기 & 텍스트 레이어 임베딩 PDF 내보내기) |
 | `13-10` | `13-10_SESSION-260924-0012_세션종합_KPT_회고록.md` | SESSION-260924-0012 세션 종합 KPT 회고록 | Keep(무제한 Undo/Redo, pdf-lib Searchable PDF 내보내기, In-Memory 설정 & 2-Way BBox 교정기, DR 스냅샷 디둡/2계층 복구, 전역 UTF-8/NFC 방어), Problem(초대용량 PDF 합성 시 Worker 분리 필요), Try(Web Worker 기반 백그라운드 Searchable PDF 생성 & 배치 OCR 가속) |
+| `13-11` | `13-11_SESSION-260924-0013_세션종합_KPT_회고록.md` | SESSION-260924-0013 세션 종합 KPT 회고록 | Keep(하이브리드 Git 엔진, Web Worker Searchable PDF 합성, Worker Pool OCR 배치 큐, docs/18.메뉴얼 체계화), Problem(메타데이터/문서보안 분리 필요), Try(PDF 메타데이터 주입기 및 암호화/보안 권한 제어 엔진) |
 
 <div align="center">
   <img src="./images/README_회고_diag_1.svg" alt="13. 회고 (Retrospectives) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1" style="max-width: 100%; height: auto; border: 1px solid #334155; border-radius: 12px;" />

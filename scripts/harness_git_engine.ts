@@ -52,42 +52,54 @@ export function runLocalGit(cmd: string): string {
   }
 }
 
-// 2. GitHub REST API 헬퍼
-export function requestGitHub<T = any>(
+// 2. GitHub REST API 헬퍼 (지수 백오프 자동 재시도 3회 지원)
+export async function requestGitHub<T = any>(
   endpoint: string,
   method = 'GET',
-  data?: any
+  data?: any,
+  retries = 3
 ): Promise<{ status: number; body: T }> {
-  return new Promise((resolve, reject) => {
-    const payload = data ? JSON.stringify(data) : null;
-    const req = https.request(`https://api.github.com/repos/${OWNER}/${REPO}${endpoint}`, {
-      method,
-      headers: {
-        'User-Agent': 'purePDFrend-agent',
-        'Authorization': `Bearer ${GITHUB_TOKEN}`,
-        'Accept': 'application/vnd.github.v3+json',
-        ...(payload ? {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(payload),
-        } : {}),
-      },
-    }, (res) => {
-      const chunks: Buffer[] = [];
-      res.on('data', (c) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
-      res.on('end', () => {
-        const text = Buffer.concat(chunks).toString('utf8');
-        try {
-          const parsed = text ? JSON.parse(text) : {};
-          resolve({ status: res.statusCode || 200, body: parsed });
-        } catch (e) {
-          resolve({ status: res.statusCode || 200, body: text as any });
-        }
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await new Promise<{ status: number; body: T }>((resolve, reject) => {
+        const payload = data ? JSON.stringify(data) : null;
+        const req = https.request(`https://api.github.com/repos/${OWNER}/${REPO}${endpoint}`, {
+          method,
+          headers: {
+            'User-Agent': 'purePDFrend-agent',
+            'Authorization': `Bearer ${GITHUB_TOKEN}`,
+            'Accept': 'application/vnd.github.v3+json',
+            ...(payload ? {
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(payload),
+            } : {}),
+          },
+        }, (res) => {
+          const chunks: Buffer[] = [];
+          res.on('data', (c) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
+          res.on('end', () => {
+            const text = Buffer.concat(chunks).toString('utf8');
+            try {
+              const parsed = text ? JSON.parse(text) : {};
+              resolve({ status: res.statusCode || 200, body: parsed });
+            } catch (e) {
+              resolve({ status: res.statusCode || 200, body: text as any });
+            }
+          });
+        });
+        req.on('error', reject);
+        if (payload) req.write(payload);
+        req.end();
       });
-    });
-    req.on('error', reject);
-    if (payload) req.write(payload);
-    req.end();
-  });
+      return res;
+    } catch (e: any) {
+      if (attempt === retries) throw e;
+      const waitMs = attempt * 1000;
+      console.warn(`[GitHub API Retry] Attempt ${attempt} failed (${e.message}). Retrying in ${waitMs}ms...`);
+      await new Promise((r) => setTimeout(r, waitMs));
+    }
+  }
+  throw new Error(`Failed after ${retries} attempts`);
 }
 
 function getAllFiles(dir: string, baseDir: string = dir): string[] {
