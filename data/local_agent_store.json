@@ -88,7 +88,7 @@
       "task_id": "TASK-0013-03",
       "session_id": "SESSION-260924-0013",
       "task_name": "[0013-03]다국어 OCR 병렬 배치 큐(Worker Pool) 및 세부 프로그레스 바 UI 구현",
-      "status_cd": "처리완료",
+      "status_cd": "완료",
       "git_branch": "task/0013_0019_manual-and-worker-pipeline_Gemini",
       "started_at": "2026-09-24T16:00:00.000Z",
       "ended_at": "2026-09-24T16:05:45.688Z",
@@ -805,6 +805,146 @@
       "completion_tokens": 750,
       "total_tokens": 1800,
       "created_at": "2026-09-24T09:23:22.353Z"
+    },
+    {
+      "trace_id": "TRACE-0013-0001",
+      "session_id": "SESSION-260924-0013",
+      "turn_no": 1,
+      "prompt_text": "#세션시작 [0013]Web Worker 백그라운드 컴파일 파이프라인 구축 및 [사용/관리] 서비스 매뉴얼(v1.0) 작성",
+      "response_text": "세션 0013 시작 및 브랜치/이슈/계획 수립 완료",
+      "model_name": "gemini-3.7-flash",
+      "token_count": 2450,
+      "created_at": "2026-09-25T05:14:28.664Z"
+    },
+    {
+      "trace_id": "TRACE-0013-0002",
+      "session_id": "SESSION-260924-0013",
+      "turn_no": 2,
+      "prompt_text": "#태스크시작 [0013-01]docs/18.메뉴얼 폴더 신설 및 [사용/관리] 서비스별 상세 매뉴얼(v1.0) 작성",
+      "response_text": "태스크 0013-01 분석 및 계획 수립 완료",
+      "model_name": "gemini-3.7-flash",
+      "token_count": 2450,
+      "created_at": "2026-09-25T05:14:28.665Z"
+    },
+    {
+      "trace_id": "TRACE-0013-0003",
+      "session_id": "SESSION-260924-0013",
+      "turn_no": 3,
+      "prompt_text": "#태스크처리 [0013-01]docs/18.메뉴얼 폴더 신설 및 [사용/관리] 서비스별 상세 매뉴얼(v1.0) 작성",
+      "response_text": "18-01, 18-02 매뉴얼 및 SVG 다이어그램 4종 작성 완료",
+      "model_name": "gemini-3.7-flash",
+      "token_count": 2450,
+      "created_at": "2026-09-25T05:14:28.665Z"
+    },
+    {
+      "trace_id": "TRACE-0013-0004",
+      "session_id": "SESSION-260924-0013",
+      "turn_no": 4,
+      "prompt_text": "#태스크정리 [0013-01]docs/18.메뉴얼 폴더 신설 및 [사용/관리] 서비스별 상세 매뉴얼(v1.0) 작성",
+      "response_text": "리뷰 문서 260924_031 발행 및 PR 머지 완료",
+      "model_name": "gemini-3.7-flash",
+      "token_count": 2450,
+      "created_at": "2026-09-25T05:14:28.665Z"
+    },
+    {
+      "trace_id": "TRACE-0013-0005",
+      "session_id": "SESSION-260924-0013",
+      "turn_no": 5,
+      "prompt_text": "#태스크승급 [0013-01]docs/18.메뉴얼 폴더 신설 및 [사용/관리] 서비스별 상세 매뉴얼(v1.0) 작성",
+      "response_text": "stg, main 배포 승급 및 상태 마감 완료",
+      "model_name": "gemini-3.7-flash",
+      "token_count": 2450,
+      "created_at": "2026-09-25T05:14:28.665Z"
+    },
+    {
+      "trace_id": "TRACE-0013-0006",
+      "session_id": "SESSION-260924-0013",
+      "turn_no": 6,
+      "prompt_text": "#태스크시작 [0013-02]Web Worker 스레드 오프로딩 Searchable PDF 합성 엔진 구현",
+      "response_text": "태스크 0013-02 분석 및 계획 수립 완료",
+      "model_name": "gemini-3.7-flash",
+      "token_count": 2450,
+      "created_at": "2026-09-25T05:14:28.665Z"
+    },
+    {
+      "trace_id": "TRACE-0013-0007",
+      "session_id": "SESSION-260924-0013",
+      "turn_no": 7,
+      "prompt_text": "#태스크처리 [0013-02]Web Worker 스레드 오프로딩 Searchable PDF 합성 엔진 구현",
+      "response_text": "SearchablePdfWorker, SearchablePdfWorkerClient 구현 완료",
+      "model_name": "gemini-3.7-flash",
+      "token_count": 2450,
+      "created_at": "2026-09-25T05:14:28.665Z"
+    },
+    {
+      "trace_id": "TRACE-0013-0008",
+      "session_id": "SESSION-260924-0013",
+      "turn_no": 8,
+      "prompt_text": "#태스크정리 [0013-02]Web Worker 스레드 오프로딩 Searchable PDF 합성 엔진 구현",
+      "response_text": "리뷰 문서 260925_032 발행 및 PR 머지 완료",
+      "model_name": "gemini-3.7-flash",
+      "token_count": 2450,
+      "created_at": "2026-09-25T05:14:28.665Z"
+    },
+    {
+      "trace_id": "TRACE-0013-0009",
+      "session_id": "SESSION-260924-0013",
+      "turn_no": 9,
+      "prompt_text": "#태스크승급 [0013-02]Web Worker 스레드 오프로딩 Searchable PDF 합성 엔진 구현",
+      "response_text": "stg, main 배포 승급 및 상태 마감 완료",
+      "model_name": "gemini-3.7-flash",
+      "token_count": 2450,
+      "created_at": "2026-09-25T05:14:28.665Z"
+    },
+    {
+      "trace_id": "TRACE-0013-0010",
+      "session_id": "SESSION-260924-0013",
+      "turn_no": 10,
+      "prompt_text": "#태스크시작 [0013-03]다국어 OCR 병렬 배치 큐(Worker Pool) 및 세부 프로그레스 바 UI 구현",
+      "response_text": "태스크 0013-03 분석 및 계획 수립 완료",
+      "model_name": "gemini-3.7-flash",
+      "token_count": 2450,
+      "created_at": "2026-09-25T05:14:28.665Z"
+    },
+    {
+      "trace_id": "TRACE-0013-0011",
+      "session_id": "SESSION-260924-0013",
+      "turn_no": 11,
+      "prompt_text": "#태스크처리 [0013-03]다국어 OCR 병렬 배치 큐(Worker Pool) 및 세부 프로그레스 바 UI 구현",
+      "response_text": "OcrBatchQueueManager 및 OcrBatchProgressModal UI 구현, TDD 통과",
+      "model_name": "gemini-3.7-flash",
+      "token_count": 2450,
+      "created_at": "2026-09-25T05:14:28.665Z"
+    },
+    {
+      "trace_id": "TRACE-0013-0012",
+      "session_id": "SESSION-260924-0013",
+      "turn_no": 12,
+      "prompt_text": "#태스크정리 [0013-03]다국어 OCR 병렬 배치 큐(Worker Pool) 및 세부 프로그레스 바 UI 구현",
+      "response_text": "리뷰 문서 260925_033 발행, 매뉴얼 v1.2 현행화, PR 머지 완료",
+      "model_name": "gemini-3.7-flash",
+      "token_count": 2450,
+      "created_at": "2026-09-25T05:14:28.665Z"
+    },
+    {
+      "trace_id": "TRACE-0013-0013",
+      "session_id": "SESSION-260924-0013",
+      "turn_no": 13,
+      "prompt_text": "#태스크승급 [0013-03]다국어 OCR 병렬 배치 큐(Worker Pool) 및 세부 프로그레스 바 UI 구현",
+      "response_text": "stg, main 배포 승급 및 4대 브랜치 SHA 100% 일치 확인 완료",
+      "model_name": "gemini-3.7-flash",
+      "token_count": 2450,
+      "created_at": "2026-09-25T05:14:28.665Z"
+    },
+    {
+      "trace_id": "TRACE-0013-0014",
+      "session_id": "SESSION-260924-0013",
+      "turn_no": 14,
+      "prompt_text": "#세션정리",
+      "response_text": "세션 0013 종합 KPT 회고록 13-11 작성, Issue #16 종료, stg/main 배포 승급 완료",
+      "model_name": "gemini-3.7-flash",
+      "token_count": 2450,
+      "created_at": "2026-09-25T05:14:28.665Z"
     }
   ],
   "plans": [],
