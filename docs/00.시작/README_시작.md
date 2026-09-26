@@ -9,11 +9,6 @@
 | `00-01` | `00-01_용어_정의_사전.md` | 용어 정의 & 커뮤니케이션 | 하네스 3계층(세션-태스크-루프) 및 PDF 스튜디오 핵심 도메인 용어 정의 |
 | `00-02` | `00-02_문서_체계_인덱스.md` | 18대 기술문서 체계 인덱스 | 00.시작 ~ 17.참고에 이르는 전체 문서 분류 및 파일 현황 목록 |
 
-<div align="center">
-  <img src="./images/README_시작_diag_1.svg" alt="00. 시작 (Onboarding & Index) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1" style="max-width: 100%; height: auto; border: 1px solid #334155; border-radius: 12px;" />
-  <p><em>[그림] 00. 시작 (Onboarding & Index) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1</em></p>
-</div>
-
 ```mermaid
 graph LR
     A[00.시작] --> B[00-01_용어_정의_사전]

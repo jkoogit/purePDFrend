@@ -9,11 +9,6 @@
 | `06-01` | `06-01_모바일반응형_UIUX_오브젝트_표준기획서.md` | 모바일 반응형 UI/UX 및 표준 오브젝트 기획서 | 모바일 8대 뷰 사용자 여정, 5대 표준 오브젝트 UI 명세서 및 인터랙션 시나리오 |
 | `06-02` | `06-02_에이전트_사용량_거버넌스_및_쿼터관리_기획서.md` | 에이전트 사용량 거버넌스 및 쿼터 관리 기능 기획서 | TokenBurnoutGauge 연료게이지, HandoffDossierModal, ScorecardModal UX 사양 |
 
-<div align="center">
-  <img src="./images/README_기획_diag_1.svg" alt="06. 기획 (Product & Functional Specs) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1" style="max-width: 100%; height: auto; border: 1px solid #334155; border-radius: 12px;" />
-  <p><em>[그림] 06. 기획 (Product & Functional Specs) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1</em></p>
-</div>
-
 ```mermaid
 journey
     title 사용자 여정: 도서 스캔본 PDF 제작
