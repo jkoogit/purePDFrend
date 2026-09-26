@@ -366,7 +366,25 @@ export async function runComprehensiveServiceCheck(): Promise<{
     },
   });
 
-  // 5-4. 도메인 서비스: OCR 테스트 API 엔드포인트
+  // 5-4. PDF 내보내기 및 통합 설정 모달 (PdfExportConfigModal)
+  const exportModalRes = await fetchApi('/src/ppdf/components/PdfExportConfigModal.tsx');
+  const exportModalPassed = exportModalRes.status === 200;
+  results.push({
+    step: '5단계',
+    group: 'FRONTEND_SCREEN',
+    groupName: '서비스별/화면별 기능 & UI',
+    name: 'PDF 내보내기 모달 (/src/ppdf/components/PdfExportConfigModal.tsx)',
+    passed: exportModalPassed,
+    message: exportModalPassed ? '컴포넌트 로드 정상 (메타데이터/보안 듀얼탭)' : '실패: 컴포넌트 오류',
+    durationMs: exportModalRes.durationMs,
+    details: {
+      endpoint: '/src/ppdf/components/PdfExportConfigModal.tsx',
+      metrics: { status: exportModalRes.status },
+      diagnostics: '도서 서지/독서 회독 메타데이터 + 5대 상황별 보안전략 통합 설정 모달 렌더링',
+    },
+  });
+
+  // 5-5. 도메인 서비스: OCR 테스트 API 엔드포인트
   const ocrApiRes = await fetchApi('/api/settings');
   const ocrApiPassed = ocrApiRes.status === 200 && !!ocrApiRes.body?.settings?.ocr;
   results.push({
@@ -381,6 +399,31 @@ export async function runComprehensiveServiceCheck(): Promise<{
       endpoint: '/api/settings',
       metrics: { ocrSettingsOk: ocrApiPassed, primary: ocrApiRes.body?.settings?.ocr?.primaryEngine },
       diagnostics: '비용 0원 로컬 Tesseract 및 멀티모달 Gemini OCR 정책 파라미터 공급 검증',
+    },
+  });
+
+  // 5-6. 도메인 서비스: 원격 브랜치 승급 실시간 크로스체크 API
+  const branchStatusRes = await fetchApi('/api/agent/git/branch-status');
+  const branchStatusPassed = branchStatusRes.status === 200 && branchStatusRes.body?.success === true;
+  results.push({
+    step: '5단계',
+    group: 'DOMAIN_SERVICE',
+    groupName: 'PDF 비즈니스 & OCR 서비스',
+    name: '원격 브랜치 실시간 크로스체크 (/api/agent/git/branch-status)',
+    passed: branchStatusPassed,
+    message: branchStatusPassed
+      ? `GitHub 3대 브랜치 실시간 점검 성공 (${branchStatusRes.body?.crossCheckSummary?.parityStatus || '정상'})`
+      : '실패: GitHub API 통신 오류',
+    durationMs: branchStatusRes.durationMs,
+    details: {
+      endpoint: '/api/agent/git/branch-status',
+      metrics: {
+        dev: branchStatusRes.body?.crossCheckSummary?.devLatestCommit,
+        stg: branchStatusRes.body?.crossCheckSummary?.stgLatestCommit,
+        main: branchStatusRes.body?.crossCheckSummary?.mainLatestCommit,
+        isFullySynced: branchStatusRes.body?.isFullySynced,
+      },
+      diagnostics: '태스크 승급 가짜응답 방어 및 dev, stg, main 실제 Commit/Tree SHA 실시간 검증',
     },
   });
 

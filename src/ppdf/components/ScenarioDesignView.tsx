@@ -11,9 +11,11 @@ import {
   Lock,
 } from 'lucide-react';
 import PdfSecurityConfigManager from './PdfSecurityConfigManager';
+import PdfExportConfigModal from './PdfExportConfigModal';
 
 export default function ScenarioDesignView() {
   const [activeScenario, setActiveScenario] = useState<number>(1);
+  const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
 
   // Interactive mockup states
   // Scenario 1: Upload & Virtual Loader
@@ -498,17 +500,47 @@ export default function ScenarioDesignView() {
                   <strong className="font-mono text-amber-400">1.8초 (클라이언트 WASM)</strong>
                 </div>
               </div>
+
+              <div className="pt-2">
+                <button
+                  onClick={() => setIsExportModalOpen(true)}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg transition-all"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>PDF 내보내기 & 보안/메타데이터 통합 설정</span>
+                </button>
+              </div>
             </div>
           )}
 
           {/* Scenario 6: PDF Security & Situational Encryption Policy Manager */}
           {activeScenario === 6 && (
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col h-full space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                <span className="text-xs text-slate-400">상황별 보안 프로필을 실제 PDF 파일에 주입하여 다운로드합니다.</span>
+                <button
+                  onClick={() => setIsExportModalOpen(true)}
+                  className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>내보내기 모달 열기</span>
+                </button>
+              </div>
               <PdfSecurityConfigManager />
             </div>
           )}
         </div>
       </div>
+
+      {/* PDF Export Config Modal */}
+      <PdfExportConfigModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        defaultTitle="디지털 도서 아카이빙 표준 가이드"
+        defaultAuthor="purePDFrend 연구소"
+        pageCount={simulatedPageCount}
+        sampleText="제1장 디지털 도서의 아카이빙 개요 - purePDFrend 고품질 컴파일 검증 문서"
+      />
     </div>
   );
 }

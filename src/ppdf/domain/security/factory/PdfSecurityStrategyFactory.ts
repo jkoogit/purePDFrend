@@ -18,7 +18,9 @@ export class PdfSecurityStrategyFactory {
     // Register standard out-of-the-box strategies
     this.registerStrategy('NONE', new NoSecurityStrategy());
     this.registerStrategy('READ_ONLY_DIST', new ReadOnlyDistributionStrategy());
+    this.registerStrategy('READ_ONLY', new ReadOnlyDistributionStrategy());
     this.registerStrategy('ENTERPRISE_CONFIDENTIAL', new HighConfidentialEnterpriseStrategy());
+    this.registerStrategy('ENTERPRISE', new HighConfidentialEnterpriseStrategy());
     this.registerStrategy('STRICT_DRM', new StrictDRMProtectionStrategy());
     this.registerStrategy('CUSTOM', new CustomConfigurableSecurityStrategy());
   }
@@ -40,6 +42,13 @@ export class PdfSecurityStrategyFactory {
       throw new Error(`등록되지 않은 PDF 보안 전략 프로필입니다: "${type}". 사용 가능한 프로필: ${Array.from(this.strategies.keys()).join(', ')}`);
     }
     return strategy;
+  }
+
+  /**
+   * Alias for getStrategy
+   */
+  public static createStrategy(type: PdfSecurityProfileType | string): IPdfSecurityStrategy {
+    return this.getStrategy(type);
   }
 
   /**

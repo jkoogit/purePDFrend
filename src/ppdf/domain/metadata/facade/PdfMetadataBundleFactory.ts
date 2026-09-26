@@ -158,4 +158,69 @@ export class PdfMetadataBundleFactory {
   public static create(): PdfMetadataBundleFactory {
     return new PdfMetadataBundleFactory();
   }
+
+  /**
+   * 도서용 번들 간편 생성 팩토리 메서드
+   */
+  public static createBookBundle(params: {
+    title: string;
+    author: string;
+    publisher?: string;
+    isbn?: string;
+    totalPages?: number;
+    currentPage?: number;
+    readingStatus?: '1독' | '2독' | '3독';
+    isLectureBook?: boolean;
+    userId?: string;
+  }): PdfMetadataBundle {
+    const factory = new PdfMetadataBundleFactory();
+    factory.setStandard({
+      title: params.title,
+      author: params.author,
+      creator: 'purePDFrend Engine',
+      producer: 'purePDFrend v1.0.0',
+    });
+
+    if (params.publisher || params.isbn) {
+      factory.setBibliographic({
+        publisher: params.publisher || 'Unknown Publisher',
+        authors: [params.author],
+        isbn: params.isbn || '',
+      });
+    }
+
+    if (params.isLectureBook) {
+      factory.setActivity({
+        userId: params.userId || 'DEFAULT_USER',
+        activityTypes: ['강의도서', '뉴런데브'],
+        courseOrGroupName: 'purePDFrend 디지털 도서 실전 강의',
+      });
+    }
+
+    if (params.totalPages && params.currentPage) {
+      const roundNum = params.readingStatus === '3독' ? 3 : params.readingStatus === '2독' ? 2 : 1;
+      factory.setReading({
+        userId: params.userId || 'DEFAULT_USER',
+        readingRound: roundNum,
+        status: 'READING',
+        currentPage: params.currentPage,
+        totalPage: params.totalPages,
+      });
+    }
+
+    return factory.build();
+  }
+
+  /**
+   * 기본 빈/단순 번들 생성 팩토리 메서드
+   */
+  public static createDefaultBundle(title = '제목 없는 도서'): PdfMetadataBundle {
+    return new PdfMetadataBundleFactory()
+      .setStandard({
+        title,
+        creator: 'purePDFrend Engine',
+        producer: 'purePDFrend v1.0.0',
+      })
+      .build();
+  }
 }

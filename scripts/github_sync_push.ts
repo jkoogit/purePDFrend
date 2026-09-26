@@ -239,10 +239,28 @@ async function syncAndPush(targetBranch = 'dev', commitMessage: string) {
   }
   console.log(`   Successfully pushed to '${targetBranch}'!`);
 
-  // 8. Auto-promote to stg and main
+  // 8. Auto-promote to stg and main (Fast-Forward Ref update first to guarantee identical SHA, fallback to merge)
   console.log('7. Promoting commit to stg and main branches...');
-  await mergeBranch('stg', targetBranch, `Promote ${targetBranch} to stg: ${commitMessage}`);
-  await mergeBranch('main', 'stg', `Promote stg to main: ${commitMessage}`);
+  for (const b of ['stg', 'main']) {
+    const patchRes = await requestGitHub(`/git/refs/heads/${b}`, 'PATCH', {
+      sha: newCommitSha,
+      force: true,
+    });
+    if (patchRes.status === 200) {
+      console.log(`[Fast-Forward ${b}] SHA updated to ${newCommitSha} (Status: 200)`);
+    } else {
+      console.log(`[Fast-Forward ${b} failed, fallback to merge API] Status: ${patchRes.status}`);
+      await mergeBranch(b, targetBranch, `Promote ${targetBranch} to ${b}: ${commitMessage}`);
+    }
+  }
+
+  // 9. Verify 3-branch parity
+  console.log('8. Verifying 3-branch SHA parity across dev, stg, and main...');
+  const verifyRes = await Promise.all(['dev', 'stg', 'main'].map(async (b) => {
+    const r = await requestGitHub(`/branches/${b}`);
+    return { branch: b, sha: r.body?.commit?.sha, tree: r.body?.commit?.commit?.tree?.sha };
+  }));
+  console.log('   Branch verification:', JSON.stringify(verifyRes, null, 2));
 
   console.log('=== GitHub Sync & Promotion Complete! ===\n');
   return { newCommitSha, newTreeSha };

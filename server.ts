@@ -2348,6 +2348,134 @@ app.post('/api/agent/emergency/push', async (req, res) => {
 });
 
 // =========================================================================
+// 5.9.1 [원격 브랜치 승급 실시간 크로스체크 API] (Real GitHub Promotion Verification)
+// =========================================================================
+app.get('/api/agent/git/branch-status', async (_req, res) => {
+  try {
+    const OWNER = 'jkoogit';
+    const REPO = 'purePDFrend';
+    const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+
+    if (!GITHUB_TOKEN) {
+      return res.status(500).json({ success: false, error: 'GITHUB_TOKEN 환경변수가 설정되어 있지 않습니다.' });
+    }
+
+    const branches = ['dev', 'stg', 'main'];
+    const results = await Promise.all(
+      branches.map(
+        (b) =>
+          new Promise<{
+            branch: string;
+            sha?: string;
+            shortSha?: string;
+            message?: string;
+            author?: string;
+            date?: string;
+            error?: string;
+          }>((resolve) => {
+            const req = https.request(
+              `https://api.github.com/repos/${OWNER}/${REPO}/branches/${b}`,
+              {
+                method: 'GET',
+                headers: {
+                  'User-Agent': 'purePDFrend-agent',
+                  Authorization: `Bearer ${GITHUB_TOKEN}`,
+                  Accept: 'application/vnd.github.v3+json',
+                },
+                timeout: 5000,
+              },
+              (gitRes) => {
+                let data = '';
+                gitRes.on('data', (c) => (data += c));
+                gitRes.on('end', () => {
+                  try {
+                    const parsed = JSON.parse(data);
+                    if (gitRes.statusCode === 200) {
+                      resolve({
+                        branch: b,
+                        sha: parsed.commit?.sha,
+                        shortSha: parsed.commit?.sha?.slice(0, 10),
+                        treeSha: parsed.commit?.commit?.tree?.sha,
+                        message: parsed.commit?.commit?.message,
+                        author: parsed.commit?.commit?.author?.name || parsed.commit?.commit?.committer?.name,
+                        date: parsed.commit?.commit?.committer?.date,
+                      });
+                    } else {
+                      resolve({ branch: b, error: parsed.message || `HTTP ${gitRes.statusCode}` });
+                    }
+                  } catch (e: any) {
+                    resolve({ branch: b, error: e.message });
+                  }
+                });
+              }
+            );
+            req.on('error', (err) => resolve({ branch: b, error: err.message }));
+            req.end();
+          })
+      )
+    );
+
+    const devSha = results.find((r) => r.branch === 'dev')?.sha;
+    const stgSha = results.find((r) => r.branch === 'stg')?.sha;
+    const mainSha = results.find((r) => r.branch === 'main')?.sha;
+
+    const devTree = (results.find((r) => r.branch === 'dev') as any)?.treeSha;
+    const stgTree = (results.find((r) => r.branch === 'stg') as any)?.treeSha;
+    const mainTree = (results.find((r) => r.branch === 'main') as any)?.treeSha;
+
+    // GitHub 3대 브랜치 커밋 동기화 판별 (SHA 일치 또는 Tree 파일트리 100% 일치)
+    const exactShaMatch = !!(devSha && devSha === stgSha && stgSha === mainSha);
+    const treeMatch = !!(devTree && devTree === stgTree && stgTree === mainTree);
+    const isFullySynced = exactShaMatch || treeMatch;
+
+    // 사용자 피드백 분리: 1) 승급 완료 여부(promotionCompleted), 2) 커밋 SHA 100% 일치 여부(shaMatchStatus)
+    const promotionCompleted = exactShaMatch || treeMatch;
+    const shaMatchStatus = exactShaMatch
+      ? 'IDENTICAL_SHA'
+      : treeMatch
+      ? 'IDENTICAL_TREE_DIFFERENT_COMMIT_SHA'
+      : 'DIVERGED';
+
+    // 하네스 스토어의 마지막 기록 커밋과 비교
+    const store = getLocalStore();
+    const lastPushedSha =
+      store.tasks?.find((t: any) => t.doc_payload?.pushed_commit_sha)?.doc_payload?.pushed_commit_sha ||
+      store.snapshots?.[0]?.latest_commit_sha;
+
+    res.json({
+      success: true,
+      branches: results,
+      devSha,
+      stgSha,
+      mainSha,
+      exactShaMatch,
+      treeMatch,
+      isFullySynced,
+      promotionCompleted, // 승급 완료 여부 (결과 소스 트리가 3대 브랜치에 완전히 반영되었는가)
+      shaMatchStatus, // SHA 일치 여부 ('IDENTICAL_SHA' | 'IDENTICAL_TREE_DIFFERENT_COMMIT_SHA' | 'DIVERGED')
+      feedbackMessage: exactShaMatch
+        ? '3대 브랜치의 Commit SHA 및 소스 트리가 100% 동일하게 일치합니다. (완벽한 Fast-Forward 승급 상태)'
+        : treeMatch
+        ? '3대 브랜치의 결과 소스 트리(Tree SHA)는 100% 일치하여 승급은 완료되었으나, Merge Commit으로 인해 개별 Commit SHA가 상이합니다.'
+        : '브랜치 간 소스 또는 커밋이 불일치합니다. 추가 승급 조치가 필요합니다.',
+      lastRecordedSha: lastPushedSha,
+      isDevMatchingStore: lastPushedSha ? devSha === lastPushedSha : null,
+      crossCheckSummary: {
+        allFetched: results.every((r) => !r.error),
+        devLatestCommit: devSha ? devSha.slice(0, 10) : 'N/A',
+        stgLatestCommit: stgSha ? stgSha.slice(0, 10) : 'N/A',
+        mainLatestCommit: mainSha ? mainSha.slice(0, 10) : 'N/A',
+        devTree: devTree ? devTree.slice(0, 10) : 'N/A',
+        promotionCompleted,
+        parityStatus: exactShaMatch ? 'IDENTICAL_SHA' : treeMatch ? 'IDENTICAL_TREE_CONTENT' : 'DIVERGED',
+      },
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// =========================================================================
 // 5.10 [세션DR] 세션 스냅샷 생성 및 파일화/목록 조회 API
 // =========================================================================
 app.post('/api/agent/session/snapshot', async (req, res) => {
