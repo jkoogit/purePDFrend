@@ -137,10 +137,28 @@ interface NavbarProps {
 
 interface CheckResultItem {
   step: string;
+  group?: string;
+  groupName?: string;
   name: string;
   passed: boolean;
   message: string;
   durationMs: number;
+  details?: {
+    endpoint?: string;
+    metrics?: Record<string, any>;
+    diagnostics?: string;
+  };
+}
+
+interface CheckGroupSummaryItem {
+  group: string;
+  groupName: string;
+  passedCount: number;
+  totalCount: number;
+  allPassed: boolean;
+  avgDurationMs: number;
+  summaryMessage: string;
+  items: CheckResultItem[];
 }
 
 export default function Navbar({
@@ -161,7 +179,10 @@ export default function Navbar({
   const [isCheckModalOpen, setIsCheckModalOpen] = useState<boolean>(false);
   const [checking, setChecking] = useState<boolean>(false);
   const [checkResults, setCheckResults] = useState<CheckResultItem[] | null>(null);
+  const [checkGroups, setCheckGroups] = useState<CheckGroupSummaryItem[] | null>(null);
   const [allPassed, setAllPassed] = useState<boolean | null>(null);
+  const [reviewMode, setReviewMode] = useState<'summary' | 'detail'>('summary');
+  const [selectedGroupFilter, setSelectedGroupFilter] = useState<string>('ALL');
 
   const currentDomainGroup = DOMAIN_GROUPS.find((g) => g.id === activeDomain) || DOMAIN_GROUPS[0];
 
@@ -172,6 +193,7 @@ export default function Navbar({
       const data = await res.json();
       if (data.success) {
         setCheckResults(data.results);
+        setCheckGroups(data.groups || null);
         setAllPassed(data.allPassed);
       }
     } catch (e) {
@@ -711,49 +733,164 @@ export default function Navbar({
               </div>
             </div>
 
+            {/* Modal Subheader: Review Mode Switcher & Filter */}
+            <div className="px-4 py-2 border-b border-slate-800/80 bg-slate-950/40 flex flex-wrap items-center justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 p-0.5 rounded-lg text-xs">
+                <button
+                  onClick={() => setReviewMode('summary')}
+                  className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                    reviewMode === 'summary'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  간단 리뷰 (그룹요약)
+                </button>
+                <button
+                  onClick={() => setReviewMode('detail')}
+                  className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                    reviewMode === 'detail'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  상세 리뷰 (전체항목)
+                </button>
+              </div>
+
+              {reviewMode === 'detail' && (
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                  <button
+                    onClick={() => setSelectedGroupFilter('ALL')}
+                    className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all shrink-0 ${
+                      selectedGroupFilter === 'ALL'
+                        ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/40'
+                        : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    전체
+                  </button>
+                  {checkGroups?.map((g) => (
+                    <button
+                      key={g.group}
+                      onClick={() => setSelectedGroupFilter(g.group)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all shrink-0 ${
+                        selectedGroupFilter === g.group
+                          ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/40'
+                          : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {g.groupName.split(' ')[0]}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Modal Body */}
             <div className="p-3.5 sm:p-5 overflow-y-auto no-scrollbar space-y-2.5 flex-1">
               {checking && !checkResults ? (
                 <div className="py-10 flex flex-col items-center justify-center gap-3 text-slate-400">
                   <RefreshCw className="w-7 h-7 text-emerald-400 animate-spin" />
-                  <p className="text-xs">4단계 서비스 전수 점검을 수행하고 있습니다...</p>
+                  <p className="text-xs">서비스 전수 점검 및 가드레일을 실행하고 있습니다...</p>
                 </div>
-              ) : checkResults && checkResults.length > 0 ? (
-                <div className="space-y-2">
-                  {checkResults.map((item, idx) => (
+              ) : reviewMode === 'summary' && checkGroups && checkGroups.length > 0 ? (
+                /* 1. 간단 리뷰 (그룹 요약 뷰) */
+                <div className="space-y-2.5">
+                  {checkGroups.map((g) => (
                     <div
-                      key={idx}
-                      className={`p-2.5 rounded-xl border transition-all flex items-start justify-between gap-2.5 ${
-                        item.passed
-                          ? 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700'
-                          : 'bg-rose-950/20 border-rose-900/60'
-                      }`}
+                      key={g.group}
+                      className="p-3 rounded-xl border bg-slate-950/60 border-slate-800/80 hover:border-slate-700 transition-all flex flex-col gap-2"
                     >
-                      <div className="flex items-start gap-2 min-w-0 flex-1">
-                        <div className="mt-0.5 shrink-0">
-                          {item.passed ? (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {g.allPassed ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                           ) : (
-                            <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
                           )}
+                          <span className="text-xs font-bold text-white">{g.groupName}</span>
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
+                              g.allPassed
+                                ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
+                                : 'bg-rose-500/10 text-rose-300 border border-rose-500/30'
+                            }`}
+                          >
+                            {g.summaryMessage}
+                          </span>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-slate-800 text-slate-300 shrink-0">
-                              {item.step}
-                            </span>
-                            <span className="text-xs font-bold text-white break-keep">{item.name}</span>
-                          </div>
-                          <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed break-words break-keep">
-                            {item.message}
-                          </p>
-                        </div>
+                        <button
+                          onClick={() => {
+                            setSelectedGroupFilter(g.group);
+                            setReviewMode('detail');
+                          }}
+                          className="text-[10px] text-indigo-400 hover:text-indigo-300 underline font-medium"
+                        >
+                          상세보기 &rarr;
+                        </button>
                       </div>
-                      <span className="text-[9px] font-mono text-slate-500 whitespace-nowrap shrink-0 mt-0.5">
-                        {item.durationMs}ms
-                      </span>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1 border-t border-slate-900 text-[11px] text-slate-400">
+                        {g.items.map((item, itemIdx) => (
+                          <div key={itemIdx} className="flex items-center gap-1.5 truncate">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                            <span className="truncate">{item.name}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
+                </div>
+              ) : checkResults && checkResults.length > 0 ? (
+                /* 2. 상세 리뷰 (전체 세부항목 뷰) */
+                <div className="space-y-2">
+                  {checkResults
+                    .filter((item) => selectedGroupFilter === 'ALL' || item.group === selectedGroupFilter)
+                    .map((item, idx) => (
+                      <div
+                        key={idx}
+                        className={`p-2.5 rounded-xl border transition-all flex items-start justify-between gap-2.5 ${
+                          item.passed
+                            ? 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700'
+                            : 'bg-rose-950/20 border-rose-900/60'
+                        }`}
+                      >
+                        <div className="flex items-start gap-2 min-w-0 flex-1">
+                          <div className="mt-0.5 shrink-0">
+                            {item.passed ? (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                            ) : (
+                              <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-slate-800 text-slate-300 shrink-0">
+                                {item.step}
+                              </span>
+                              {item.groupName && (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-indigo-950/60 text-indigo-300 border border-indigo-800/50 shrink-0">
+                                  {item.groupName}
+                                </span>
+                              )}
+                              <span className="text-xs font-bold text-white break-keep">{item.name}</span>
+                            </div>
+                            <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed break-words break-keep">
+                              {item.message}
+                            </p>
+                            {item.details?.diagnostics && (
+                              <p className="text-[10px] text-slate-400 mt-1 font-mono bg-slate-900/80 px-2 py-1 rounded">
+                                진단: {item.details.diagnostics}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-[9px] font-mono text-slate-500 whitespace-nowrap shrink-0 mt-0.5">
+                          {item.durationMs}ms
+                        </span>
+                      </div>
+                    ))}
                 </div>
               ) : (
                 <div className="py-8 text-center text-xs text-slate-400">
