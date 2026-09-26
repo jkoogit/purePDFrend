@@ -1,4 +1,3 @@
-import './src/shared/envLoader';
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
@@ -15,7 +14,6 @@ import {
   UserAiAccount,
   SessionResourceManager,
 } from './src/aiagent/domain/token-quota';
-import { GovernanceIdGenerator } from './src/aiagent/domain/governance/GovernanceIdGenerator';
 import { HarnessAutomationService } from './src/aiagent/services/HarnessAutomationService';
 import { EmergencyGitPushEngine } from './src/aiagent/services/EmergencyGitPushEngine';
 
@@ -57,21 +55,7 @@ let systemSettings = {
       cacheStatus: 'API READY',
       accuracyRating: '97% ~ 99.5%',
     },
-    paddleocr: {
-      enabled: true,
-      name: 'PaddleOCR (우분투 Docker CPU)',
-      type: 'onpremise_docker',
-      cost: '0원 (온프레미스 CPU 무료 연산)',
-      languages: ['korean', 'ch', 'en', 'japan'],
-      defaultLanguage: 'korean',
-      cacheStatus: 'DOCKER READY',
-      accuracyRating: '96.5% ~ 98.6%',
-      serverUrl: 'http://localhost:8000',
-      timeoutMs: 8000,
-      cpuMode: true,
-      isOnline: false,
-    },
-    primaryEngine: 'tesseract', // 'tesseract' | 'gemini' | 'paddleocr'
+    primaryEngine: 'tesseract', // 'tesseract' | 'gemini'
     autoFallback: true,
   },
   graphView: {
@@ -1475,8 +1459,7 @@ app.post('/api/agent/trace/turn', async (req, res) => {
       });
     }
 
-    const finalSessionNum = GovernanceIdGenerator.extractSessionNumber(session_id);
-    const finalTraceId = trace_id || GovernanceIdGenerator.generateTraceId(finalSessionNum, step_index || 1);
+    const finalTraceId = trace_id || `TRACE-${Date.now()}`;
     const escapedPrompt = String(user_prompt || '').replace(/'/g, "''");
     const escapedResponse = String(agent_response || '').replace(/'/g, "''");
     const escapedSummary = String(response_summary || '').replace(/'/g, "''");
@@ -3045,8 +3028,7 @@ app.post('/api/agent/turn/complete', async (req, res) => {
 
     const isQuotaError = isQuotaLimitError(user_prompt) || isQuotaLimitError(agent_response) || isQuotaLimitError(response_summary);
 
-    const finalSessionNum = GovernanceIdGenerator.extractSessionNumber(session_id);
-    const finalTraceId = trace_id || GovernanceIdGenerator.generateTraceId(finalSessionNum, Date.now() % 10000);
+    const finalTraceId = trace_id || `TRACE-${Date.now()}`;
     const safePrompt = String(user_prompt).replace(/'/g, "''");
     const safeResponse = String(agent_response).replace(/'/g, "''");
     const safeSummary = String(response_summary || '').replace(/'/g, "''");
@@ -3839,252 +3821,31 @@ app.post('/api/settings', (req, res) => {
   res.json({ success: true, settings: systemSettings, message: '설정이 성공적으로 저장되었습니다.' });
 });
 
-// 7. OCR Benchmark & Test API (Supports Tesseract, Gemini, PaddleOCR)
+// 7. OCR Benchmark & Test API
 app.post('/api/ocr/test', async (req, res) => {
   try {
-    const { engine, language = 'kor+eng', sampleText, preprocessing } = req.body;
+    const { engine, language = 'kor+eng', sampleText } = req.body;
 
     const chosenEngine = engine || systemSettings.ocr.primaryEngine;
     const isTesseract = chosenEngine === 'tesseract';
-    const isPaddle = chosenEngine === 'paddleocr';
 
-    let duration = 400;
-    let engineName = 'Gemini 2.5 Flash Multimodal OCR (클라우드)';
-    let accuracy = '98.8%';
-    let cost = '무료 티어 내 0원';
-
-    if (isTesseract) {
-      engineName = 'Tesseract.js WASM (로컬 오프라인)';
-      duration = 620 + Math.floor(Math.random() * 180);
-      accuracy = '93.2%';
-      cost = '0원 (로컬)';
-    } else if (isPaddle) {
-      engineName = 'PaddleOCR (우분투 Docker CPU)';
-      duration = 480 + Math.floor(Math.random() * 120);
-      accuracy = '97.4%';
-      cost = '0원 (온프레미스 CPU)';
-    } else {
-      duration = 380 + Math.floor(Math.random() * 100);
-    }
-
-    const rawText = sampleText || '제1장 디지털 도서의 아카이빙과 OCR 표준화\n1.1 스캔 이미지 정규화 및 바운딩 박스 교정 기법';
-    const lines = rawText.split('\n').filter((l: string) => l.trim().length > 0);
-    const boxes = lines.map((line: string, idx: number) => ({
-      id: idx + 1,
-      text: line,
-      confidence: isTesseract ? 0.93 : isPaddle ? 0.975 : 0.992,
-      x: 10,
-      y: 12 + idx * 16,
-      w: Math.min(80, line.length * 3.4),
-      h: 7.5,
-      lineIndex: idx + 1,
-    }));
+    // Simulate/Execute test latency and quality verification
+    const startTime = Date.now();
+    const duration = isTesseract ? 650 + Math.floor(Math.random() * 200) : 420 + Math.floor(Math.random() * 150);
 
     const testOutput = {
-      engine: chosenEngine,
-      engineName,
+      engine: isTesseract ? 'Tesseract.js WASM (로컬)' : 'Gemini 2.5 Flash Multimodal OCR (클라우드)',
       language,
-      cost,
+      cost: isTesseract ? '0원' : '무료 티어 내',
       executionTimeMs: duration,
-      accuracyEstimated: accuracy,
-      extractedText: rawText,
-      fullText: rawText,
-      boxes,
-      boxesDetected: boxes.length,
+      accuracyEstimated: isTesseract ? '92.4%' : '98.8%',
+      extractedText: sampleText || '제1장 디지털 도서의 아카이빙과 OCR 표준화\n1.1 스캔 이미지 정규화 및 바운딩 박스 교정 기법',
+      boxesDetected: 8,
       status: 'SUCCESS',
       timestamp: new Date().toISOString(),
-      preprocessed: !!preprocessing?.binarization || !!preprocessing?.deskew,
-      deskewAngle: preprocessing?.deskew ? 0.7 : 0,
-      appliedPreprocessing: preprocessing || {},
     };
 
     res.json({ success: true, result: testOutput });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// 7.1 PaddleOCR Ubuntu Docker Proxy API
-app.post('/api/ocr/paddle', async (req, res) => {
-  try {
-    const { serverUrl = 'http://localhost:8000', language = 'korean', sampleText, timeoutMs = 8000, preprocessing } = req.body;
-    
-    // Simulate / Request to remote Ubuntu Docker server
-    const rawText = sampleText || '제1장 우분투 서버 컨테이너 기반 PaddleOCR 파이프라인\n1.1 CPU 가속 최적화 및 4점 폴리곤 바운딩 박스 정규화';
-    const lines = rawText.split('\n').filter((l: string) => l.trim().length > 0);
-    const boxes = lines.map((line: string, idx: number) => ({
-      id: idx + 1,
-      text: line,
-      confidence: 0.978,
-      x: 10,
-      y: 12 + idx * 16,
-      w: Math.min(82, line.length * 3.4),
-      h: 7.5,
-      lineIndex: idx + 1,
-    }));
-
-    res.json({
-      success: true,
-      result: {
-        engine: 'paddleocr',
-        engineName: 'PaddleOCR (우분투 Docker CPU)',
-        language,
-        cost: '0원 (온프레미스 CPU 무료 연산)',
-        executionTimeMs: 460,
-        accuracyEstimated: '97.8%',
-        fullText: rawText,
-        extractedText: rawText,
-        boxes,
-        boxesDetected: boxes.length,
-        status: 'SUCCESS',
-        timestamp: new Date().toISOString(),
-        preprocessed: !!preprocessing?.binarization || !!preprocessing?.deskew,
-        deskewAngle: preprocessing?.deskew ? 0.6 : 0,
-        serverUrl,
-        message: '우분투 Docker PaddleOCR 컨테이너 연동 성공',
-      },
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// 7.2 PaddleOCR Health Ping API
-app.get('/api/ocr/paddle/health', (req, res) => {
-  const serverUrl = req.query.serverUrl || systemSettings.ocr.paddleocr?.serverUrl || 'http://localhost:8000';
-  // Mock health probe response for ready state
-  res.json({
-    success: true,
-    online: true,
-    serverUrl,
-    mode: 'CPU (MKLDNN/OpenVINO Ready)',
-    message: `우분투 Docker PaddleOCR 서버(${serverUrl}) 준비 완료`,
-    timestamp: new Date().toISOString(),
-  });
-});
-
-// 7.3 Image Preprocessing Simulation API
-app.post('/api/ocr/preprocess', (req, res) => {
-  try {
-    const { options = {} } = req.body;
-    const appliedSteps: string[] = [];
-    if (options.grayscale !== false) appliedSteps.push('Luminance 그레이스케일 변환');
-    if (options.autoCrop) appliedSteps.push('스캐너 검은 테두리 자동 트리밍');
-    if (options.contrastEnhance) appliedSteps.push('히스토그램 평활화 대비 향상');
-    if (options.denoise) appliedSteps.push('3x3 미디언 노이즈 필터링');
-    if (options.deskew) appliedSteps.push('투영 분산 기반 기울기 자동 보정 (+0.8°)');
-    if (options.splitSpread) appliedSteps.push('양면 스캔 중앙 접힘선 감지 및 좌우 분할');
-    if (options.binarization) appliedSteps.push('적응형 흑백 이진화 (임계값 128)');
-
-    res.json({
-      success: true,
-      result: {
-        deskewAngle: options.deskew ? 0.8 : 0,
-        appliedSteps,
-        executionTimeMs: 45,
-        timestamp: new Date().toISOString(),
-      },
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// 7.4 Intelligent Ensemble OCR API (Base 0-Cost Scan -> Selective Gemini AI Refinement)
-app.post('/api/ocr/ensemble', async (req, res) => {
-  try {
-    const { sampleText, primaryEngine = 'tesseract', threshold = 0.85 } = req.body;
-    const rawText = sampleText || '제1장 엔터프라이즈 전자도서 스캔 아카이빙\n1.1 수식 E = mc^2 및 한자 漢字 바운딩 박스 정규화';
-    const lines = rawText.split('\n').filter((l: string) => l.trim().length > 0);
-
-    const boxes = lines.map((line: string, idx: number) => {
-      const isLowConf = idx % 2 === 1 || line.includes('Formula') || /[一-龥∑∫√π]/.test(line);
-      return {
-        id: idx + 1,
-        text: isLowConf ? line.replace(/O/g, '0').replace(/l/g, '1') : line,
-        originalText: isLowConf ? line : undefined,
-        confidence: isLowConf ? 0.994 : 0.94,
-        x: 10,
-        y: 12 + idx * 16,
-        w: Math.min(82, line.length * 3.4),
-        h: 7.5,
-        lineIndex: idx + 1,
-        isEnsembleRefined: isLowConf,
-      };
-    });
-
-    const refinedCount = boxes.filter((b: any) => b.isEnsembleRefined).length;
-
-    res.json({
-      success: true,
-      result: {
-        engine: 'ensemble',
-        engineName: `지능형 앙상블 (${primaryEngine.toUpperCase()} ➔ Gemini 2.5 Flash)`,
-        language: 'kor+eng+math',
-        cost: '선택적 미세 과금 (전체 대비 90% 비용 절감)',
-        executionTimeMs: 520,
-        accuracyEstimated: '99.4%',
-        fullText: boxes.map((b: any) => b.text).join('\n'),
-        boxes,
-        boxesDetected: boxes.length,
-        status: 'SUCCESS',
-        timestamp: new Date().toISOString(),
-        ensembleStats: {
-          lowConfidenceCount: refinedCount,
-          refinedCount,
-          savedCostEstimated: '90% (약 $0.045 / 페이지 절감)',
-        },
-      },
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// 7.5 Spread Split API
-app.post('/api/ocr/split-spread', (req, res) => {
-  try {
-    const { width = 1600, height = 1200 } = req.body;
-    const isSpread = width / height >= 1.25;
-    const spineX = Math.floor(width / 2);
-
-    res.json({
-      success: true,
-      result: {
-        isSpread,
-        spineX,
-        leftPage: { width: spineX, height, label: '좌측 페이지' },
-        rightPage: { width: width - spineX, height, label: '우측 페이지' },
-        message: isSpread ? '양면 스캔 책 접힘선 감지 및 좌우 2페이지 분할 완료' : '단일 페이지 스캔본',
-      },
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// 7.6 Scanner Auto Margin Crop API
-app.post('/api/ocr/auto-crop', (req, res) => {
-  try {
-    const { width = 1200, height = 1600 } = req.body;
-    const cropBox = {
-      x: 18,
-      y: 22,
-      w: width - 36,
-      h: height - 44,
-    };
-
-    res.json({
-      success: true,
-      result: {
-        originalWidth: width,
-        originalHeight: height,
-        cropBox,
-        croppedWidth: cropBox.w,
-        croppedHeight: cropBox.h,
-        message: '스캐너 검은 테두리 및 그림자 여백 자동 트리밍 완료',
-      },
-    });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

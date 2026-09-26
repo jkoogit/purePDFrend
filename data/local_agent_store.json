@@ -1,78 +1,66 @@
 {
   "sessions": [
     {
-      "session_id": "SESSION-260924-0013",
-      "session_name": "[0013]Web Worker 백그라운드 컴파일 파이프라인 구축 및 [사용/관리] 서비스 매뉴얼(v1.0) 작성",
+      "session_id": "SESSION-260925-0014",
+      "session_name": "[0014]PDF 메타데이터 주입기 및 암호화·보안 권한 제어 엔진 구현",
       "work_group": "purePDFrend",
       "ai_agent": "gemini",
-      "ai_model": "models/gemini-3.7-flash",
-      "status_cd": "완료",
-      "started_at": "2026-09-24T14:15:40.723Z",
-      "ended_at": "2026-09-24T16:17:56.032Z",
+      "ai_model": "models/gemini-3.8-flash",
+      "status_cd": "진행중",
+      "started_at": "2026-09-25T05:40:15.698Z",
+      "ended_at": null,
       "doc_payload": {
-        "planned_tasks": [
-          "TASK-260924-0013-01: [0019]docs/18.메뉴얼 폴더 신설 및 [사용/관리] 서비스별 상세 매뉴얼(v1.0) 작성",
-          "TASK-260924-0013-02: [0020]Web Worker 스레드 오프로딩 Searchable PDF 합성 엔진 구현",
-          "TASK-260924-0013-03: [0021]다국어 OCR 병렬 배치 큐(Worker Pool) 및 세부 프로그레스 바 UI 구현",
-          "TASK-260924-0013-04: [0022]PDF 메타데이터 주입기 및 암호화/보안 권한 제어 엔진 구현"
+        "theme": "PDF 메타데이터 주입기 및 암호화·보안 권한 제어 엔진 구현",
+        "activeAgent": "Gemini 3.8 Flash",
+        "activeAccount": "jkoogit@gmail.com",
+        "user_email": "jkoogit@gmail.com",
+        "issueNumber": 23,
+        "branchName": "task/pdf-metadata-security_Gemini",
+        "baseSha": "13a8ba282f34a469739a22bc40a78e656fd9059e",
+        "tasks_summary": [
+          "TASK-0014-01: [05-19] PDF 표준/커스텀 메타데이터 주입기(PdfMetadataInjector) 설계 및 구현",
+          "TASK-0014-02: [05-20] PDF 암호화(비밀번호 보호) 및 권한(인쇄/복사/수정 방지) 제어 엔진(PdfSecurityManager) 구현",
+          "TASK-0014-03: PDF 보안/메타데이터 설정 UI 모달(PdfSecuritySettingModal) 및 뷰어 내보내기 연동",
+          "TASK-0014-04: TDD 단위 테스트(100% PASS), 리뷰 문서 및 서비스 매뉴얼 현행화"
         ],
-        "branchName": "task/0013_0019_manual-and-worker-pipeline_Gemini",
-        "issueNumber": 16,
-        "objective": "Web Worker 백그라운드 컴파일 파이프라인 구축 및 서비스 매뉴얼(v1.0) 완성",
-        "activeAgent": "Gemini 3.7 Flash",
-        "baseSha": "5596ad0f429312ec517e1b069c33cda412ec2fb8",
-        "theme": "Web Worker 컴파일 파이프라인 및 서비스 매뉴얼",
-        "currentTask": "TASK-0013-03",
-        "lastUpdated": "2026-09-24T14:54:10.694Z",
-        "completedAt": "2026-09-24T16:17:56.033Z",
-        "finalStatus": "SUCCESS",
-        "retrospectiveDoc": "docs/13.회고/13-11_SESSION-260924-0013_세션종합_KPT_회고록.md",
-        "backlogs": [
-          "TASK-260924-0013-04: [0022]PDF 메타데이터 주입기 및 암호화/보안 권한 제어 엔진 구현 (다음 세션 이관)"
-        ],
-        "tasksCompleted": [
-          "TASK-260924-0013-01: [0019]docs/18.메뉴얼 폴더 신설 및 [사용/관리] 서비스별 상세 매뉴얼(v1.0) 작성 (완료)",
-          "TASK-260924-0013-02: [0020]Web Worker 스레드 오프로딩 Searchable PDF 합성 엔진 구현 (완료)",
-          "TASK-260924-0013-03: [0021]다국어 OCR 병렬 배치 큐(Worker Pool) 및 세부 프로그레스 바 UI 구현 (완료)"
-        ]
+        "hang_governance_telemetry": {
+          "session_prompt_tokens": 0,
+          "session_completion_tokens": 0,
+          "session_total_tokens": 0,
+          "context_bloat_ratio": "0.00%",
+          "burnout_risk_index": 0,
+          "burst_score": 1,
+          "burn_rate_velocity": 0,
+          "loop_safety_margin": 10,
+          "rpd_consumed_turns": 0,
+          "quota_429_violations": 0,
+          "hang_risk_level": "SAFE"
+        }
       },
       "created_sys": "agent-harness",
       "created_by": "system",
       "updated_sys": "agent-harness",
       "updated_by": "system",
-      "version": 1,
-      "updated_at": "2026-09-24T16:17:56.033Z"
+      "version": 2
     },
     {
-      "session_id": "SESSION-260924-0012",
-      "session_name": "[0012]PDF 페이지 레이아웃 편집기 및 투명 텍스트 레이어 임베딩 Searchable PDF 내보내기 구현",
+      "session_id": "SESSION-20260922-006",
+      "session_name": "[0009]에이전트 사용자·모델·요금제 메타 거버넌스 및 다차원 쿼터 시스템 구축",
       "work_group": "purePDFrend",
       "ai_agent": "gemini",
-      "ai_model": "models/gemini-3.7-flash",
+      "ai_model": "models/gemini-3.8-flash",
       "status_cd": "완료",
-      "started_at": "2026-09-23T18:33:20.905Z",
-      "ended_at": "2026-09-24T09:27:29.093Z",
+      "started_at": "2026-09-22T14:17:50.455Z",
+      "ended_at": "2026-09-23T08:53:30.000Z",
       "doc_payload": {
-        "planned_tasks": [
-          "TASK-260924-0012-01: [0015]PDF 페이지 레이아웃 편집기(회전 90/180/270, 삭제, 순서 재정렬 액션) 및 UI 구현",
-          "TASK-260924-0012-02: [0016]투명 텍스트 레이어 결합 Searchable PDF 내보내기 파이프라인 구현 (pdf-lib 결합)",
-          "TASK-260924-0012-03: [0017]2-Way BBox 캔버스 인라인 텍스트 교정기(OCRCorrectionStudio) UI/UX 완성",
-          "TASK-260924-0012-04: [0018]세션 재해복구(DR) 스냅샷 중복방지·이력취합·클린징 및 개발환경 UTF-8 인코딩 영구 방어"
-        ],
-        "branchName": "task/0012_0015_layout-editor-and-dr-fix_Gemini",
-        "issueNumber": 15,
-        "objective": "PDF 페이지 레이아웃 편집기, 투명 텍스트 레이어 임베딩 Searchable PDF 내보내기, 2-Way BBox 교정기 완성 및 DR 스냅샷 중복방지/클린징/UTF-8 인코딩 보완",
-        "activeAgent": "Gemini 3.7 Flash",
-        "baseSha": "793346ee9b6f8a98e8f830a1cbf3cf14fa1a77b3",
-        "theme": "PDF 페이지 레이아웃 편집기 및 Searchable PDF 내보내기",
-        "completedAt": "2026-09-24T09:27:29.093Z",
-        "finalStatus": "SUCCESS",
-        "retrospectiveDoc": "docs/13.회고/13-10_SESSION-260924-0012_세션종합_KPT_회고록.md",
-        "tasksCompleted": [
-          "TASK-260924-0012-01: [0015]PDF 페이지 레이아웃 편집기 및 무제한 Undo/Redo 커맨드 엔진 (완료)",
-          "TASK-260924-0012-02: [0016]투명 텍스트 레이어 결합 Searchable PDF 내보내기 파이프라인 (완료)",
-          "TASK-260924-0012-03: [0017]In-Memory Write-Through PDF 시스템 설정 관리자 및 2-Way BBox OCR 교정기 (완료)",
-          "TASK-260924-0012-04: [0018]세션 재해복구(DR) 스냅샷 중복방지·이력취합·클린징 및 전역 UTF-8 인코딩 영구 방어 (완료)"
+        "objective": "PostgreSQL aiagent 5대 메타/쿼터 테이블 신설, 비-LLM 긴급 Push 우회로, 세션 DR 스냅샷 파일화 및 관리자 백오피스 구축",
+        "issue_number": 10,
+        "branch": "dev",
+        "retrospective_doc": "docs/13.회고/13-07_SESSION-20260922-006_세션종합_KPT_회고록.md",
+        "tasks_summary": [
+          "TASK-20260923-001 (완료): PostgreSQL 5대 메타원장 DDL 및 도메인 엔티티 구축",
+          "TASK-20260923-002 (완료): 비-LLM 긴급 Push, 다차원 쿼터 엔진 및 세션 재해복구 체계 구축",
+          "TASK-20260923-003 (완료): 재해복구 관제실 UI/스냅샷 파일화 개선 및 관리자 메타거버넌스 대시보드 구축"
         ]
       },
       "created_sys": "agent-harness",
@@ -80,893 +68,720 @@
       "updated_sys": "agent-harness",
       "updated_by": "system",
       "version": 2,
-      "updated_at": "2026-09-24T09:27:29.093Z"
+      "calibration_alpha": 1
+    },
+    {
+      "session_id": "SESSION-20260923-007",
+      "session_name": "[0010]에이전트 작업을 위한 사용자, AI계정, AI구독모델 별 토큰정책, 사용자의 작업별 모델설정 및 작업반영 프로세스 적용",
+      "work_group": "purePDFrend",
+      "ai_agent": "gemini",
+      "ai_model": "models/gemini-3.8-flash",
+      "status_cd": "완료",
+      "started_at": "2026-09-23T09:47:48.502Z",
+      "ended_at": "2026-09-23T12:25:00.000Z",
+      "doc_payload": {
+        "theme": "사용자·AI계정·구독모델별 토큰정책 및 작업별 모델설정·작업반영 프로세스",
+        "activeAgent": "Gemini 3.8 Flash",
+        "issueNumber": 11,
+        "branchName": "task/user-model-token-policy_Gemini",
+        "baseSha": "0388f7e9e95409d7d8ce6e48e9f94826da3dafb7",
+        "promotedCommitSha": "4a43140f3e76d031e6a0606d6127af2cb23119c1",
+        "completed_tasks": [
+          "TASK-20260923-004 (완료): 복수계정 토큰정책, 세션 자원 현행화 및 모델설정 구현"
+        ],
+        "retrospectiveDoc": "docs/13.회고/13-08_SESSION-20260923-007_세션종합_KPT_회고록.md",
+        "hang_governance_telemetry": {
+          "session_prompt_tokens": 2500,
+          "session_completion_tokens": 1800,
+          "session_total_tokens": 4300,
+          "context_bloat_ratio": "2.86%",
+          "burnout_risk_index": 13,
+          "burst_score": 1,
+          "burn_rate_velocity": 4300,
+          "loop_safety_margin": 4.9,
+          "rpd_consumed_turns": 42,
+          "quota_429_violations": 0,
+          "hang_risk_level": "SAFE"
+        }
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 3
     }
   ],
   "tasks": [
     {
-      "task_id": "TASK-0013-03",
-      "session_id": "SESSION-260924-0013",
-      "task_name": "[0013-03]다국어 OCR 병렬 배치 큐(Worker Pool) 및 세부 프로그레스 바 UI 구현",
+      "task_id": "TASK-0014-01",
+      "session_id": "SESSION-260925-0014",
+      "task_name": "[05-19] PDF 표준/커스텀 메타데이터 주입기(PdfMetadataInjector) 설계 및 구현",
+      "git_branch": "task/pdf-metadata-security_Gemini",
       "status_cd": "완료",
-      "git_branch": "task/0013_0019_manual-and-worker-pipeline_Gemini",
-      "started_at": "2026-09-24T16:00:00.000Z",
-      "ended_at": "2026-09-24T16:05:45.688Z",
+      "started_at": "2026-09-25T21:48:38.000Z",
+      "ended_at": "2026-09-26T06:52:04.239Z",
       "doc_payload": {
-        "reviewDoc": "docs/10.리뷰/260925_033_다국어_OCR_병렬_배치_큐_및_프로그레스_UI_구현_리뷰.md",
-        "designDoc": "docs/05.설계/05-18_다국어_OCR_병렬_배치_큐_Worker_Pool_및_프로그레스_엔진_설계.md",
-        "learningDoc": "docs/15.학습/15-15_Worker_Pool_기반_병렬_배치_큐_및_동시성_제어_알고리즘_해설.md",
-        "manualDoc": "docs/18.메뉴얼/18-01_사용자_PDF_스튜디오_이용_매뉴얼.md",
-        "unitTest": "tests/ocr_batch_queue.test.ts",
-        "features": [
-          "OcrBatchQueueManager 싱글톤/인스턴스 기반 Worker Pool 동시성 제어",
-          "다국어 언어팩(kor+eng, jpn, chi) 및 3대 OCR 엔진 어댑터 라우팅",
-          "Pause / Resume / Cancel 배치 작업 제어 가드레일",
-          "페이지 실패 시 지수 백오프 기반 최대 3회 자동 재시도",
-          "실시간 TPS 및 ETA(남은 시간) 계산기 및 옵저버 스트리밍",
-          "OcrBatchProgressModal UI 신설 및 VirtualViewerStudio 연동",
-          "18-01 사용자 PDF 스튜디오 매뉴얼 현행화 (v1.2)"
+        "design_doc": "docs/05.설계/05-19_PDF_표준_및_커스텀_메타데이터_주입기_설계서.md",
+        "learning_doc": "docs/15.학습/15-06_PDF_메타데이터_도메인모델링_및_유니코드_인코딩_아키텍처_학습가이드.md",
+        "review_doc": "docs/10.리뷰/260925_024_PDF_메타데이터_주입기_도서서지_활동_독서회독_도메인_구현_리뷰.md",
+        "implemented_components": [
+          "BookBibliographicInfo (출판사, 저자/역자, ISBN 체크섬, 가격 포맷, 온라인서점3사, eBook3사, 정오표, GitHub, 원서4사)",
+          "BookActivityInfo (강의도서, 뉴런데브, 인프런강의, 그룹독서, userId 격리)",
+          "BookReadingProgress (1독/2독/3독, roundHistory 누적 보존, 페이지 경계방어, 진도율, 별점, 서평)",
+          "PdfMetadataBundle (표준 8대 + 3대 도메인 애그리게이트 루트, 다중 사용자 딕셔너리, validateConsistency)",
+          "PdfMetadataInjector (ISO 32000-1 InfoDict, UTF-16BE 무손실 인코딩, 양방향 주입/추출)",
+          "PdfMetadataFacade (통합 파사드 오케스트레이션)",
+          "PdfMetadataBundleFactory (플루언트 빌더 및 자동 동기화 팩토리)",
+          "IPdfMetadataPort (헥사고날 포트)"
+        ],
+        "unit_tests": "tests/pdf_metadata_injector.test.ts (11대 테스트 100% PASS)",
+        "integrity_score": 100,
+        "compile_status": "SUCCESS"
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 3
+    },
+    {
+      "task_id": "TASK-20260923-004",
+      "session_id": "SESSION-20260923-007",
+      "task_name": "[01] 복수계정 토큰정책, 세션 자원 현행화 및 모델설정 구현",
+      "git_branch": "task/user-model-token-policy_Gemini",
+      "status_cd": "완료",
+      "started_at": "2026-09-23T10:15:00.000Z",
+      "ended_at": "2026-09-23T12:14:00.000Z",
+      "doc_payload": {
+        "pushed_commit_sha": "4a43140f3e76d031e6a0606d6127af2cb23119c1",
+        "promoted_commit_sha": "4a43140f3e76d031e6a0606d6127af2cb23119c1",
+        "review_doc": "docs/10.리뷰/260923_023_복수계정_토큰정책_세션자원현행화_및_모델설정_구현_리뷰.md",
+        "refinement_6step_status": "완료"
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 5
+    },
+    {
+      "task_id": "TASK-20260923-003",
+      "session_id": "SESSION-20260922-006",
+      "task_name": "[03] 재해복구 관제실 UI/스냅샷 파일화 개선 및 관리자 백오피스 메타 거버넌스 대시보드 구축",
+      "git_branch": "dev",
+      "status_cd": "완료",
+      "started_at": "2026-09-23T01:30:00.000Z",
+      "ended_at": "2026-09-23T08:52:00.000Z",
+      "doc_payload": {
+        "implemented_components": [
+          "EmergencyRecoveryPanel (UI정돈, 에이전트통계 전용 배치, 슬레이트 다크 테마, 세션복구 복사 UX)",
+          "Snapshot File Persistence (JSON & MD 파일화 및 미완료 잔여 태스크/루프 추적)",
+          "Hang Diagnosis Detailed Trigger & Recovery Assessment",
+          "MetaGovernanceBackoffice (4대 요금제, 멀티 모델 카탈로그, 원장 동결/해제, 긴급 쿼터 충전, 감사로그)"
+        ],
+        "review_doc": "docs/10.리뷰/260923_022_재해복구_관제실_UI_스냅샷_파일화_개선_및_관리자_메타거버넌스_대시보드_구축_리뷰.md",
+        "promoted_commit_sha": "ab8d5a60c400cf60caaad826a3beaaa4a8537fc7"
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 3
+    },
+    {
+      "task_id": "TASK-20260923-002",
+      "session_id": "SESSION-20260922-006",
+      "task_name": "[02] 비-LLM 긴급 Push, 다차원 토큰 쿼터 엔진 및 세션 재해복구 체계 구축",
+      "git_branch": "dev",
+      "status_cd": "완료",
+      "started_at": "2026-09-23T00:45:00.000Z",
+      "ended_at": "2026-09-23T01:04:00.000Z",
+      "doc_payload": {
+        "implemented_components": [
+          "EmergencyGitPushEngine",
+          "QuotaDeductionEngine",
+          "SessionDisasterRecoveryService",
+          "EmergencyRecoveryPanel",
+          "GEMINI.md",
+          "AGENTS.md (0-2, 0-3)"
+        ],
+        "review_doc": "docs/10.리뷰/260923_021_비LLM_긴급Push_다차원_토큰쿼터_엔진_및_세션_재해복구_체계_구축_리뷰.md"
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 2
+    },
+    {
+      "task_id": "TASK-20260922-001",
+      "session_id": "SESSION-20260922-006",
+      "task_name": "[01] PostgreSQL aiagent 5대 메타·원장 테이블 DDL 마이그레이션 및 도메인 엔티티 완결",
+      "git_branch": "task/메타거버넌스_쿼터시스템_Gemini",
+      "status_cd": "완료",
+      "started_at": "2026-09-22T14:40:00.000Z",
+      "ended_at": "2026-09-22T14:50:00.000Z",
+      "doc_payload": {
+        "migrated_tables": [
+          "agent_billing_plan",
+          "agent_model_catalog",
+          "agent_user_account",
+          "agent_account_quota_ledger",
+          "agent_quota_transaction_log"
+        ],
+        "domain_entities": [
+          "BillingPlan",
+          "ModelCatalog",
+          "UserAccount",
+          "AccountQuotaLedger",
+          "QuotaTransactionLog"
         ]
       },
       "created_sys": "agent-harness",
       "created_by": "system",
       "updated_sys": "agent-harness",
       "updated_by": "system",
-      "version": 4,
-      "created_at": "2026-09-24T16:00:28.801Z",
-      "updated_at": "2026-09-24T16:05:45.690Z"
-    },
-    {
-      "task_id": "TASK-0013-02",
-      "session_id": "SESSION-260924-0013",
-      "task_name": "[0013-02]Web Worker 스레드 오프로딩 Searchable PDF 합성 엔진 구현",
-      "status_cd": "완료",
-      "git_branch": "task/0013_0019_manual-and-worker-pipeline_Gemini",
-      "started_at": "2026-09-24T15:25:00.000Z",
-      "ended_at": "2026-09-24T15:48:40.658Z",
-      "doc_payload": {
-        "reviewDoc": "docs/10.리뷰/260925_032_Web_Worker_Searchable_PDF_컴파일_엔진_구현_리뷰.md",
-        "designDoc": "docs/05.설계/05-15_Web_Worker_Searchable_PDF_백그라운드_컴파일_엔진_설계.md",
-        "learningDoc": "docs/15.학습/15-14_Web_Worker_스레드_오프로딩_및_Transferable_Zero_Copy_기법.md",
-        "manualDoc": "docs/18.메뉴얼/18-01_사용자_PDF_스튜디오_이용_매뉴얼.md",
-        "unitTest": "tests/searchable_pdf_worker.test.ts",
-        "features": [
-          "Web Worker 백그라운드 스레드 분리 (SearchablePdfWorker.ts)",
-          "pdf-lib 0ms 메인 UI 블로킹 무프리징 합성",
-          "Transferable Objects (ArrayBuffer) 0-Copy 메모리 소유권 전송",
-          "SearchablePdfWorkerClient 싱글톤 파사드 및 Graceful Fallback",
-          "컴파일 취소(cancelCurrentJob) 안전 가드레일",
-          "18-01 사용자 PDF 스튜디오 매뉴얼 현행화 (v1.1)"
-        ],
-        "promotedAt": "2026-09-24T15:48:40.662Z",
-        "promotedSha": "4de9e94d29b4bb3ea1b1eaac2b29ff562bef53f3"
-      },
-      "created_sys": "agent-harness",
-      "created_by": "system",
-      "updated_sys": "agent-harness",
-      "updated_by": "system",
-      "version": 7,
-      "created_at": "2026-09-24T15:32:28.703Z",
-      "updated_at": "2026-09-24T15:48:40.664Z"
-    },
-    {
-      "task_id": "TASK-0013-01",
-      "session_id": "SESSION-260924-0013",
-      "task_name": "[0013-01]docs/18.메뉴얼 폴더 신설 및 [사용/관리] 서비스별 상세 매뉴얼(v1.0) 작성",
-      "status_cd": "완료",
-      "git_branch": "task/0013_0019_manual-and-worker-pipeline_Gemini",
-      "started_at": "2026-09-24T14:44:28.000Z",
-      "ended_at": "2026-09-24T15:18:23.170Z",
-      "doc_payload": {
-        "reviewDoc": "docs/10.리뷰/260924_031_docs_18_메뉴얼_신설_및_서비스별_상세매뉴얼_작성_리뷰.md",
-        "manualDocs": [
-          "docs/18.메뉴얼/README_메뉴얼.md",
-          "docs/18.메뉴얼/18-01_사용자_PDF_스튜디오_이용_매뉴얼.md",
-          "docs/18.메뉴얼/18-02_관리자_하네스_및_시스템_운영_매뉴얼.md"
-        ],
-        "svgAssets": [
-          "docs/18.메뉴얼/images/v1.0_260924_pdf_studio_viewer.svg",
-          "docs/18.메뉴얼/images/v1.0_260924_page_layout_editor.svg",
-          "docs/18.메뉴얼/images/v1.0_260924_ocr_correction_studio.svg",
-          "docs/18.메뉴얼/images/v1.0_260924_admin_governance_console.svg"
-        ],
-        "features": [
-          "19대 기술문서 분류체계 확장 (docs/18.메뉴얼 신설)",
-          "18-01 사용자 PDF 스튜디오 이용 매뉴얼 (v1.0) 작성",
-          "18-02 관리자 하네스 및 시스템 운영 매뉴얼 (v1.0) 작성",
-          "하네스 거버넌스 대화턴 추적 등록일자(created_at) Desc 기본 정렬 적용",
-          "세션ID 필터 선택 즉각 반응 및 검색 버튼/Enter 키 이벤트 핸들러 보강"
-        ],
-        "promotedAt": "2026-09-24T15:18:23.170Z",
-        "promotedSha": "56fd54ae8fa59e22fed127f19913cb047a6f21bb"
-      },
-      "created_sys": "agent-harness",
-      "created_by": "system",
-      "updated_sys": "agent-harness",
-      "updated_by": "system",
-      "version": 2,
-      "updated_at": "2026-09-24T15:18:23.170Z"
-    },
-    {
-      "task_id": "TASK-260924-0012-01",
-      "session_id": "SESSION-260924-0012",
-      "task_name": "[0015]PDF 페이지 레이아웃 편집기(회전 90/180/270, 삭제, 순서 재정렬) 및 무제한 Undo/Redo 커맨드 엔진 구현",
-      "status_cd": "완료",
-      "git_branch": "task/0012_0015_layout-editor-and-dr-fix_Gemini",
-      "started_at": "2026-09-24T02:00:00.000Z",
-      "ended_at": "2026-09-24T02:13:23.439Z",
-      "doc_payload": {
-        "reviewDoc": "docs/10.리뷰/260924_027_PDF_페이지_레이아웃_편집기_및_무제한_Undo_Redo_구현_리뷰.md",
-        "designDoc": "docs/05.설계/05-13_PDF_페이지_레이아웃_편집기_및_Undo_Redo_커맨드_설계.md",
-        "learningDoc": "docs/15.학습/15-10_커맨드_패턴_기반_PDF_무한_실행취소_다시실행_및_불변_상태관리_해설.md",
-        "unitTest": "tests/page_layout_and_history.test.ts",
-        "features": [
-          "소프트 삭제(isDeleted) 및 2단계 클린징(cleanDeletedPages)",
-          "커맨드/메멘토 패턴 기반 무제한 Undo/Redo (HistoryManager<T>)",
-          "90/180/270도 각도 정규화 회전 및 HTML5 Drag and Drop 순서 재배치",
-          "단축키(Ctrl+Z, Ctrl+Y, Ctrl+Shift+Z) 및 가상 뷰어 액션 툴바 연동"
-        ]
-      },
-      "created_sys": "agent-harness",
-      "created_by": "system",
-      "updated_sys": "agent-harness",
-      "updated_by": "system",
-      "version": 2,
-      "updated_at": "2026-09-24T02:13:23.439Z"
-    },
-    {
-      "task_id": "TASK-260924-0012-02",
-      "session_id": "SESSION-260924-0012",
-      "task_name": "[0016]투명 텍스트 레이어 결합 Searchable PDF 내보내기 파이프라인 구현",
-      "status_cd": "완료",
-      "git_branch": "task/0012_0015_layout-editor-and-dr-fix_Gemini",
-      "started_at": "2026-09-24T02:30:00.000Z",
-      "ended_at": "2026-09-24T02:49:35.156Z",
-      "doc_payload": {
-        "reviewDoc": "docs/10.리뷰/260924_028_투명_텍스트_레이어_결합_Searchable_PDF_내보내기_구현_리뷰.md",
-        "designDoc": "docs/05.설계/05-14_투명_텍스트_레이어_결합_Searchable_PDF_내보내기_엔진_설계.md",
-        "learningDoc": "docs/15.학습/15-11_pdf-lib_기반_투명_텍스트_레이어_임베딩_및_Searchable_PDF_생성_기법.md",
-        "unitTest": "tests/searchable_pdf_export.test.ts",
-        "features": [
-          "pdf-lib 기반 투명 텍스트 레이어(opacity:0) 합성",
-          "기본 표준 폰트 및 시스템 등록 커스텀 폰트 레지스트리(FontRegistry)",
-          "[도서제목]_ocr_YYYYMMDD.pdf 표준 파일명 규칙 및 메타데이터 주입",
-          "소프트 삭제 페이지 자동 배제 및 1..N 완본 PDF 생성",
-          "UI 프로그레스 모달(0%~100%) 및 브라우저 원클릭 Blob 다운로드"
-        ]
-      },
-      "created_sys": "agent-harness",
-      "created_by": "system",
-      "updated_sys": "agent-harness",
-      "updated_by": "system",
-      "version": 2,
-      "updated_at": "2026-09-24T02:49:35.156Z"
-    },
-    {
-      "task_id": "TASK-260924-0012-03",
-      "session_id": "SESSION-260924-0012",
-      "task_name": "[0017]In-Memory Write-Through PDF 시스템 설정 관리자(PdfConfigManager) 및 2-Way BBox OCR 교정기(OCRCorrectionStudio) UI/UX 고도화 구현",
-      "status_cd": "완료",
-      "git_branch": "task/0012_0015_layout-editor-and-dr-fix_Gemini",
-      "started_at": "2026-09-24T07:32:00.000Z",
-      "ended_at": "2026-09-24T08:52:00.000Z",
-      "doc_payload": {
-        "reviewDoc": "docs/10.리뷰/260924_029_In_Memory_Write_Through_설정관리자_및_2Way_BBox_교정기_구현_리뷰.md",
-        "designDocs": [
-          "docs/05.설계/05-16_PDF_시스템_설정_및_기능_거버넌스_설계.md",
-          "docs/05.설계/05-15_2Way_BBox_캔버스_인라인_텍스트_교정기_설계.md"
-        ],
-        "learningDoc": "docs/15.학습/15-12_In_Memory_Write_Through_설정_레지스트리_및_2Way_BBox_인라인_교정_패턴_해설.md",
-        "unitTests": [
-          "tests/pdf_config_manager.test.ts",
-          "tests/ocr_correction_studio.test.ts",
-          "tests/ocr_correction_and_config.test.ts"
-        ],
-        "features": [
-          "In-Memory Write-Through 설정 관리자 (0ms Fast Read, localStorage 영속화, Observer Pub-Sub)",
-          "React 18 usePdfConfig (useSyncExternalStore) 불변 캐싱 기반 무한루프 방어",
-          "3대 프리셋 프로파일 (정밀 교정, 초고속 모드, 대용량 메모리 절약) 원클릭 전환",
-          "2-Way 실시간 양방향 포커스 동기화 (캔버스 BBox 클릭 ↔ 에디터 행 scrollIntoView)",
-          "HistoryManager<BoundingBoxItem[]> 무제한 실행취소/다시실행 (Ctrl+Z, Ctrl+Y)",
-          "BBox 마우스 드래그 이동, 리사이즈 핸들 및 4px 스냅 가이드 (Shift 바이패스)",
-          "500ms 디바운스 LiveSync 동기화 및 뷰어 Undo 스택 오염 방어"
-        ]
-      },
-      "created_sys": "agent-harness",
-      "created_by": "system",
-      "updated_sys": "agent-harness",
-      "updated_by": "system",
-      "version": 2,
-      "updated_at": "2026-09-24T08:52:00.000Z"
-    },
-    {
-      "task_id": "TASK-260924-0012-04",
-      "session_id": "SESSION-260924-0012",
-      "task_name": "[0018]세션 재해복구(DR) 스냅샷 중복방지·이력취합·클린징 및 개발환경 UTF-8 인코딩 영구 방어 구현",
-      "status_cd": "완료",
-      "git_branch": "task/0012_0015_layout-editor-and-dr-fix_Gemini",
-      "started_at": "2026-09-24T08:55:00.000Z",
-      "ended_at": "2026-09-24T13:26:26.172Z",
-      "doc_payload": {
-        "reviewDoc": "docs/10.리뷰/260924_030_세션_DR_스냅샷_디둡_클린징_및_전역_UTF8_가드레일_구현_리뷰.md",
-        "designDoc": "docs/05.설계/05-17_세션_DR_스냅샷_디둡_클린징_및_전역_UTF8_가드레일_설계.md",
-        "learningDoc": "docs/15.학습/15-13_세션_DR_스냅샷_디둡_롤링아카이빙_및_UTF8_인코딩_가드레일_해설.md",
-        "unitTest": "tests/session_dr_and_encoding.test.ts",
-        "features": [
-          "SHA-256 상태 지문(Fingerprint) 기반 스냅샷 디둡(Deduplication) 및 0ms 중복 방어",
-          "세션별 최근 10개 롤링 보관 및 10건 초과분 Cold Storage(data/archives/snapshots/) 아카이빙",
-          "2계층(Active ➔ Archive Cold Storage Fallback) 안전 복구 탐색 엔진",
-          "유니코드 NFC 정규화 및 safeUtf8Path 전역 UTF-8 인코딩 가드레일 (자모 분리/깨짐 원천 차단)",
-          "재해복구 관제실(EmergencyRecoveryPanel) 디둡 상태 배지 및 [10건 초과 아카이빙] 원클릭 액션 연동"
-        ]
-      },
-      "created_sys": "agent-harness",
-      "created_by": "system",
-      "updated_sys": "agent-harness",
-      "updated_by": "system",
-      "version": 3,
-      "updated_at": "2026-09-24T13:26:26.172Z"
+      "version": 2
     }
   ],
-  "loops": [],
+  "loops": [
+    {
+      "loop_id": "LOOP-20260922-001",
+      "task_id": "TASK-20260922-001",
+      "session_id": "SESSION-20260922-006",
+      "loop_name": "PostgreSQL 5대 메타·원장 테이블 DDL 마이그레이션 및 초기 시드 적재",
+      "status_cd": "완료",
+      "started_at": "2026-09-22T14:42:00.000Z",
+      "ended_at": "2026-09-22T14:44:00.000Z",
+      "doc_payload": {
+        "target_db": "purepdfrend_dev",
+        "schema": "aiagent"
+      },
+      "version": 2,
+      "created_sys": "agent-service",
+      "created_by": "system",
+      "updated_sys": "agent-service",
+      "updated_by": "system"
+    },
+    {
+      "loop_id": "LOOP-20260922-002",
+      "task_id": "TASK-20260922-001",
+      "session_id": "SESSION-20260922-006",
+      "loop_name": "TypeScript OOP/DDD 도메인 모델링 및 단위 검증(TDD Suite 7)",
+      "status_cd": "완료",
+      "started_at": "2026-09-22T14:44:00.000Z",
+      "ended_at": "2026-09-22T14:46:00.000Z",
+      "doc_payload": {
+        "test_suites_passed": 7
+      },
+      "version": 2,
+      "created_sys": "agent-service",
+      "created_by": "system",
+      "updated_sys": "agent-service",
+      "updated_by": "system"
+    },
+    {
+      "loop_id": "LOOP-20260922-003",
+      "task_id": "TASK-20260922-001",
+      "session_id": "SESSION-20260922-006",
+      "loop_name": "백엔드 Express REST API 엔드포인트 8종 구축 및 듀얼 스토어 폴백 연동",
+      "status_cd": "완료",
+      "started_at": "2026-09-22T14:46:00.000Z",
+      "ended_at": "2026-09-22T14:50:00.000Z",
+      "doc_payload": {
+        "endpoints_count": 8,
+        "compile_status": "SUCCESS"
+      },
+      "version": 2,
+      "created_sys": "agent-service",
+      "created_by": "system",
+      "updated_sys": "agent-service",
+      "updated_by": "system"
+    },
+    {
+      "loop_id": "LOOP-0014-01-01",
+      "task_id": "TASK-0014-01",
+      "session_id": "SESSION-260925-0014",
+      "loop_name": "PDF 표준 및 커스텀 메타데이터 주입기 상세 설계서(05-19) 작성 및 인덱스 현행화",
+      "status_cd": "완료",
+      "started_at": "2026-09-25T21:49:00.000Z",
+      "ended_at": "2026-09-25T21:49:40.000Z",
+      "doc_payload": {
+        "file": "docs/05.설계/05-19_PDF_표준_및_커스텀_메타데이터_주입기_설계서.md"
+      },
+      "created_sys": "agent-service",
+      "created_by": "system",
+      "updated_sys": "agent-service",
+      "updated_by": "system",
+      "version": 1
+    },
+    {
+      "loop_id": "LOOP-0014-01-02",
+      "task_id": "TASK-0014-01",
+      "session_id": "SESSION-260925-0014",
+      "loop_name": "도서 서지·활동·독서 3대 VO 모델링 및 PdfMetadataInjector 엔진 구현",
+      "status_cd": "완료",
+      "started_at": "2026-09-25T21:49:40.000Z",
+      "ended_at": "2026-09-25T21:51:00.000Z",
+      "doc_payload": {
+        "packages": "src/ppdf/domain/metadata/*"
+      },
+      "created_sys": "agent-service",
+      "created_by": "system",
+      "updated_sys": "agent-service",
+      "updated_by": "system",
+      "version": 1
+    },
+    {
+      "loop_id": "LOOP-0014-01-03",
+      "task_id": "TASK-0014-01",
+      "session_id": "SESSION-260925-0014",
+      "loop_name": "TDD 7대 단위 검증 100% 달성, 학습 가이드(15-06) 작성 및 린트/컴파일 무결성 검증",
+      "status_cd": "완료",
+      "started_at": "2026-09-25T21:51:00.000Z",
+      "ended_at": "2026-09-25T21:54:00.000Z",
+      "doc_payload": {
+        "test_suite": "tests/pdf_metadata_injector.test.ts",
+        "passed": 7
+      },
+      "created_sys": "agent-service",
+      "created_by": "system",
+      "updated_sys": "agent-service",
+      "updated_by": "system",
+      "version": 1
+    }
+  ],
   "traces": [
     {
-      "trace_id": "TRACE-SESSION-0003-TASK-007-T01",
-      "session_id": "SESSION-20260921-003",
-      "task_id": "TASK-20260921-007",
-      "loop_id": "LOOP-20260921-014",
+      "trace_id": "TRACE-20260922-001",
+      "session_id": "SESSION-20260922-006",
+      "task_id": "TASK-20260922-001",
+      "loop_id": "LOOP-20260922-003",
       "step_index": 1,
       "agent_name": "gemini",
       "model_name": "models/gemini-3.8-flash",
-      "user_prompt": "현재 파일 구조 및 소스 분석을 통해... purepdfrend_dev 개발DB 현행화 및 세션 3대 핵심작업 계획 수립 요청 #세션시작",
-      "agent_response": "[0000] 바이브 코딩 환경 초기화 및 세션 3대 핵심 작업 계획 보고\n\n1. 세션명: [0000]하이브리드_아키텍처_리팩토링_및_디자인패턴_적용_검증\n2. 원격 저장소 이슈 및 PR 점검: 완료\n3. 원격 dev/stg/main 브랜치 일치 점검 완료\n4. 세션 작업 대상 이슈 및 브랜치 생성 완료",
-      "response_summary": "[0000] 바이브 코딩 환경 초기화 및 세션 3대 핵심 작업 계획 보고",
-      "prompt_tokens": 1100,
-      "completion_tokens": 850,
-      "total_tokens": 1950,
-      "created_at": "2026-09-24T15:13:12.270Z"
+      "user_prompt": "#태스크처리 [01] PostgreSQL aiagent 5대 메타·원장 테이블 DDL 마이그레이션 및 도메인 엔티티 완결",
+      "agent_response": "PostgreSQL aiagent 5대 메타·원장 테이블 마이그레이션, OOP/DDD 5대 도메인 모델, 백엔드 REST API 8종 연동 및 TDD Suite 7 검증 완결",
+      "response_summary": "5대 메타·원장 테이블 DDL 마이그레이션 및 도메인 엔티티 완결",
+      "prompt_tokens": 2100,
+      "completion_tokens": 1400,
+      "total_tokens": 3500,
+      "estimated_tokens": 3500,
+      "burst_score": 1,
+      "burn_rate_velocity": 3500,
+      "loop_safety_margin": 5.9,
+      "burnout_risk_index": 14,
+      "created_at": "2026-09-22T14:59:37.541Z"
     },
     {
-      "trace_id": "TRACE-SESSION-0003-TASK-007-T02",
-      "session_id": "SESSION-20260921-003",
-      "task_id": "TASK-20260921-007",
-      "loop_id": "LOOP-20260921-014",
-      "step_index": 2,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-3.8-flash",
-      "user_prompt": "#태스크처리 [01] 도메인 격리 아키텍처 및 팩토리/파사드 패턴 리팩토링 착수",
-      "agent_response": "[0001] 도메인 격리 아키텍처 및 팩토리/파사드 패턴 리팩토링 완료 보고\n\n1. 도메인 격리: src/ppdf 및 src/aiagent 디렉터리 분리\n2. 디자인 패턴: TokenQuotaStrategyRegistry (Factory), IntegrityAuditFacade (Facade), PpdfAuditAdapter (Adapter) 적용\n3. 기술문서 15-04 교육자료 발행 및 TDD 린트/컴파일 무결성 100점 달성",
-      "response_summary": "[0001] 도메인 격리 아키텍처 및 팩토리/파사드 패턴 리팩토링 완료",
-      "prompt_tokens": 1450,
-      "completion_tokens": 1200,
-      "total_tokens": 2650,
-      "created_at": "2026-09-24T15:13:12.271Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0003-TASK-007-T03",
-      "session_id": "SESSION-20260921-003",
-      "task_id": "TASK-20260921-007",
-      "loop_id": "LOOP-20260921-014",
-      "step_index": 3,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-3.8-flash",
-      "user_prompt": "#태스크정리 및 #태스크승급",
-      "agent_response": "[0002] TASK-20260921-007 코드리뷰(10-15) 발행 및 dev/stg/main 브랜치 승급 완료 보고\n\n1. 코드리뷰 10-15 발행 및 색인 완료\n2. dev, stg, main 브랜치 배포 승급 완결\n3. 하네스 태스크 상태 완료 승급",
-      "response_summary": "[0002] TASK-20260921-007 코드리뷰 발행 및 브랜치 배포 승급 완료",
-      "prompt_tokens": 950,
-      "completion_tokens": 720,
-      "total_tokens": 1670,
-      "created_at": "2026-09-24T15:13:12.271Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0003-TASK-007-T04",
-      "session_id": "SESSION-20260921-003",
-      "task_id": "TASK-20260921-007",
-      "loop_id": "LOOP-20260921-014",
-      "step_index": 4,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-3.8-flash",
-      "user_prompt": "#세션정리",
-      "agent_response": "[0003] SESSION-20260921-003 세션 회고(13-03) 발행 및 세션 마감 보고\n\n1. 세션 회고 13-03 발행\n2. 미해결 백로그 0건 확인\n3. dev, stg, main 최종 커밋 동기화 확인\n4. 차기 세션 프롬프트 제안",
-      "response_summary": "[0003] SESSION-20260921-003 회고 발행 및 세션 마감 보고",
-      "prompt_tokens": 1050,
-      "completion_tokens": 880,
-      "total_tokens": 1930,
-      "created_at": "2026-09-24T15:13:12.271Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0003-TASK-008-T01",
-      "session_id": "SESSION-20260921-003",
-      "task_id": "TASK-20260921-008",
-      "loop_id": "LOOP-20260921-015",
-      "step_index": 5,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-3.8-flash",
-      "user_prompt": "Continue (원격 깃허브 변경 누락 원인 파악 및 긴급 푸시 파이프라인 구축)",
-      "agent_response": "[0005] [긴급처리] GitHub 원격동기화 누락방지 자동푸시 파이프라인 구축, 원격 브랜치 커밋 푸시 및 AGENTS.md 규정 영구 개정 완결 보고\n\n1. 원인: 컨테이너 .git 부재 시 GitHub Git Data API Blob/Tree/Commit 푸시 과정 결손 규명\n2. 조치: scripts/github_sync_push.ts 구축 및 110개 파일 원격 dev 커밋(bdca515) 푸시 및 stg/main 승급\n3. AGENTS.md 0-1, 2.3, 2.4, 3.1 개정 완료",
-      "response_summary": "[0005] GitHub 원격동기화 누락방지 자동푸시 파이프라인 구축 및 커밋 푸시 완료",
-      "prompt_tokens": 1600,
-      "completion_tokens": 1350,
-      "total_tokens": 2950,
-      "created_at": "2026-09-24T15:13:12.271Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0003-TASK-009-T01",
-      "session_id": "SESSION-20260921-003",
-      "task_id": "TASK-20260921-009",
-      "loop_id": "LOOP-20260921-016",
-      "step_index": 6,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-3.8-flash",
-      "user_prompt": "긴급2. 대화 턴 프롬프트 요청, 응답 내용이 DB 영속화 처리가 안되고 있어. 22건에서 늘지를 않네. 이것도 분석해서 처리하고 현행화 해야겠어. #태스크시작",
-      "agent_response": "[0005] #태스크시작 [긴급2] 대화 턴 프롬프트 요청/응답 DB 영속화 누락 원인 정밀 분석 및 복원·자동화 계획 수립 (READ-ONLY)\n\n1. 22건 정체 원인 분석 보고\n2. 긴급2 작업계획 (세션003 턴 전수 복원, 파이프라인 구축, 무결성 감사 강화)\n3. 후속 실행 프롬프트 제안",
-      "response_summary": "[0005] [긴급2] 대화 턴 영속화 누락 원인 분석 및 복원 계획 수립",
-      "prompt_tokens": 1350,
-      "completion_tokens": 950,
-      "total_tokens": 2300,
-      "created_at": "2026-09-24T15:13:12.271Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0003-TASK-009-T03",
-      "session_id": "SESSION-20260921-003",
-      "task_id": "TASK-20260921-009",
-      "loop_id": "LOOP-20260921-016",
-      "step_index": 8,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-3.8-flash",
-      "user_prompt": "현재 DB 테이블 구조에 보완이 필요한 부분은 없어?",
-      "agent_response": "[0005] 개발 데이터베이스(purepdfrend_dev) 6대 전체 테이블 전수 조사 및 5대 보완 영역 보고\n\n1. 인덱스 결손으로 인한 풀 테이블 스캔 위험\n2. 감사 컬럼 기본값(DEFAULT) 누락으로 인한 INSERT 장애 위험\n3. 외래키 제약조건 부재 검토\n4. 복합 유니크 제약 및 ppdf 스키마 준비 방향성 제시",
-      "response_summary": "[0005] DB 6대 테이블 전수 조사 및 인덱스/기본값 보완 영역 도출",
-      "prompt_tokens": 1200,
-      "completion_tokens": 900,
-      "total_tokens": 2100,
-      "created_at": "2026-09-24T15:13:12.271Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0003-TASK-009-T04",
-      "session_id": "SESSION-20260921-003",
-      "task_id": "TASK-20260921-009",
-      "loop_id": "LOOP-20260921-016",
-      "step_index": 9,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-3.8-flash",
-      "user_prompt": "소스 수정하다가 충돌난게 있어보여 정리해줘",
-      "agent_response": "[0005] 소스 디렉터리 충돌 및 레거시 파일 정리 완료 보고\n\n1. 구버전 src/domain/token-quota 정리 및 server.ts 임포트 최신화\n2. 린트/컴파일 검증 및 GitHub dev(d50f935), stg, main 브랜치 배포 완료",
-      "response_summary": "[0005] 소스 디렉터리 충돌 해소 및 레거시 파일 정리 완료",
-      "prompt_tokens": 1100,
-      "completion_tokens": 800,
-      "total_tokens": 1900,
-      "created_at": "2026-09-24T15:13:12.271Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0003-TASK-009-T05",
-      "session_id": "SESSION-20260921-003",
-      "task_id": "TASK-20260921-009",
-      "loop_id": "LOOP-20260921-016",
-      "step_index": 10,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-3.8-flash",
-      "user_prompt": "긴급2 처리하기위해 DB 개선사항을 검토해본건데... ai 개발 구조에서 DB 외래키 전략의 장단점 분석해줘",
-      "agent_response": "[0005] AI 에이전트 개발 및 운영 구조에서의 DB 외래키(Foreign Key) 전략 심층 분석 보고\n\n1. 물리적 FK 강제 전략 vs 논리적 관계 & 거버넌스 전략 비교 매트릭스\n2. 장단점 심층 분석 (데드락/역순저장 위험 vs 유연성)\n3. purePDFrend 하이브리드 소프트 FK 권장안 도출",
-      "response_summary": "[0005] AI 개발 구조 DB 외래키 전략 심층 분석 및 하이브리드 소프트 FK 제안",
-      "prompt_tokens": 1400,
-      "completion_tokens": 1150,
-      "total_tokens": 2550,
-      "created_at": "2026-09-24T15:13:12.271Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0003-TASK-009-T06",
-      "session_id": "SESSION-20260921-003",
-      "task_id": "TASK-20260921-009",
-      "loop_id": "LOOP-20260921-017",
-      "step_index": 11,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-3.8-flash",
-      "user_prompt": "검토안 수용하여 테이블 개선작업우선 진행하고 긴급2 처리하자. 루프로 단계적 처리할 대상인지 분석해서 진행해줘 #태스크처리",
-      "agent_response": "[0005] #태스크처리: DB 인덱스 및 감사컬럼 DDL 적용 완료, 대화 턴 일괄 영속화 파이프라인 가동 및 세션 003 전수 적재 완결",
-      "response_summary": "[0005] DB 테이블 개선 및 대화 턴 일괄 영속화 파이프라인 가동",
-      "prompt_tokens": 1300,
-      "completion_tokens": 1000,
-      "total_tokens": 2300,
-      "created_at": "2026-09-24T15:13:12.271Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0012-TASK-0015-T01",
-      "session_id": "SESSION-260924-0012",
-      "task_id": "TASK-260924-0012-01",
-      "loop_id": "LOOP-260924-0012-01",
+      "trace_id": "TRACE-1790165440802",
+      "session_id": "SESSION-20260923-007",
+      "task_id": "TASK-20260923-004",
+      "loop_id": null,
       "step_index": 1,
       "agent_name": "gemini",
-      "model_name": "models/gemini-1.5-pro",
-      "user_prompt": "#세션시작 [0012]PDF 페이지 레이아웃 편집기 및 투명 텍스트 레이어 임베딩 Searchable PDF 내보내기 구현",
-      "agent_response": "[0000] #세션시작: SESSION-260924-0012 세션 초기화 및 4대 태스크 백로그 수립, 작업 브랜치 생성 완료",
-      "response_summary": "[0000] 세션 0012 초기화 및 4대 태스크 백로그 수립",
-      "prompt_tokens": 1200,
-      "completion_tokens": 650,
-      "total_tokens": 1850,
-      "created_at": "2026-09-24T15:13:12.271Z"
+      "model_name": "models/gemini-3.8-flash",
+      "user_prompt": "#태스크처리 [01] 복수계정 토큰정책, 세션 자원 현행화 및 모델설정 구현",
+      "agent_response": "복수 Gemini 계정 지원, 온디맨드 세션 자원 현행화 및 모델정책 거버넌스 도메인·API·UI 구축 완료",
+      "response_summary": "복수계정 토큰정책 및 세션 자원 현행화 완료",
+      "prompt_tokens": 2500,
+      "completion_tokens": 1800,
+      "total_tokens": 4300,
+      "estimated_tokens": 4300,
+      "burst_score": 1,
+      "burn_rate_velocity": 4300,
+      "loop_safety_margin": 4.9,
+      "burnout_risk_index": 13,
+      "created_at": "2026-09-23T12:10:40.803Z"
     },
     {
-      "trace_id": "TRACE-SESSION-0012-TASK-0015-T02",
-      "session_id": "SESSION-260924-0012",
-      "task_id": "TASK-260924-0012-01",
-      "loop_id": "LOOP-260924-0012-01",
-      "step_index": 2,
+      "trace_id": "TRACE-1790398491262",
+      "session_id": "SESSION-260925-0014",
+      "task_id": "TASK-0014-01",
+      "loop_id": "LOOP-0014-01-03",
+      "step_index": 1,
       "agent_name": "gemini",
-      "model_name": "models/gemini-1.5-pro",
-      "user_prompt": "#태스크시작 [0015]PDF 페이지 레이아웃 편집기(회전 90/180/270, 삭제, 드래그앤드롭 순서 재배치) 및 액션 툴바 구현",
-      "agent_response": "[0000] #태스크시작: 도메인 분석 및 설계 계획 수립 (05-13 설계문서 및 아키텍처 SVG 작성 완료)",
-      "response_summary": "[0000] 태스크 0015 READ-ONLY 분석 및 05-13 설계문서 작성",
-      "prompt_tokens": 1350,
-      "completion_tokens": 900,
-      "total_tokens": 2250,
-      "created_at": "2026-09-24T15:13:12.271Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0012-TASK-0015-T03",
-      "session_id": "SESSION-260924-0012",
-      "task_id": "TASK-260924-0012-01",
-      "loop_id": "LOOP-260924-0012-01",
-      "step_index": 3,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-1.5-flash",
-      "user_prompt": "1. 소프트 삭제로 취소시 복구되도록 처리. 저장시 클린징처리(권장 수용)\n2. 주석편집작업 등 수정기능을 고려하여 '실행취소', '다시실행' 처리 구현\n#태스크처리 [0015]PDF 페이지 레이아웃 편집기 구현",
-      "agent_response": "[0001] #태스크처리: PageLayoutEngine 및 무제한 Undo/Redo 커맨드 매니저 구현, 31종 TDD 검증 및 15-10 학습문서 작성 완료",
-      "response_summary": "[0001] PageLayoutEngine, HistoryManager 구현 및 31종 TDD 단위 검증 완결",
-      "prompt_tokens": 1800,
-      "completion_tokens": 1400,
-      "total_tokens": 3200,
-      "created_at": "2026-09-24T15:13:12.271Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0012-TASK-0015-T04",
-      "session_id": "SESSION-260924-0012",
-      "task_id": "TASK-260924-0012-01",
-      "loop_id": "LOOP-260924-0012-01",
-      "step_index": 4,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-1.5-flash",
-      "user_prompt": "#태스크정리 [0015]PDF 페이지 레이아웃 편집기 및 무제한 Undo/Redo 커맨드 엔진 구현",
-      "agent_response": "[0002] #태스크정리: 10-27 코드리뷰 문서 발행, 하네스 스토어 및 DB 동기화, Git Data API 원격 dev 푸시 완료",
-      "response_summary": "[0002] 10-27 코드리뷰 문서 발행 및 하네스/원격 푸시 동기화",
-      "prompt_tokens": 1100,
-      "completion_tokens": 800,
-      "total_tokens": 1900,
-      "created_at": "2026-09-24T15:13:12.271Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0012-TASK-0015-T05",
-      "session_id": "SESSION-260924-0012",
-      "task_id": "TASK-260924-0012-01",
-      "loop_id": "LOOP-260924-0012-01",
-      "step_index": 5,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-1.5-flash",
-      "user_prompt": "#태스크승급 [0015]PDF 페이지 레이아웃 편집기 및 무제한 Undo/Redo 커맨드 엔진 구현",
-      "agent_response": "[0003] #태스크승급: TASK-260924-0012-01 완료 승급, dev/stg/main 브랜치 최신 커밋 SHA 일치 확인 완료",
-      "response_summary": "[0003] TASK-0015 상태 '완료' 승급 및 3대 원격 브랜치 배포 승급 완결",
-      "prompt_tokens": 950,
-      "completion_tokens": 650,
-      "total_tokens": 1600,
-      "created_at": "2026-09-24T02:13:23.000Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0012-TASK-0016-T01",
-      "session_id": "SESSION-260924-0012",
-      "task_id": "TASK-260924-0012-02",
-      "loop_id": "LOOP-260924-0012-02",
-      "step_index": 5,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-1.5-pro",
-      "user_prompt": "#태스크시작 [0016]투명 텍스트 레이어 결합 Searchable PDF 내보내기 파이프라인 구현",
-      "agent_response": "[0000] #태스크시작: 도메인 분석 및 05-14 설계문서/아키텍처 SVG 작성 완료",
-      "response_summary": "[0000] 태스크 0016 READ-ONLY 분석 및 05-14 설계문서 작성",
-      "prompt_tokens": 1400,
-      "completion_tokens": 950,
-      "total_tokens": 2350,
-      "created_at": "2026-09-24T15:13:12.271Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0012-TASK-0016-T02",
-      "session_id": "SESSION-260924-0012",
-      "task_id": "TASK-260924-0012-02",
-      "loop_id": "LOOP-260924-0012-02",
-      "step_index": 6,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-1.5-flash",
-      "user_prompt": "1. 기본폰트를 제공하고 추가폰트를 pdf 관리시스템에 등록하면 선택된 폰트로 반영될 수 있게 구현\n2. [도서제목]_ocr_YYYYMMDD.pdf\n#태스크처리 [0016]투명 텍스트 레이어 결합 Searchable PDF 내보내기 구현",
-      "agent_response": "[0001] #태스크처리: SearchablePdfExportEngine 및 FontRegistry 구현, 22개 TDD 단위 검증 및 15-11 학습문서 작성 완료",
-      "response_summary": "[0001] SearchablePdfExportEngine 구현 및 브라우저 원클릭 다운로드 완성",
-      "prompt_tokens": 1950,
-      "completion_tokens": 1500,
-      "total_tokens": 3450,
-      "created_at": "2026-09-24T15:13:12.271Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0012-TASK-0016-T03",
-      "session_id": "SESSION-260924-0012",
-      "task_id": "TASK-260924-0012-02",
-      "loop_id": "LOOP-260924-0012-02",
-      "step_index": 7,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-1.5-flash",
-      "user_prompt": "#태스크정리 [0016]투명 텍스트 레이어 결합 Searchable PDF 내보내기 파이프라인 구현",
-      "agent_response": "[0002] #태스크정리: 10-28 코드리뷰 문서 발행, 하네스 스토어 및 DB 동기화, Git Data API 원격 dev 푸시 완료",
-      "response_summary": "[0002] 10-28 코드리뷰 문서 발행 및 하네스/원격 푸시 동기화",
-      "prompt_tokens": 1150,
-      "completion_tokens": 850,
-      "total_tokens": 2000,
-      "created_at": "2026-09-24T15:13:12.271Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0012-TASK-0016-T04",
-      "session_id": "SESSION-260924-0012",
-      "task_id": "TASK-260924-0012-02",
-      "loop_id": "LOOP-260924-0012-02",
-      "step_index": 9,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-1.5-flash",
-      "user_prompt": "#태스크승급 [0016]투명 텍스트 레이어 결합 Searchable PDF 내보내기 파이프라인 구현",
-      "agent_response": "[0003] #태스크승급: TASK-260924-0012-02 완료 승급, dev/stg/main 브랜치 최신 커밋 SHA 일치 확인 완료",
-      "response_summary": "[0003] TASK-0016 상태 '완료' 승급 및 3대 원격 브랜치 배포 승급 완결",
-      "prompt_tokens": 980,
-      "completion_tokens": 680,
-      "total_tokens": 1660,
-      "created_at": "2026-09-24T02:49:35.000Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0012-TASK-0017-T01",
-      "session_id": "SESSION-260924-0012",
-      "task_id": "TASK-260924-0012-03",
-      "loop_id": "LOOP-260924-0012-03",
-      "step_index": 10,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-1.5-pro",
-      "user_prompt": "즉시 반영여부를 pdf 시스템설정 기능으로 제공해서 동작하도록 하자.\n많은 기능을 선택적으로 동작하도록 관리하도록.",
-      "agent_response": "[0000] PDF 시스템 설정 기능(즉시 반영/선택적 기능 토글) 설계 방향성 및 구조화 검토 보고\n\n1. 설정 항목 분류 (OCR 교정 실시간 동기화, 자동 스크롤, 그리드 스냅 등)\n2. 설정 관리 아키텍처 수립 및 제안",
-      "response_summary": "[0000] PDF 시스템 설정 관리 기능 도입 검토 및 실시간 반영/선택적 토글 아키텍처 제안",
-      "prompt_tokens": 1250,
-      "completion_tokens": 850,
-      "total_tokens": 2100,
-      "created_at": "2026-09-24T07:30:00.000Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0012-TASK-0017-T02",
-      "session_id": "SESSION-260924-0012",
-      "task_id": "TASK-260924-0012-03",
-      "loop_id": "LOOP-260924-0012-03",
-      "step_index": 11,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-1.5-pro",
-      "user_prompt": "더보완할 내용이 있을까?\n이미 구현된 기능도 포함해서 설정기능을 검토하고\n설계폴더에 'pdf 설정' 관리문서를 추가해서 설정 기능을 관리하자.\n설정기능은 검토하면서 논리적 모순이 발생하는지 함께 점검해줘",
-      "agent_response": "[0000] 05-16_PDF_시스템_설정_및_기능_거버넌스_설계 문서 작성 및 논리적 모순점 4대 영역(실시간 동기화 vs Undo 충돌, 메모리 vs 캐시) 사전 점검 완료 보고",
-      "response_summary": "[0000] PDF 시스템 설정 05-16 설계문서 작성, 기구현 기능 통합 및 논리적 모순점 사전 점검 완료",
-      "prompt_tokens": 1600,
-      "completion_tokens": 1150,
-      "total_tokens": 2750,
-      "created_at": "2026-09-24T07:35:00.000Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0012-TASK-0017-T03",
-      "session_id": "SESSION-260924-0012",
-      "task_id": "TASK-260924-0012-03",
-      "loop_id": "LOOP-260924-0012-03",
-      "step_index": 12,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-1.5-pro",
-      "user_prompt": "설정기는 적용 설계에 대한 의견\n - 기능실행시마다 설정조회해서 처리하기보다. 설정값을 메모리에 올려서 바로 처리가 되는게 좋을 듯. 그러려면 설정 변경시마다 메모리까지 반영시켜주면 좋을듯. 이게 패턴인지 모르겠지만..\n* 더 유용한 설계가 있으면 제안해줘",
-      "agent_response": "[0000] In-Memory Write-Through 패턴 및 Observer 패턴 기반 초고속 0ms Read/안전 Write 아키텍처 확정 보고\n\n1. In-Memory 캐시(0ms Read) + localStorage 영속화(Write-Through)\n2. Observer 패턴 기반 상태 변경 즉시 전파 리스너\n3. 3대 프리셋 프로파일(정밀 교정, 초고속, 대용량 절약) 원클릭 전환",
-      "response_summary": "[0000] In-Memory Write-Through 캐시 패턴 및 Observer Pub-Sub 설계 제안",
-      "prompt_tokens": 1550,
-      "completion_tokens": 1100,
-      "total_tokens": 2650,
-      "created_at": "2026-09-24T07:40:00.000Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0012-TASK-0017-T04",
-      "session_id": "SESSION-260924-0012",
-      "task_id": "TASK-260924-0012-03",
-      "loop_id": "LOOP-260924-0012-03",
-      "step_index": 13,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-1.5-flash",
-      "user_prompt": "#태스크처리 [0017]In-Memory Write-Through PDF 시스템 설정 관리자(PdfConfigManager/05-16설계문서) 및 2-Way BBox OCR 교정기(OCRCorrectionStudio) UI/UX 고도화 구현",
-      "agent_response": "[0001] #태스크처리: In-Memory Write-Through PdfConfigManager, 2-Way BBox 교정기 UI/UX, 3대 프리셋 및 15-12 학습문서 완결 보고\n\n1. PdfConfigManager 인메모리 캐시 & 옵저버 구현\n2. 2-Way 캔버스-에디터 양방향 포커스 동기화 및 무제한 Undo/Redo\n3. BBox 드래그/리사이즈/스냅 연산 및 28종 TDD 단위검증 100% 통과",
-      "response_summary": "[0001] PdfConfigManager 구현, 2-Way BBox 교정기 고도화, 28종 TDD 검증 및 15-12 학습문서 작성 완료",
-      "prompt_tokens": 2200,
-      "completion_tokens": 1650,
-      "total_tokens": 3850,
-      "created_at": "2026-09-24T08:15:00.000Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0012-TASK-0017-T05",
-      "session_id": "SESSION-260924-0012",
-      "task_id": "TASK-260924-0012-03",
-      "loop_id": "LOOP-260924-0012-03",
-      "step_index": 14,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-1.5-flash",
-      "user_prompt": "화면 오류는 고려한 상태인가?",
-      "agent_response": "[0001] React 18 useSyncExternalStore 참조 불변 캐싱 적용 및 화면 크래시/렌더링 루프 방어 완료 보고\n\n1. Maximum update depth exceeded 루프 원인 분석: getSnapshot 반환 객체의 참조 불안정성\n2. frozenSnapshot 인메모리 캐싱으로 동일 참조 보장\n3. 브라우저 실물 렌더링 검증 완료",
-      "response_summary": "[0001] React 18 useSyncExternalStore 참조 불변 캐싱 적용 및 화면 크래시/렌더링 루프 방어 완료",
-      "prompt_tokens": 1450,
-      "completion_tokens": 950,
-      "total_tokens": 2400,
-      "created_at": "2026-09-24T08:45:00.000Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0012-TASK-0017-T06",
-      "session_id": "SESSION-260924-0012",
-      "task_id": "TASK-260924-0012-03",
-      "loop_id": "LOOP-260924-0012-03",
-      "step_index": 15,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-1.5-flash",
-      "user_prompt": "#태스크정리 [0017]In-Memory Write-Through PDF 시스템 설정 관리자 및 2-Way BBox OCR 교정기 UI/UX 고도화 구현",
-      "agent_response": "[0002] #태스크정리: 10-29 코드리뷰 문서 발행, 하네스 스토어 및 DB 동기화, Git Data API 원격 dev 푸시 완료",
-      "response_summary": "[0002] 10-29 코드리뷰 문서 발행 및 하네스/원격 푸시 동기화",
-      "prompt_tokens": 1180,
-      "completion_tokens": 820,
-      "total_tokens": 2000,
-      "created_at": "2026-09-24T08:50:00.000Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0012-TASK-0017-T07",
-      "session_id": "SESSION-260924-0012",
-      "task_id": "TASK-260924-0012-03",
-      "loop_id": "LOOP-260924-0012-03",
-      "step_index": 16,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-1.5-flash",
-      "user_prompt": "#태스크승급 [0017]In-Memory Write-Through PDF 시스템 설정 관리자 및 2-Way BBox OCR 교정기 UI/UX 고도화 구현",
-      "agent_response": "[0003] #태스크승급: TASK-260924-0012-03 완료 승급, dev/stg/main 브랜치 최신 커밋 SHA 일치 확인 완료",
-      "response_summary": "[0003] TASK-0017 상태 '완료' 승급 및 3대 원격 브랜치 배포 승급 완결",
-      "prompt_tokens": 990,
-      "completion_tokens": 690,
-      "total_tokens": 1680,
-      "created_at": "2026-09-24T08:52:00.000Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0012-TASK-0018-T01",
-      "session_id": "SESSION-260924-0012",
-      "task_id": "TASK-260924-0012-04",
-      "loop_id": "LOOP-260924-0012-04",
-      "step_index": 17,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-1.5-pro",
-      "user_prompt": "#태스크시작 [0018]세션 재해복구(DR) 스냅샷 중복방지·이력취합·클린징 및 개발환경 UTF-8 인코딩 영구 방어",
-      "agent_response": "[0000] #태스크시작: 도메인 분석 및 05-17 설계문서/아키텍처 작성 완료 (READ-ONLY)",
-      "response_summary": "[0000] 태스크 0018 READ-ONLY 분석 및 05-17 설계문서 작성",
-      "prompt_tokens": 1300,
-      "completion_tokens": 850,
-      "total_tokens": 2150,
-      "created_at": "2026-09-24T08:55:00.000Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0012-TASK-0018-T02",
-      "session_id": "SESSION-260924-0012",
-      "task_id": "TASK-260924-0012-04",
-      "loop_id": "LOOP-260924-0012-04",
-      "step_index": 18,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-1.5-flash",
-      "user_prompt": "논리적 모순이 있는지 점검하고\n#태스크처리 [0018]세션 재해복구(DR) 스냅샷 중복방지·이력취합·클린징 및 개발환경 UTF-8 인코딩 영구 방어 구현",
-      "agent_response": "[0001] #태스크처리: SessionDisasterRecoveryService 디둡/롤링아카이빙, Utf8EncodingGuardService 구현, TDD 단위검증 100% 통과 및 15-13 학습문서 작성 완료",
-      "response_summary": "[0001] DR 스냅샷 디둡/롤링아카이빙 및 UTF-8 가드레일 구현 완료",
-      "prompt_tokens": 1850,
-      "completion_tokens": 1400,
-      "total_tokens": 3250,
-      "created_at": "2026-09-24T09:10:00.000Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0012-TASK-0018-T03",
-      "session_id": "SESSION-260924-0012",
-      "task_id": "TASK-260924-0012-04",
-      "loop_id": "LOOP-260924-0012-04",
-      "step_index": 19,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-1.5-flash",
-      "user_prompt": "#태스크정리 [0018]세션 재해복구(DR) 스냅샷 중복방지·이력취합·클린징 및 개발환경 UTF-8 인코딩 영구 방어 구현",
-      "agent_response": "[0002] #태스크정리: 10-30 코드리뷰 문서 발행, 하네스 스토어 및 DB 동기화, Git Data API 원격 dev 푸시 완료",
-      "response_summary": "[0002] 10-30 코드리뷰 문서 발행 및 하네스/원격 푸시 동기화",
-      "prompt_tokens": 1100,
-      "completion_tokens": 800,
-      "total_tokens": 1900,
-      "created_at": "2026-09-24T09:15:00.000Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0012-TASK-0018-T04",
-      "session_id": "SESSION-260924-0012",
-      "task_id": "TASK-260924-0012-04",
-      "loop_id": "LOOP-260924-0012-04",
-      "step_index": 20,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-1.5-flash",
-      "user_prompt": "#태스크승급 [0018]세션 재해복구(DR) 스냅샷 중복방지·이력취합·클린징 및 개발환경 UTF-8 인코딩 영구 방어 구현",
-      "agent_response": "[0003] #태스크승급: TASK-260924-0012-04 완료 승급, dev/stg/main/task 브랜치 최신 커밋 SHA 일치 확인 완료",
-      "response_summary": "[0003] TASK-0018 상태 '완료' 승급 및 4대 원격 브랜치 배포 승급 완결",
-      "prompt_tokens": 950,
-      "completion_tokens": 650,
-      "total_tokens": 1600,
-      "created_at": "2026-09-24T09:21:23.000Z"
-    },
-    {
-      "trace_id": "TRACE-SESSION-0012-TASK-0018-T05",
-      "session_id": "SESSION-260924-0012",
-      "task_id": "TASK-260924-0012-04",
-      "loop_id": "LOOP-260924-0012-04",
-      "step_index": 21,
-      "agent_name": "gemini",
-      "model_name": "models/gemini-1.5-flash",
-      "user_prompt": "대화턴 등록이 안된것 같아. 확인해서 누락된 내용 영속화 정리해줘",
-      "agent_response": "[0004] 세션 0012 전체 21개 대화 턴 전수 복원 및 DB 영속화 완결 보고\n\n1. Task 0015~0018 전 턴 21건 복원 및 step_index 순차 정렬\n2. local_agent_store.json 및 PostgreSQL DB Bridge 100% 동기화 완결",
-      "response_summary": "[0004] 세션 0012 21개 전체 대화 턴 전수 조사, 복원 및 local_agent_store/원격 DB 100% 영속화 완결",
-      "prompt_tokens": 1050,
-      "completion_tokens": 750,
-      "total_tokens": 1800,
-      "created_at": "2026-09-24T09:23:22.353Z"
-    },
-    {
-      "trace_id": "TRACE-0013-0001",
-      "session_id": "SESSION-260924-0013",
-      "turn_no": 1,
-      "prompt_text": "#세션시작 [0013]Web Worker 백그라운드 컴파일 파이프라인 구축 및 [사용/관리] 서비스 매뉴얼(v1.0) 작성",
-      "response_text": "세션 0013 시작 및 브랜치/이슈/계획 수립 완료",
-      "model_name": "gemini-3.7-flash",
-      "token_count": 2450,
-      "created_at": "2026-09-25T05:14:28.664Z"
-    },
-    {
-      "trace_id": "TRACE-0013-0002",
-      "session_id": "SESSION-260924-0013",
-      "turn_no": 2,
-      "prompt_text": "#태스크시작 [0013-01]docs/18.메뉴얼 폴더 신설 및 [사용/관리] 서비스별 상세 매뉴얼(v1.0) 작성",
-      "response_text": "태스크 0013-01 분석 및 계획 수립 완료",
-      "model_name": "gemini-3.7-flash",
-      "token_count": 2450,
-      "created_at": "2026-09-25T05:14:28.665Z"
-    },
-    {
-      "trace_id": "TRACE-0013-0003",
-      "session_id": "SESSION-260924-0013",
-      "turn_no": 3,
-      "prompt_text": "#태스크처리 [0013-01]docs/18.메뉴얼 폴더 신설 및 [사용/관리] 서비스별 상세 매뉴얼(v1.0) 작성",
-      "response_text": "18-01, 18-02 매뉴얼 및 SVG 다이어그램 4종 작성 완료",
-      "model_name": "gemini-3.7-flash",
-      "token_count": 2450,
-      "created_at": "2026-09-25T05:14:28.665Z"
-    },
-    {
-      "trace_id": "TRACE-0013-0004",
-      "session_id": "SESSION-260924-0013",
-      "turn_no": 4,
-      "prompt_text": "#태스크정리 [0013-01]docs/18.메뉴얼 폴더 신설 및 [사용/관리] 서비스별 상세 매뉴얼(v1.0) 작성",
-      "response_text": "리뷰 문서 260924_031 발행 및 PR 머지 완료",
-      "model_name": "gemini-3.7-flash",
-      "token_count": 2450,
-      "created_at": "2026-09-25T05:14:28.665Z"
-    },
-    {
-      "trace_id": "TRACE-0013-0005",
-      "session_id": "SESSION-260924-0013",
-      "turn_no": 5,
-      "prompt_text": "#태스크승급 [0013-01]docs/18.메뉴얼 폴더 신설 및 [사용/관리] 서비스별 상세 매뉴얼(v1.0) 작성",
-      "response_text": "stg, main 배포 승급 및 상태 마감 완료",
-      "model_name": "gemini-3.7-flash",
-      "token_count": 2450,
-      "created_at": "2026-09-25T05:14:28.665Z"
-    },
-    {
-      "trace_id": "TRACE-0013-0006",
-      "session_id": "SESSION-260924-0013",
-      "turn_no": 6,
-      "prompt_text": "#태스크시작 [0013-02]Web Worker 스레드 오프로딩 Searchable PDF 합성 엔진 구현",
-      "response_text": "태스크 0013-02 분석 및 계획 수립 완료",
-      "model_name": "gemini-3.7-flash",
-      "token_count": 2450,
-      "created_at": "2026-09-25T05:14:28.665Z"
-    },
-    {
-      "trace_id": "TRACE-0013-0007",
-      "session_id": "SESSION-260924-0013",
-      "turn_no": 7,
-      "prompt_text": "#태스크처리 [0013-02]Web Worker 스레드 오프로딩 Searchable PDF 합성 엔진 구현",
-      "response_text": "SearchablePdfWorker, SearchablePdfWorkerClient 구현 완료",
-      "model_name": "gemini-3.7-flash",
-      "token_count": 2450,
-      "created_at": "2026-09-25T05:14:28.665Z"
-    },
-    {
-      "trace_id": "TRACE-0013-0008",
-      "session_id": "SESSION-260924-0013",
-      "turn_no": 8,
-      "prompt_text": "#태스크정리 [0013-02]Web Worker 스레드 오프로딩 Searchable PDF 합성 엔진 구현",
-      "response_text": "리뷰 문서 260925_032 발행 및 PR 머지 완료",
-      "model_name": "gemini-3.7-flash",
-      "token_count": 2450,
-      "created_at": "2026-09-25T05:14:28.665Z"
-    },
-    {
-      "trace_id": "TRACE-0013-0009",
-      "session_id": "SESSION-260924-0013",
-      "turn_no": 9,
-      "prompt_text": "#태스크승급 [0013-02]Web Worker 스레드 오프로딩 Searchable PDF 합성 엔진 구현",
-      "response_text": "stg, main 배포 승급 및 상태 마감 완료",
-      "model_name": "gemini-3.7-flash",
-      "token_count": 2450,
-      "created_at": "2026-09-25T05:14:28.665Z"
-    },
-    {
-      "trace_id": "TRACE-0013-0010",
-      "session_id": "SESSION-260924-0013",
-      "turn_no": 10,
-      "prompt_text": "#태스크시작 [0013-03]다국어 OCR 병렬 배치 큐(Worker Pool) 및 세부 프로그레스 바 UI 구현",
-      "response_text": "태스크 0013-03 분석 및 계획 수립 완료",
-      "model_name": "gemini-3.7-flash",
-      "token_count": 2450,
-      "created_at": "2026-09-25T05:14:28.665Z"
-    },
-    {
-      "trace_id": "TRACE-0013-0011",
-      "session_id": "SESSION-260924-0013",
-      "turn_no": 11,
-      "prompt_text": "#태스크처리 [0013-03]다국어 OCR 병렬 배치 큐(Worker Pool) 및 세부 프로그레스 바 UI 구현",
-      "response_text": "OcrBatchQueueManager 및 OcrBatchProgressModal UI 구현, TDD 통과",
-      "model_name": "gemini-3.7-flash",
-      "token_count": 2450,
-      "created_at": "2026-09-25T05:14:28.665Z"
-    },
-    {
-      "trace_id": "TRACE-0013-0012",
-      "session_id": "SESSION-260924-0013",
-      "turn_no": 12,
-      "prompt_text": "#태스크정리 [0013-03]다국어 OCR 병렬 배치 큐(Worker Pool) 및 세부 프로그레스 바 UI 구현",
-      "response_text": "리뷰 문서 260925_033 발행, 매뉴얼 v1.2 현행화, PR 머지 완료",
-      "model_name": "gemini-3.7-flash",
-      "token_count": 2450,
-      "created_at": "2026-09-25T05:14:28.665Z"
-    },
-    {
-      "trace_id": "TRACE-0013-0013",
-      "session_id": "SESSION-260924-0013",
-      "turn_no": 13,
-      "prompt_text": "#태스크승급 [0013-03]다국어 OCR 병렬 배치 큐(Worker Pool) 및 세부 프로그레스 바 UI 구현",
-      "response_text": "stg, main 배포 승급 및 4대 브랜치 SHA 100% 일치 확인 완료",
-      "model_name": "gemini-3.7-flash",
-      "token_count": 2450,
-      "created_at": "2026-09-25T05:14:28.665Z"
-    },
-    {
-      "trace_id": "TRACE-0013-0014",
-      "session_id": "SESSION-260924-0013",
-      "turn_no": 14,
-      "prompt_text": "#세션정리",
-      "response_text": "세션 0013 종합 KPT 회고록 13-11 작성, Issue #16 종료, stg/main 배포 승급 완료",
-      "model_name": "gemini-3.7-flash",
-      "token_count": 2450,
-      "created_at": "2026-09-25T05:14:28.665Z"
+      "model_name": "models/gemini-3.8-flash",
+      "user_prompt": "#태스크처리 TASK-0014-01 [05-19] PDF 표준/커스텀 메타데이터 주입기(PdfMetadataInjector) 설계 및 구현 착수",
+      "agent_response": "PDF 표준 8대 메타데이터 + 도서 서지(12종) + 활동(강의도서, 뉴런데브 등) + 독서(회독/진도율) 3대 VO 구현, UTF-16BE 무손실 인코딩 주입기 및 TDD 7대 단위 테스트 100% 통과 완결",
+      "response_summary": "도서 서지·활동·독서 메타데이터 주입기 구현 및 TDD 통과",
+      "prompt_tokens": 3400,
+      "completion_tokens": 2800,
+      "total_tokens": 6200,
+      "estimated_tokens": 6200,
+      "burst_score": 1,
+      "burn_rate_velocity": 6200,
+      "loop_safety_margin": 3.4,
+      "burnout_risk_index": 19,
+      "created_at": "2026-09-26T04:54:51.263Z"
     }
   ],
-  "plans": [],
-  "models": [],
-  "users": [],
-  "ledgers": [],
-  "quota_logs": [],
+  "currentSessionId": "SESSION-260925-0014",
+  "plans": [
+    {
+      "plan_id": "PLAN-FREE",
+      "plan_name": "Free Tier",
+      "description": "기본 무료 요금제 (월 50만 토큰)",
+      "base_quota_tokens": 500000,
+      "max_burst_multiplier": 1.2,
+      "priority_tier": 1,
+      "overage_policy": "BLOCK",
+      "is_active": true
+    },
+    {
+      "plan_id": "PLAN-STARTER",
+      "plan_name": "Starter Plan",
+      "description": "개인 개발자용 스타터 요금제 (월 200만 토큰)",
+      "base_quota_tokens": 2000000,
+      "max_burst_multiplier": 1.5,
+      "priority_tier": 3,
+      "overage_policy": "THROTTLE",
+      "is_active": true
+    },
+    {
+      "plan_id": "PLAN-PRO",
+      "plan_name": "Pro Plan",
+      "description": "파워 유저 및 전문 엔지니어용 (월 1,000만 토큰)",
+      "base_quota_tokens": 10000000,
+      "max_burst_multiplier": 2,
+      "priority_tier": 7,
+      "overage_policy": "THROTTLE",
+      "is_active": true
+    },
+    {
+      "plan_id": "PLAN-ENTERPRISE",
+      "plan_name": "Enterprise Plan",
+      "description": "기업 및 대규모 팀 전용 (월 5,000만 토큰)",
+      "base_quota_tokens": 50000000,
+      "max_burst_multiplier": 3,
+      "priority_tier": 10,
+      "overage_policy": "PAY_AS_YOU_GO",
+      "is_active": true
+    }
+  ],
+  "models": [
+    {
+      "model_id": "models/gemini-3.8-flash",
+      "provider": "gemini",
+      "display_name": "Gemini 3.8 Flash (최우선 추천)",
+      "prompt_token_cost_1k": 0.0001,
+      "completion_token_cost_1k": 0.0004,
+      "context_window_tokens": 1000000,
+      "is_active": true,
+      "doc_payload": {
+        "recommended": true,
+        "family": "flash"
+      }
+    },
+    {
+      "model_id": "models/gemini-3.8-pro",
+      "provider": "gemini",
+      "display_name": "Gemini 3.8 Pro (심층 추론)",
+      "prompt_token_cost_1k": 0.00125,
+      "completion_token_cost_1k": 0.005,
+      "context_window_tokens": 2000000,
+      "is_active": true,
+      "doc_payload": {
+        "recommended": false,
+        "family": "pro"
+      }
+    },
+    {
+      "model_id": "claude-3-5-sonnet",
+      "provider": "claude",
+      "display_name": "Claude 3.5 Sonnet",
+      "prompt_token_cost_1k": 0.003,
+      "completion_token_cost_1k": 0.015,
+      "context_window_tokens": 200000,
+      "is_active": true,
+      "doc_payload": {
+        "family": "sonnet"
+      }
+    },
+    {
+      "model_id": "gpt-4o",
+      "provider": "openai",
+      "display_name": "GPT-4o Omnimodel",
+      "prompt_token_cost_1k": 0.0025,
+      "completion_token_cost_1k": 0.01,
+      "context_window_tokens": 128000,
+      "is_active": true,
+      "doc_payload": {
+        "family": "gpt4"
+      }
+    },
+    {
+      "model_id": "deepseek-chat",
+      "provider": "deepseek",
+      "display_name": "DeepSeek V3",
+      "prompt_token_cost_1k": 0.00014,
+      "completion_token_cost_1k": 0.00028,
+      "context_window_tokens": 64000,
+      "is_active": true,
+      "doc_payload": {
+        "family": "deepseek"
+      }
+    }
+  ],
+  "users": [
+    {
+      "user_id": "USR-ADMIN-01",
+      "email": "jkoogit@gmail.com",
+      "user_name": "관리자(jkoogit)",
+      "account_status": "ACTIVE",
+      "org_group": "purePDFrend",
+      "plan_id": "PLAN-ENTERPRISE",
+      "doc_payload": {
+        "role": "SUPER_ADMIN"
+      },
+      "created_at": "2026-09-22T14:43:00.000Z",
+      "updated_at": "2026-09-22T14:43:00.000Z"
+    },
+    {
+      "user_id": "USR-DEV-02",
+      "email": "dev-lead@purepdfrend.com",
+      "user_name": "개발리드",
+      "account_status": "ACTIVE",
+      "org_group": "purePDFrend",
+      "plan_id": "PLAN-PRO",
+      "doc_payload": {
+        "role": "DEV_LEAD"
+      },
+      "created_at": "2026-09-22T14:43:00.000Z",
+      "updated_at": "2026-09-22T14:43:00.000Z"
+    },
+    {
+      "user_id": "USR-GUEST-03",
+      "email": "guest@purepdfrend.com",
+      "user_name": "게스트사용자",
+      "account_status": "ACTIVE",
+      "org_group": "Public",
+      "plan_id": "PLAN-FREE",
+      "doc_payload": {
+        "role": "GUEST"
+      },
+      "created_at": "2026-09-22T14:43:00.000Z",
+      "updated_at": "2026-09-22T14:43:00.000Z"
+    }
+  ],
+  "ledgers": [
+    {
+      "ledger_id": "LDG-USR-ADMIN-01",
+      "user_id": "USR-ADMIN-01",
+      "plan_id": "PLAN-ENTERPRISE",
+      "total_granted_quota": 50000000,
+      "used_quota": 0,
+      "remaining_quota": 50000000,
+      "is_frozen": false,
+      "overage_allowed": true,
+      "version": 1,
+      "last_deducted_at": null,
+      "created_at": "2026-09-22T14:43:00.000Z",
+      "updated_at": "2026-09-22T14:43:00.000Z"
+    },
+    {
+      "ledger_id": "LDG-USR-DEV-02",
+      "user_id": "USR-DEV-02",
+      "plan_id": "PLAN-PRO",
+      "total_granted_quota": 10000000,
+      "used_quota": 0,
+      "remaining_quota": 10000000,
+      "is_frozen": false,
+      "overage_allowed": false,
+      "version": 1,
+      "last_deducted_at": null,
+      "created_at": "2026-09-22T14:43:00.000Z",
+      "updated_at": "2026-09-22T14:43:00.000Z"
+    },
+    {
+      "ledger_id": "LDG-USR-GUEST-03",
+      "user_id": "USR-GUEST-03",
+      "plan_id": "PLAN-FREE",
+      "total_granted_quota": 500000,
+      "used_quota": 0,
+      "remaining_quota": 500000,
+      "is_frozen": false,
+      "overage_allowed": false,
+      "version": 1,
+      "last_deducted_at": null,
+      "created_at": "2026-09-22T14:43:00.000Z",
+      "updated_at": "2026-09-22T14:43:00.000Z"
+    }
+  ],
+  "quota_logs": [
+    {
+      "tx_id": "QTX-INIT-001",
+      "ledger_id": "LDG-USR-ADMIN-01",
+      "user_id": "USR-ADMIN-01",
+      "tx_type": "GRANT",
+      "token_delta": 50000000,
+      "balance_after": 50000000,
+      "unit_cost_applied": 0,
+      "reason_desc": "Enterprise 요금제 초기 쿼터 지급",
+      "created_at": "2026-09-22T14:43:00.000Z"
+    },
+    {
+      "tx_id": "QTX-INIT-002",
+      "ledger_id": "LDG-USR-DEV-02",
+      "user_id": "USR-DEV-02",
+      "tx_type": "GRANT",
+      "token_delta": 10000000,
+      "balance_after": 10000000,
+      "unit_cost_applied": 0,
+      "reason_desc": "Pro 요금제 초기 쿼터 지급",
+      "created_at": "2026-09-22T14:43:00.000Z"
+    },
+    {
+      "tx_id": "QTX-INIT-003",
+      "ledger_id": "LDG-USR-GUEST-03",
+      "user_id": "USR-GUEST-03",
+      "tx_type": "GRANT",
+      "token_delta": 500000,
+      "balance_after": 500000,
+      "unit_cost_applied": 0,
+      "reason_desc": "Free 요금제 초기 쿼터 지급",
+      "created_at": "2026-09-22T14:43:00.000Z"
+    }
+  ],
   "snapshots": [
     {
-      "snapshot_id": "SNAP-1790184522949",
-      "session_id": "SESSION-20260923-008",
-      "session_num": "20260923",
-      "session_title": "[0011]PDF 비즈니스 코어 고도화 (다국어 OCR 전처리 및 바운딩 박스 교정 스튜디오 구현)",
-      "last_task_id": "TASK-20260923-005",
-      "current_task_name": "[0012]PDF 이미지 전처리 엔진 및 다국어 OCR(WASM/클라우드/PaddleOCR 도커 어댑터) 파이프라인 구현",
-      "latest_commit_sha": "0cf95be5eda3455b9b8f28a9bc5c1d34c1b05ba9",
+      "snapshot_id": "SNAP-1790152911085",
+      "session_id": "SESSION-20260922-006",
+      "session_num": "20260922",
+      "session_title": "[0009]에이전트 사용자·모델·요금제 메타 거버넌스 및 다차원 쿼터 시스템 구축",
+      "last_task_id": "TASK-20260923-003",
+      "current_task_name": "[03] 재해복구 관제실 UI/스냅샷 파일화 개선 및 관리자 백오피스 메타 거버넌스 대시보드 구축",
+      "latest_commit_sha": "e3ce53534e1e1e3d78a0bca681d3ee21b2c49719",
       "branch": "dev",
-      "status": "RESTORED",
-      "restored_at": "2026-09-23T17:33:30.000Z",
-      "created_at": "2026-09-23T17:28:42.950Z"
+      "status": "PENDING_RECOVERY",
+      "total_context_tokens": 108500,
+      "hang_reason": "NORMAL",
+      "unfinalized_tasks": [
+        {
+          "task_id": "TASK-20260923-003",
+          "task_name": "[03] 재해복구 관제실 UI/스냅샷 파일화 개선 및 관리자 백오피스 메타 거버넌스 대시보드 구축",
+          "status_cd": "진행중"
+        }
+      ],
+      "unfinalized_loops": [],
+      "created_at": "2026-09-23T08:41:51.085Z",
+      "json_file_path": "data/snapshots/SNAP-1790152911085.json",
+      "md_file_path": "data/snapshots/SNAP-1790152911085.md"
+    },
+    {
+      "snapshot_id": "SNAP-1790153454913",
+      "session_num": "20260922",
+      "session_title": "[0009]에이전트 사용자·모델·요금제 메타 거버넌스 및 다차원 쿼터 시스템 구축",
+      "last_task_id": "TASK-20260923-003",
+      "current_task_name": "[03] 재해복구 관제실 UI/스냅샷 파일화 개선 및 관리자 백오피스 메타 거버넌스 대시보드 구축",
+      "latest_commit_sha": "f4a000f5473311e64e5e477e958c8b8e99808f76",
+      "branch": "dev",
+      "status": "PENDING_RECOVERY",
+      "created_at": "2026-09-23T08:50:54.913Z"
     }
   ],
-  "vendor_attributes": [],
-  "user_ai_accounts": []
+  "vendor_attributes": [
+    {
+      "vendorId": "GOOGLE",
+      "vendorName": "Google Cloud / AI Studio",
+      "originType": "SYSTEM_CONFIRMED",
+      "status": "ACTIVE",
+      "subscriptionPlans": [
+        {
+          "planId": "PLAN-GOOGLE-ADVANCED",
+          "planName": "Google AI Pro (구독)",
+          "billingType": "SUBSCRIPTION",
+          "allowedModels": [
+            "models/gemini-1.5-pro",
+            "models/gemini-1.5-flash",
+            "models/gemini-1.5-flash-8b",
+            "models/gemini-3.8-flash"
+          ],
+          "quotaLimits": {
+            "maxTpm": 4000000,
+            "maxRpm": 360,
+            "maxRpd": 250,
+            "resetHourKst": 16
+          },
+          "description": "Tier 1 Pro 일 250회 및 Flash 2500회 제공"
+        },
+        {
+          "planId": "PLAN-GOOGLE-STANDARD",
+          "planName": "Google AI Flash (표준)",
+          "billingType": "FREE",
+          "allowedModels": [
+            "models/gemini-1.5-flash",
+            "models/gemini-1.5-flash-8b",
+            "models/gemini-3.8-flash"
+          ],
+          "quotaLimits": {
+            "maxTpm": 1000000,
+            "maxRpm": 120,
+            "maxRpd": 2500,
+            "resetHourKst": 16
+          },
+          "description": "Flash 중심 표준 개발 플랜"
+        }
+      ],
+      "agentEngines": [
+        {
+          "agentId": "agent-architect",
+          "agentName": "아키텍처 및 기획 에이전트",
+          "targetTier": "TIER_1_PRO",
+          "defaultModel": "models/gemini-1.5-pro",
+          "description": "요구사항 심층 분석 및 DDD 헥사고날 아키텍처 수립"
+        },
+        {
+          "agentId": "agent-coder",
+          "agentName": "구현 및 TDD 에이전트",
+          "targetTier": "TIER_2_FLASH",
+          "defaultModel": "models/gemini-1.5-flash",
+          "description": "컴포넌트/서비스 개발 및 단위 테스트 수행"
+        },
+        {
+          "agentId": "agent-devops",
+          "agentName": "정리 및 배포 에이전트",
+          "targetTier": "TIER_3_LITE",
+          "defaultModel": "models/gemini-1.5-flash-8b",
+          "description": "문서 동기화, 하네스 정리 및 Git 승급"
+        }
+      ]
+    }
+  ],
+  "user_ai_accounts": [
+    {
+      "accountId": "ACC-DEV001-GOOGLE-JKOOGIT",
+      "userId": "USER-DEV-001",
+      "vendorId": "GOOGLE",
+      "accountEmail": "jkoogit@gmail.com",
+      "accountLabel": "조정국 메인 계정 (jkoogit)",
+      "planId": "PLAN-GOOGLE-ADVANCED",
+      "isDefault": true,
+      "tierOverride": {
+        "tier1Model": "models/gemini-1.5-pro",
+        "tier2Model": "models/gemini-1.5-flash",
+        "tier3Model": "models/gemini-1.5-flash-8b"
+      },
+      "statusCd": "ACTIVE",
+      "createdAt": "2026-09-23T10:00:00.000Z",
+      "updatedAt": "2026-09-25T05:40:02.306Z"
+    },
+    {
+      "accountId": "ACC-DEV001-GOOGLE-JKOK2J2M",
+      "userId": "USER-DEV-001",
+      "vendorId": "GOOGLE",
+      "accountEmail": "jkok2j2m@gmail.com",
+      "accountLabel": "조정국 보조 계정 (jkok2j2m)",
+      "planId": "PLAN-GOOGLE-ADVANCED",
+      "isDefault": false,
+      "tierOverride": {
+        "tier1Model": "models/gemini-1.5-pro",
+        "tier2Model": "models/gemini-1.5-flash",
+        "tier3Model": "models/gemini-1.5-flash-8b"
+      },
+      "statusCd": "ACTIVE",
+      "createdAt": "2026-09-23T10:00:00.000Z",
+      "updatedAt": "2026-09-25T05:40:02.306Z"
+    }
+  ]
 }

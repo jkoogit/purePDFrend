@@ -23,8 +23,6 @@ import {
   ChevronRight,
   Pin,
   PinOff,
-  SplitSquareVertical,
-  BookOpen,
 } from 'lucide-react';
 import { ActiveViewId, DomainGroupId } from '../../types';
 
@@ -106,25 +104,11 @@ export const DOMAIN_GROUPS: {
     description: '대용량 스캔 PDF 교정 및 듀얼 OCR 엔진 파이프라인',
     views: [
       {
-        id: 'viewer',
-        label: '대용량가상뷰어',
-        description: '800쪽 가상 윈도잉 & 썸네일 탐색기',
-        domain: 'studio',
-        icon: BookOpen,
-      },
-      {
         id: 'ocr',
         label: 'OCR엔진관리',
-        description: 'Tesseract vs Gemini vs PaddleOCR 설정',
+        description: 'Tesseract vs Gemini 듀얼 엔진 설정',
         domain: 'studio',
         icon: Cpu,
-      },
-      {
-        id: 'correction',
-        label: 'BBox교정스튜디오',
-        description: '2-Way 캔버스 줌/팬 & 텍스트 인라인 교정',
-        domain: 'studio',
-        icon: SplitSquareVertical,
       },
       {
         id: 'scenarios',
