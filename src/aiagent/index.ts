@@ -11,6 +11,5 @@ export { PpdfAuditAdapter } from './adapters/PpdfAuditAdapter';
 export { IntegrityAuditFacade } from './domain/audit/IntegrityAuditFacade';
 export { SettingsService } from './services/SettingsService';
 export { DocsService } from './services/DocsService';
-export { Utf8EncodingGuardService } from './services/Utf8EncodingGuardService';
 export * from './domain/token-quota';
 

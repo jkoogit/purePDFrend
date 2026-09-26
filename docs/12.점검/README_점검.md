@@ -8,11 +8,6 @@
 | :--- | :--- | :--- | :--- |
 | `12-01` | `12-01_에이전트정보_접속오류조치_결과보고서.md` | 에이전트 정보 접속 오류 조치 결과보고서 (v1.1.0) | DB 브릿지 1033 장애 로컬 폴백 + 프론트엔드 ReferenceError 수정, ErrorBoundary 격리 및 1급 탭 신설 |
 
-<div align="center">
-  <img src="./images/README_점검_diag_1.svg" alt="12. 점검 (Audits & Checklists) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1" style="max-width: 100%; height: auto; border: 1px solid #334155; border-radius: 12px;" />
-  <p><em>[그림] 12. 점검 (Audits & Checklists) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1</em></p>
-</div>
-
 ```mermaid
 graph TD
     Audit[정기 점검 및 장애 조치] --> Sec[1. DB 브릿지 1033 장애 조치 (12-01)]

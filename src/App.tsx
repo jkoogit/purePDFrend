@@ -1,11 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Navbar, ErrorBoundary, ScrollToTopFab } from './shared';
-import {
-  ScenarioDesignView,
-  OcrEngineManager,
-  OCRCorrectionStudio,
-  VirtualViewerStudio,
-} from './ppdf';
+import { ScenarioDesignView, OcrEngineManager } from './ppdf';
 import {
   WorkGraphViewer,
   TaskInfoManager,
@@ -21,16 +16,12 @@ import {
   GraphEdge,
   ActiveViewId,
   DomainGroupId,
-  PdfPageItem,
-  BoundingBoxItem,
 } from './types';
 
 export default function App() {
   const [activeDomain, setActiveDomain] = useState<DomainGroupId>('harness');
   const [activeView, setActiveView] = useState<ActiveViewId>('graph');
   const [traceFilter, setTraceFilter] = useState<string>('');
-
-  const [activeCorrectionPage, setActiveCorrectionPage] = useState<PdfPageItem | null>(null);
 
   const [dbStatus, setDbStatus] = useState<string>('CHECKING');
   const [settings, setSettings] = useState<SystemSettings | null>(null);
@@ -218,47 +209,13 @@ export default function App() {
             </div>
           )}
 
-          {/* [3. PDF 스튜디오 도메인 4대 뷰] */}
-          {activeView === 'viewer' && (
-            <div className="w-full">
-              <VirtualViewerStudio
-                onNavigateToCorrection={(page) => {
-                  setActiveCorrectionPage(page);
-                  setActiveDomain('studio');
-                  setActiveView('correction');
-                }}
-              />
-            </div>
-          )}
-
+          {/* [3. PDF 스튜디오 도메인 2대 뷰] */}
           {activeView === 'ocr' && (
             <div className="w-full space-y-4">
               <OcrEngineManager
                 settings={settings}
                 onUpdateSettings={handleUpdateSettings}
                 dbStatus={dbStatus}
-              />
-            </div>
-          )}
-
-          {activeView === 'correction' && (
-            <div className="w-full h-[88vh] rounded-2xl overflow-hidden border border-slate-800 shadow-2xl">
-              <OCRCorrectionStudio
-                initialBoxes={activeCorrectionPage?.ocrBoxes}
-                sampleImageUrl={activeCorrectionPage?.imageSrc}
-                pageNumber={activeCorrectionPage?.pageNum || 1}
-                onBackToViewer={() => {
-                  setActiveDomain('studio');
-                  setActiveView('viewer');
-                }}
-                onSave={(updatedBoxes: BoundingBoxItem[]) => {
-                  if (activeCorrectionPage) {
-                    setActiveCorrectionPage({
-                      ...activeCorrectionPage,
-                      ocrBoxes: updatedBoxes,
-                    });
-                  }
-                }}
               />
             </div>
           )}

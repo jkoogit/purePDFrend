@@ -8,11 +8,6 @@ purePDFrend의 분기별 릴리즈 마일스톤, 기능 구현 우선순위 및 
 | :--- | :--- | :--- | :--- |
 | `07-01` | `07-01_릴리즈_로드맵_및_추진계획.md` | 릴리즈 로드맵 및 추진계획 | Phase 1(하네스&문서체계) -> Phase 2(가상화 뷰어) -> Phase 3(OCR 교정기) -> Phase 4(PDF 컴파일러) |
 
-<div align="center">
-  <img src="./images/README_로드맵_diag_1.svg" alt="07. 로드맵 (Roadmap & Milestones) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1" style="max-width: 100%; height: auto; border: 1px solid #334155; border-radius: 12px;" />
-  <p><em>[그림] 07. 로드맵 (Roadmap & Milestones) 요약 가이드 - 아키텍처 및 상태 흐름도 다이어그램 1</em></p>
-</div>
-
 ```mermaid
 gantt
     title purePDFrend 추진 로드맵
