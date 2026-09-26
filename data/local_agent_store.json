@@ -6,9 +6,9 @@
       "work_group": "purePDFrend",
       "ai_agent": "gemini",
       "ai_model": "models/gemini-3.8-flash",
-      "status_cd": "진행중",
+      "status_cd": "완료",
       "started_at": "2026-09-25T05:40:15.698Z",
-      "ended_at": null,
+      "ended_at": "2026-09-26T12:39:30.000Z",
       "doc_payload": {
         "theme": "PDF 메타데이터 주입기 및 암호화·보안 권한 제어 엔진 구현",
         "activeAgent": "Gemini 3.8 Flash",
@@ -17,11 +17,13 @@
         "issueNumber": 23,
         "branchName": "task/pdf-metadata-security_Gemini",
         "baseSha": "13a8ba282f34a469739a22bc40a78e656fd9059e",
+        "finalCommitSha": "de43e638e18f32de60d2564113d2d3e445e5cef3",
+        "retrospective_doc": "docs/13.회고/13-09_SESSION-260925-0014_세션종합_KPT_회고록.md",
         "tasks_summary": [
-          "TASK-0014-01: [05-19] PDF 표준/커스텀 메타데이터 주입기(PdfMetadataInjector) 설계 및 구현",
-          "TASK-0014-02: [05-20] PDF 암호화(비밀번호 보호) 및 권한(인쇄/복사/수정 방지) 제어 엔진(PdfSecurityManager) 구현",
-          "TASK-0014-03: PDF 보안/메타데이터 설정 UI 모달(PdfSecuritySettingModal) 및 뷰어 내보내기 연동",
-          "TASK-0014-04: TDD 단위 테스트(100% PASS), 리뷰 문서 및 서비스 매뉴얼 현행화"
+          "TASK-0014-01: [05-19] PDF 표준/커스텀 메타데이터 주입기(PdfMetadataInjector) 설계 및 구현 (완료)",
+          "TASK-0014-02: [05-20] PDF 암호화(비밀번호 보호) 및 권한(인쇄/복사/수정 방지) 제어 엔진(PdfSecurityManager) 구현 (완료)",
+          "TASK-0014-03: PDF 보안/메타데이터 설정 UI 모달(PdfSecuritySettingModal) 및 뷰어 내보내기 연동 (완료)",
+          "TASK-0014-04: TDD 단위 테스트(100% PASS), 리뷰 문서 및 서비스 매뉴얼 현행화 (완료)"
         ],
         "hang_governance_telemetry": {
           "session_prompt_tokens": 0,
@@ -41,7 +43,7 @@
       "created_by": "system",
       "updated_sys": "agent-harness",
       "updated_by": "system",
-      "version": 2
+      "version": 3
     },
     {
       "session_id": "SESSION-20260922-006",
@@ -117,11 +119,15 @@
       "session_id": "SESSION-260925-0014",
       "task_name": "[05-23] TDD 종합 회귀 점검 및 사용자 서비스 매뉴얼 문서화",
       "git_branch": "task/pdf-metadata-security_Gemini",
-      "status_cd": "진행중",
+      "status_cd": "완료",
       "started_at": "2026-09-26T12:00:00.000Z",
-      "ended_at": null,
+      "ended_at": "2026-09-26T12:16:30.000Z",
       "doc_payload": {
         "manual_doc": "docs/11.운영/11-03_PDF_메타데이터_및_상황별_보안설정_사용자_운영_매뉴얼.md",
+        "review_doc": "docs/10.리뷰/260926_027_TDD_종합_회귀_점검_매뉴얼_및_AGENTS개정_리뷰.md",
+        "pushed_commit_sha": "de43e638e18f32de60d2564113d2d3e445e5cef3",
+        "pushed_tree_sha": "8d41c8b8fdeb60a8ada02eb2e6f11fd91bc3693b",
+        "promotion_status": "IDENTICAL_SHA_ALL_BRANCHES",
         "tdd_tests": "tests/ 전체 24개 테스트 100% 회귀 통과",
         "health_check": "15개 전 항목 100% ALL PASSED",
         "scenario1_analysis": "시나리오1은 시뮬레이터 프로토타입이며, 향후 실물 이미지/폴더 드래그앤드롭 업로드 백로그 식별 완료"
@@ -130,7 +136,7 @@
       "created_by": "system",
       "updated_sys": "agent-harness",
       "updated_by": "system",
-      "version": 1
+      "version": 2
     },
     {
       "task_id": "TASK-0014-03",
