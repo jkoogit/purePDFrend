@@ -13,6 +13,12 @@ if (!GITHUB_TOKEN) {
   process.exit(1);
 }
 
+function computeGitBlobSha(content: Buffer): string {
+  const header = `blob ${content.length}\0`;
+  const store = Buffer.concat([Buffer.from(header, 'utf8'), content]);
+  return crypto.createHash('sha1').update(store).digest('hex');
+}
+
 const IGNORE_DIRS = new Set([
   'node_modules',
   'dist',
@@ -88,11 +94,6 @@ function getAllFiles(dir: string, baseDir: string = dir): string[] {
   return files;
 }
 
-function computeGitBlobSha(content: Buffer): string {
-  const header = `blob ${content.length}\0`;
-  return crypto.createHash('sha1').update(Buffer.concat([Buffer.from(header), content])).digest('hex');
-}
-
 // Upload blob helper
 async function uploadBlob(relPath: string): Promise<string> {
   const content = fs.readFileSync(path.join(process.cwd(), relPath));
@@ -149,23 +150,22 @@ async function syncAndPush(targetBranch = 'dev', commitMessage: string) {
   const baseTreeSha = commitRes.body.tree.sha;
   console.log(`   Base tree SHA: ${baseTreeSha}`);
 
-  // 3. Fetch remote tree to compare git blob SHAs
-  console.log('2. Fetching remote tree structure for differential sync...');
+  // 3. Scan local files
+  console.log('2. Scanning local files to track...');
+  const files = getAllFiles(process.cwd());
+  console.log(`   Found ${files.length} files to synchronize.`);
+
+  // 4. Fetch base tree to find existing blobs
+  console.log('3. Comparing local files with remote base tree...');
   const remoteTreeRes = await requestGitHub(`/git/trees/${baseTreeSha}?recursive=1`);
-  const remoteHashMap = new Map<string, string>();
+  const remoteTreeMap = new Map<string, string>();
   if (remoteTreeRes.status === 200 && Array.isArray(remoteTreeRes.body.tree)) {
     for (const item of remoteTreeRes.body.tree) {
-      if (item.type === 'blob' && item.path && item.sha) {
-        remoteHashMap.set(item.path, item.sha);
+      if (item.type === 'blob') {
+        remoteTreeMap.set(item.path, item.sha);
       }
     }
   }
-  console.log(`   Cached ${remoteHashMap.size} remote files from tree.`);
-
-  // 4. Scan local files
-  console.log('3. Scanning local files to track...');
-  const files = getAllFiles(process.cwd());
-  console.log(`   Found ${files.length} local files to evaluate.`);
 
   const treeItems: Array<{ path: string; mode: string; type: string; sha: string }> = [];
   const filesToUpload: string[] = [];
@@ -173,38 +173,31 @@ async function syncAndPush(targetBranch = 'dev', commitMessage: string) {
   for (const f of files) {
     const content = fs.readFileSync(path.join(process.cwd(), f));
     const localSha = computeGitBlobSha(content);
-    const remoteSha = remoteHashMap.get(f);
+    const remoteSha = remoteTreeMap.get(f);
 
-    if (remoteSha && remoteSha === localSha) {
-      // Re-use existing SHA
+    if (remoteSha === localSha) {
       treeItems.push({ path: f, mode: '100644', type: 'blob', sha: localSha });
     } else {
       filesToUpload.push(f);
     }
   }
 
-  console.log(`   Reused ${treeItems.length} unmodified files. Changed/New files to upload: ${filesToUpload.length}`);
+  console.log(`   Unchanged files: ${treeItems.length} (reusing remote blobs)`);
+  console.log(`   Modified/New files to upload: ${filesToUpload.length}`);
 
-  // 5. Upload only changed blobs in chunks
-  if (filesToUpload.length > 0) {
-    console.log(`4. Uploading ${filesToUpload.length} modified/new blobs to GitHub...`);
-    const chunkSize = 10;
-    for (let i = 0; i < filesToUpload.length; i += chunkSize) {
-      const chunk = filesToUpload.slice(i, i + chunkSize);
-      const results = await Promise.all(
-        chunk.map(async (f) => {
-          const sha = await uploadBlob(f);
-          return { path: f, mode: '100644', type: 'blob', sha };
-        })
-      );
-      treeItems.push(...results);
-      process.stdout.write(`   Uploaded ${Math.min(i + chunkSize, filesToUpload.length)} / ${filesToUpload.length} blobs...\r`);
-    }
-    console.log(`\n   All ${filesToUpload.length} blobs successfully uploaded.`);
+  // Upload only modified or new blobs
+  for (let i = 0; i < filesToUpload.length; i++) {
+    const f = filesToUpload[i];
+    const sha = await uploadBlob(f);
+    treeItems.push({ path: f, mode: '100644', type: 'blob', sha });
+    console.log(`   Uploaded blob [${i + 1}/${filesToUpload.length}]: ${f}`);
+    // Brief throttle to stay well clear of secondary limits
+    await new Promise((res) => setTimeout(res, 100));
   }
+  console.log(`   All ${treeItems.length} tree items prepared.`);
 
-  // 6. Create new tree
-  console.log('5. Creating new Git Tree...');
+  // 5. Create new tree
+  console.log('4. Creating new Git Tree...');
   const treeRes = await requestGitHub('/git/trees', 'POST', {
     base_tree: baseTreeSha,
     tree: treeItems,
@@ -239,28 +232,10 @@ async function syncAndPush(targetBranch = 'dev', commitMessage: string) {
   }
   console.log(`   Successfully pushed to '${targetBranch}'!`);
 
-  // 8. Auto-promote to stg and main (Fast-Forward Ref update first to guarantee identical SHA, fallback to merge)
+  // 8. Auto-promote to stg and main
   console.log('7. Promoting commit to stg and main branches...');
-  for (const b of ['stg', 'main']) {
-    const patchRes = await requestGitHub(`/git/refs/heads/${b}`, 'PATCH', {
-      sha: newCommitSha,
-      force: true,
-    });
-    if (patchRes.status === 200) {
-      console.log(`[Fast-Forward ${b}] SHA updated to ${newCommitSha} (Status: 200)`);
-    } else {
-      console.log(`[Fast-Forward ${b} failed, fallback to merge API] Status: ${patchRes.status}`);
-      await mergeBranch(b, targetBranch, `Promote ${targetBranch} to ${b}: ${commitMessage}`);
-    }
-  }
-
-  // 9. Verify 3-branch parity
-  console.log('8. Verifying 3-branch SHA parity across dev, stg, and main...');
-  const verifyRes = await Promise.all(['dev', 'stg', 'main'].map(async (b) => {
-    const r = await requestGitHub(`/branches/${b}`);
-    return { branch: b, sha: r.body?.commit?.sha, tree: r.body?.commit?.commit?.tree?.sha };
-  }));
-  console.log('   Branch verification:', JSON.stringify(verifyRes, null, 2));
+  await mergeBranch('stg', targetBranch, `Promote ${targetBranch} to stg: ${commitMessage}`);
+  await mergeBranch('main', 'stg', `Promote stg to main: ${commitMessage}`);
 
   console.log('=== GitHub Sync & Promotion Complete! ===\n');
   return { newCommitSha, newTreeSha };

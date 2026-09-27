@@ -1,0 +1,48 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-09-27T07:35:00.000Z",
+  "systemConfig": {
+    "defaultOfflineTokenDays": 30,
+    "allowDuplicateToolsAcrossGroups": true,
+    "keyboardShortcutsEnabled": true
+  },
+  "toolRegistry": [
+    { "id": "hand", "name": "손 도구 (이동)", "icon": "✋", "defaultKey": "H", "category": "view", "desc": "화면 드래그 탐색" },
+    { "id": "select_text", "name": "텍스트 선택", "icon": "🔤", "defaultKey": "V", "category": "view", "desc": "OCR 텍스트 레이어 선택" },
+    { "id": "pen", "name": "펜 그리기", "icon": "✏️", "defaultKey": "P", "category": "annot", "desc": "자유 펜슬 드로잉" },
+    { "id": "brush", "name": "붓 (브러시)", "icon": "🖌️", "defaultKey": "B", "category": "annot", "desc": "서예 및 붓글씨 터치" },
+    { "id": "highlight", "name": "형광펜 (OCR스냅)", "icon": "🖍️", "defaultKey": "Shift+H", "category": "annot", "desc": "형광펜 강조" },
+    { "id": "underline", "name": "밑줄", "icon": "➖", "defaultKey": "Ctrl+U", "category": "annot", "desc": "본문 텍스트 밑줄" },
+    { "id": "strike", "name": "취소선", "icon": "❌", "defaultKey": "Alt+S", "category": "annot", "desc": "오류 텍스트 취소선" },
+    { "id": "textbox", "name": "텍스트 상자", "icon": "💬", "defaultKey": "T", "category": "annot", "desc": "독립형 텍스트 박스" },
+    { "id": "comment", "name": "댓글 주석", "icon": "🗨️", "defaultKey": "C", "category": "annot", "desc": "풍선형 댓글 및 리뷰" },
+    { "id": "eraser", "name": "지우개", "icon": "🧹", "defaultKey": "E", "category": "annot", "desc": "선택 주석 제거" },
+    { "id": "multi_rect", "name": "사각 다중선택", "icon": "⬚", "defaultKey": "M", "category": "annot", "desc": "영역 일괄 다중선택" },
+    { "id": "rect", "name": "직사각형", "icon": "▭", "defaultKey": "R", "category": "draw", "desc": "사각 박스 도형" },
+    { "id": "circle", "name": "원형/타원", "icon": "◯", "defaultKey": "O", "category": "draw", "desc": "타원형 강조 도형" },
+    { "id": "arrow", "name": "화살표", "icon": "➔", "defaultKey": "A", "category": "draw", "desc": "방향 지시 화살표" },
+    { "id": "line", "name": "직선", "icon": "╱", "defaultKey": "L", "category": "draw", "desc": "기준 직선 가이드" },
+    { "id": "polygon", "name": "다각형", "icon": "⬡", "defaultKey": "G", "category": "draw", "desc": "자유 다각형 다이어그램" },
+    { "id": "sign_pad", "name": "서명 패드", "icon": "🖋️", "defaultKey": "K", "category": "sign", "desc": "전자 서명 날인" },
+    { "id": "stamp_date", "name": "날짜 스탬프", "icon": "📅", "defaultKey": "D", "category": "sign", "desc": "오늘 일자 도장" },
+    { "id": "check_mark", "name": "체크 표시 (V)", "icon": "✔️", "defaultKey": "Shift+V", "category": "sign", "desc": "확인 체크 표기" },
+    { "id": "stamp_approved", "name": "승인 도장", "icon": "💮", "defaultKey": "Alt+A", "category": "sign", "desc": "결재 승인 인장" },
+    { "id": "convert_jpg", "name": "JPG 이미지 변환", "icon": "🖼️", "defaultKey": "Ctrl+J", "category": "convert", "desc": "지정 영역 이미지 추출" },
+    { "id": "convert_word", "name": "Word 변환", "icon": "📄", "defaultKey": "Ctrl+W", "category": "convert", "desc": "DOCX 텍스트 구조 변환" },
+    { "id": "form_input", "name": "텍스트 입력 필드", "icon": "📝", "defaultKey": "Alt+T", "category": "form", "desc": "전자 양식 폼 필드" },
+    { "id": "form_check", "name": "양식 체크박스", "icon": "☑️", "defaultKey": "Alt+C", "category": "form", "desc": "동의용 체크박스" },
+    { "id": "insert_page", "name": "빈 페이지 삽입", "icon": "➕", "defaultKey": "Ctrl+N", "category": "insert", "desc": "새 메모 페이지 추가" },
+    { "id": "insert_image", "name": "외부 이미지 삽입", "icon": "📎", "defaultKey": "Ctrl+I", "category": "insert", "desc": "사진/자료 결합" },
+    { "id": "insert_scan", "name": "카메라 스캔 삽입", "icon": "📷", "defaultKey": "Alt+I", "category": "insert", "desc": "즉석 스캔 페이지 추가" }
+  ],
+  "defaultGroups": {
+    "view": ["hand", "select_text"],
+    "annot": ["pen", "brush", "highlight", "underline", "strike", "textbox", "comment", "eraser", "multi_rect"],
+    "draw": ["rect", "circle", "arrow", "line", "polygon", "eraser"],
+    "sign": ["sign_pad", "stamp_date", "check_mark", "stamp_approved"],
+    "convert": ["convert_jpg", "convert_word"],
+    "form": ["form_input", "form_check"],
+    "insert": ["insert_page", "insert_image", "insert_scan"],
+    "favorite": ["pen", "highlight", "comment", "rect", "sign_pad"]
+  }
+}
