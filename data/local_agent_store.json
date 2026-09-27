@@ -41,6 +41,32 @@
       "updated_sys": "agent-harness",
       "updated_by": "system",
       "version": 4
+    },
+    {
+      "task_id": "TASK-0015-02",
+      "session_id": "SESSION-260926-0015",
+      "task_name": "[02] 리소스점검 및 GitHub 하네스(이슈/PR/브랜치) 거버넌스 현행화",
+      "git_branch": "task/0015_02_리소스점검_Gemini",
+      "status_cd": "완료",
+      "started_at": "2026-09-27T08:45:00.000Z",
+      "ended_at": "2026-09-27T08:50:00.000Z",
+      "doc_payload": {
+        "github_pr": "#26 ([0015_02] 리소스점검 및 GitHub 하네스 거버넌스 현행화)",
+        "github_issue": "#25 ([0015_02]_리소스점검)",
+        "branch_rule": "task/세션번호_태스크번호_작업명_에이전트명",
+        "pr_rule": "[세션번호_태스크번호]_작업명",
+        "issue_rule": "[세션번호_순번]_작업명",
+        "docs_cleaned": [
+          "docs/10.리뷰",
+          "docs/18.메뉴얼",
+          "docs/06.기획"
+        ]
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 1
     }
   ],
   "loops": [
@@ -149,6 +175,28 @@
       "updated_sys": "agent-service",
       "updated_by": "system",
       "version": 2
+    },
+    {
+      "loop_id": "LOOP-0015-02-01",
+      "task_id": "TASK-0015-02",
+      "session_id": "SESSION-260926-0015",
+      "loop_name": "깨진 문서/폴더 정리, 브랜치/PR/이슈 명명규칙 및 자동 PR생성 머지 구현",
+      "status_cd": "완료",
+      "started_at": "2026-09-27T08:45:00.000Z",
+      "ended_at": "2026-09-27T08:50:00.000Z",
+      "doc_payload": {
+        "pr_number": 26,
+        "issue_number": 25,
+        "cleaned_folders": [
+          "docs/10.뷰",
+          "docs/18.메얼"
+        ]
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 1
     }
   ],
   "traces": [
@@ -268,6 +316,38 @@
       "completion_tokens": 0,
       "total_tokens": 0,
       "created_at": "2026-09-27T08:22:39.379Z"
+    },
+    {
+      "trace_id": "TRACE-1790498971095",
+      "session_id": "SESSION-260926-0015",
+      "task_id": "TASK-0015-02",
+      "loop_id": "LOOP-0015-02-01",
+      "step_index": 1,
+      "agent_name": "gemini",
+      "model_name": "models/gemini-3.8-flash",
+      "user_prompt": "#태스크처리 [0015-02] 깨진 문서명/폴더 정리, GitHub 브랜치/PR/이슈 명명규칙 현행화 및 PR 자동생성·머지 파이프라인 구현",
+      "agent_response": "깨진 문서/폴더 정리 완료, Issue #25 등록 및 Task 브랜치/PR #26 자동 생성/머지 파이프라인 구축 완결",
+      "response_summary": "",
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "created_at": "2026-09-27T08:49:31.095Z"
+    },
+    {
+      "trace_id": "TRACE-1790499620455",
+      "session_id": "SESSION-260926-0015",
+      "task_id": "TASK-0015-02",
+      "loop_id": "LOOP-0015-02-01",
+      "step_index": 1,
+      "agent_name": "gemini",
+      "model_name": "models/gemini-3.8-flash",
+      "user_prompt": "과거 이슈, PR, 브랜치명 한글화 전수 현행화 및 본문 변경전 이름 명시",
+      "agent_response": "GitHub 과거 이슈 25건, PR 26건, 작업 브랜치 전수 한글화 현행화 및 변경전 명칭 본문 주석 기재 완결",
+      "response_summary": "",
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "created_at": "2026-09-27T09:00:20.455Z"
     }
   ],
   "plans": [],
