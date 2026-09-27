@@ -32,11 +32,11 @@
       "task_id": "TASK-0016-01",
       "session_id": "SESSION-0016",
       "task_name": "소진 작업(전수 목록 화면 UI 정책 일괄 적용, 긴급 백업 복구)",
-      "status_cd": "정리완료",
+      "status_cd": "완료",
       "priority": "HIGH",
       "assigned_agent": "gemini",
       "started_at": "2026-09-27T12:36:34.884Z",
-      "ended_at": null,
+      "ended_at": "2026-09-27T13:02:39.124Z",
       "doc_payload": {
         "items": [
           "전수 목록 화면 테이블 헤더 컬럼 너비 조절, 정렬 버튼 분리, 타이틀 중앙 정렬 UI 표준 정책 일괄 적용",
@@ -54,7 +54,7 @@
       "created_by": "system",
       "updated_sys": "agent-harness",
       "updated_by": "system",
-      "version": 2
+      "version": 3
     }
   ],
   "loops": [
@@ -62,10 +62,10 @@
       "loop_id": "LOOP-0016-01-01",
       "task_id": "TASK-0016-01",
       "loop_name": "전수 목록 UI 정책 적용 및 긴급 백업 복구 컴파일 검증",
-      "status_cd": "정리완료",
+      "status_cd": "완료",
       "iteration_index": 1,
       "started_at": "2026-09-27T12:36:34.885Z",
-      "ended_at": "2026-09-27T12:57:57.929Z",
+      "ended_at": "2026-09-27T13:02:39.125Z",
       "doc_payload": {
         "action": "UI 정책 일괄 적용 및 TypeScript 정적 무결성 100% 검증",
         "result": "tsc --noEmit PASS (에러 0건)",
@@ -76,7 +76,7 @@
       "created_by": "system",
       "updated_sys": "agent-harness",
       "updated_by": "system",
-      "version": 2
+      "version": 3
     }
   ],
   "traces": [
