@@ -72,7 +72,10 @@ export interface ConversationTrace {
   completion_tokens: number;
   total_tokens: number;
   created_at: string;
+  operator_account?: string;
+  user_email?: string;
 }
+
 
 export interface GraphNode {
   id: string;
@@ -105,12 +108,14 @@ export interface OcrEngineConfig {
   defaultLanguage: string;
   cacheStatus: string;
   accuracyRating: string;
+  serverUrl?: string;
 }
 
 export interface SystemSettings {
   ocr: {
     tesseract: OcrEngineConfig;
     gemini: OcrEngineConfig;
+    paddleocr?: OcrEngineConfig;
     primaryEngine: 'tesseract' | 'gemini';
     autoFallback: boolean;
   };
@@ -119,6 +124,7 @@ export interface SystemSettings {
     defaultViewModes: { session: boolean; task: boolean; loop: boolean };
   };
 }
+
 
 export type DomainGroupId = 'harness' | 'knowledge' | 'studio';
 
@@ -131,7 +137,8 @@ export type ActiveViewId =
   | 'settings'
   | 'ocr'
   | 'scenarios'
-  | 'wireframes';
+  | 'wireframes'
+  | 'correction';
 
 export interface ViewNavItem {
   id: ActiveViewId;
@@ -146,3 +153,95 @@ export interface DomainNavGroup {
   description: string;
   views: ViewNavItem[];
 }
+
+export type OcrEngineType = 'tesseract' | 'gemini' | 'paddleocr' | 'ensemble';
+
+export interface BoundingBoxItem {
+  id: number | string;
+  text: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  confidence: number;
+  order?: number;
+  lineIndex?: number;
+  words?: any[];
+  isEnsembleRefined?: boolean;
+  originalText?: string;
+}
+
+export interface PdfPageItem {
+  id?: string;
+  pageNum: number;
+  pageNumber?: number;
+  rotation: number;
+  width?: number;
+  height?: number;
+  dataUrl?: string;
+  thumbnailUrl?: string;
+  thumbnailSrc?: string;
+  imageSrc?: string;
+  imageUrl?: string;
+  title?: string;
+  isDeleted?: boolean;
+  hasTocBookmark?: boolean;
+  tocTitle?: string;
+  isOcrDone?: boolean;
+  ocrConfidence?: number;
+  boundingBoxes?: BoundingBoxItem[];
+  ocrBoxes?: BoundingBoxItem[];
+}
+
+
+export type ViewerLayoutMode = 'single' | 'double' | 'continuous' | 'book' | 'facing';
+
+export interface VirtualScrollState {
+  startIndex: number;
+  endIndex: number;
+  scrollTop?: number;
+  totalHeight?: number;
+  totalVirtualHeight?: number;
+  topSpacerHeight?: number;
+  bottomSpacerHeight?: number;
+  visiblePages: any[];
+}
+
+
+export interface ImagePreprocessingOptions {
+  grayscale?: boolean;
+  binarize?: boolean;
+  binarization?: boolean;
+  binarizationThreshold?: number;
+  denoise?: boolean;
+  deskew?: boolean;
+  contrast?: number;
+  contrastEnhance?: boolean;
+  autoCrop?: boolean;
+  splitSpread?: boolean;
+}
+
+export interface OcrResult {
+  text?: string;
+  boxes?: BoundingBoxItem[];
+  confidence?: number;
+  engine: OcrEngineType;
+  processingTimeMs?: number;
+  executionTimeMs?: number;
+  accuracyEstimated?: string | number;
+  fullText?: string;
+  boxesDetected?: number;
+  status?: string;
+  timestamp?: string;
+  message?: string;
+  ensembleStats?: any;
+  engineName?: string;
+  language?: string;
+  cost?: string;
+  preprocessed?: boolean;
+  deskewAngle?: number;
+  savedCost?: string;
+}
+
+
+
