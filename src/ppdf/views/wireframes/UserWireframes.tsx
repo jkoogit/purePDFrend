@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { ViewerConfigRegistry, ToolItem, ViewerConfigState } from '../../domain/ViewerConfigRegistry';
+import { useState } from 'react';
+import { ViewerConfigRegistry, ViewerConfigState } from '../../domain/ViewerConfigRegistry';
 
 export const USER_PROGRAMS = [
   { id: 'PG-USR-01', name: '첫화면 (랜딩)', desc: '공개 문서조회 바, 롤링배너, 공지/리뷰/가이드 탭, 고객센터 푸터' },
@@ -34,11 +34,6 @@ export function UserWireframes() {
   const [settingsTab, setSettingsTab] = useState<'general' | 'shortcuts' | 'groups'>('groups');
   const [targetGroupForAdd, setTargetGroupForAdd] = useState('annot');
   const [selectedToolToAdd, setSelectedToolToAdd] = useState('rect');
-
-  // Sync with registry on changes
-  const refreshConfig = () => {
-    setViewerConfig(registry.getConfig());
-  };
 
   const handleResetConfig = () => {
     const fresh = registry.resetToDefault();
@@ -508,16 +503,31 @@ export function UserWireframes() {
         {selectedProg === 'PG-USR-08' && (
           <div className="space-y-4 text-xs">
             {/* 오프라인 감지 상태바 및 수동 재연결 버튼 (ERR-05 보완) */}
-            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex flex-wrap items-center justify-between gap-3 text-amber-300">
+            <div className={`p-3 rounded-xl flex flex-wrap items-center justify-between gap-3 ${
+              isOfflineSimulated
+                ? 'bg-amber-500/10 border border-amber-500/30 text-amber-300'
+                : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
+            }`}>
               <div className="flex items-center gap-2">
-                <span className="text-base">📡</span>
+                <span className="text-base">{isOfflineSimulated ? '📡' : '🌐'}</span>
                 <div>
-                  <span className="font-bold">현재 네트워크가 오프라인 상태입니다</span>
-                  <p className="text-[11px] text-amber-400/80">로컬 뷰어 작업(주석 이벤트 소싱)은 중단 없이 유지되며, 재연결 시 안전하게 동기화됩니다.</p>
+                  <span className="font-bold">
+                    {isOfflineSimulated ? '현재 네트워크가 오프라인 상태입니다' : '현재 온라인 네트워크에 정상 연결되었습니다'}
+                  </span>
+                  <p className={`text-[11px] ${isOfflineSimulated ? 'text-amber-400/80' : 'text-emerald-400/80'}`}>
+                    {isOfflineSimulated
+                      ? '로컬 뷰어 작업(주석 이벤트 소싱)은 중단 없이 유지되며, 재연결 시 안전하게 동기화됩니다.'
+                      : '모든 로컬 주석 및 변경 내역이 실시간 동기화됩니다.'}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] text-slate-400">안정화 5초 감시 중...</span>
+                <button
+                  onClick={() => setIsOfflineSimulated(!isOfflineSimulated)}
+                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[11px]"
+                >
+                  {isOfflineSimulated ? '온라인 전환' : '오프라인 전환'}
+                </button>
                 <button
                   onClick={() => setIsDiffModalOpen(true)}
                   className="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded font-semibold flex items-center gap-1 shadow"

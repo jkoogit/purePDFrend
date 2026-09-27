@@ -52,40 +52,73 @@ export class GovernanceIdGenerator {
   }
 
   /**
-   * 1. 세션 ID 생성: SESSION-YYMMDD-[세션번호(4자리)]
-   * 예: SESSION-260924-0011
+   * 1. 세션 ID 생성: SESSION-[세션번호(4자리)]
+   * 예: SESSION-0015
    */
-  public static generateSessionId(sessionNum: number | string, date: Date = new Date()): string {
-    const dateStr = this.getFormatDate(date);
+  public static generateSessionId(sessionNum: number | string): string {
     const numStr = this.formatSessionNumber(sessionNum);
-    return `SESSION-${dateStr}-${numStr}`;
+    return `SESSION-${numStr}`;
   }
 
   /**
-   * 2. 태스크 ID 생성: TASK-YYMMDD-[세션번호(4자리)]-[태스크번호(2자리)]
-   * 예: TASK-260924-0011-01
+   * 2. 태스크 ID 생성: TASK-[세션번호(4자리)]-[태스크번호(2자리)]
+   * 예: TASK-0015-03
    */
-  public static generateTaskId(sessionNum: number | string, taskNum: number | string, date: Date = new Date()): string {
-    const dateStr = this.getFormatDate(date);
-    const sNumStr = this.formatSessionNumber(sessionNum);
+  public static generateTaskId(sessionNum: number | string, taskNum: number | string): string {
+    const sNumStr = this.extractSessionNumber(sessionNum);
     const tNumStr = this.formatTaskNumber(taskNum);
-    return `TASK-${dateStr}-${sNumStr}-${tNumStr}`;
+    return `TASK-${sNumStr}-${tNumStr}`;
   }
 
   /**
-   * 3. 루프 ID 생성: LOOP-YYMMDD-[세션번호(4자리)]-[태스크번호(2자리)]-[루프번호(3자리)]
-   * 예: LOOP-260924-0011-01-001
+   * 3. 루프 ID 생성: LOOP-[세션번호(4자리)]-[태스크번호(2자리)]-[루프번호(2자리)]
+   * 예: LOOP-0015-03-01
    */
-  public static generateLoopId(sessionNum: number | string, taskNum: number | string, loopNum: number | string, date: Date = new Date()): string {
-    const dateStr = this.getFormatDate(date);
-    const sNumStr = this.formatSessionNumber(sessionNum);
+  public static generateLoopId(sessionNum: number | string, taskNum: number | string, loopNum: number | string): string {
+    const sNumStr = this.extractSessionNumber(sessionNum);
     const tNumStr = this.formatTaskNumber(taskNum);
-    const lNumStr = this.formatLoopNumber(loopNum);
-    return `LOOP-${dateStr}-${sNumStr}-${tNumStr}-${lNumStr}`;
+    const cleanLoop = String(loopNum).replace(/[^0-9]/g, '');
+    const lNumStr = cleanLoop.slice(-2).padStart(2, '0');
+    return `LOOP-${sNumStr}-${tNumStr}-${lNumStr}`;
   }
 
   /**
-   * 4. 대화턴 ID 생성: TRACE-[세션번호(4자리)]-[턴번호(4자리)]
+   * 4. 대화턴 ID 생성 (5단 구조 계층 표준): TRACE-[세션번호(4자리)]-[태스크번호(2자리)]-[루프번호(2자리, 없으면 00)]-[턴순번(2자리)]
+   * 예: TRACE-0015-03-01-01
+   */
+  public static generateHierarchicalTraceId(
+    sessionId: string | number,
+    taskId?: string | number | null,
+    loopId?: string | number | null,
+    turnNum: number | string = 1,
+    _subNum?: number | string
+  ): string {
+    const sNumStr = this.extractSessionNumber(sessionId);
+
+    // Extract task number (e.g. TASK-0015-01 -> 01, 1 -> 01)
+    let tNumStr = '00';
+    if (taskId) {
+      const taskParts = String(taskId).trim().split('-');
+      const lastTaskPart = taskParts[taskParts.length - 1];
+      tNumStr = this.formatTaskNumber(lastTaskPart);
+    }
+
+    // Extract loop number (e.g. LOOP-0015-03-01 -> 01, 1 -> 01)
+    let lNumStr = '00';
+    if (loopId) {
+      const loopParts = String(loopId).trim().split('-');
+      const lastLoopPart = loopParts[loopParts.length - 1];
+      const cleanLoop = String(lastLoopPart).replace(/[^0-9]/g, '');
+      lNumStr = cleanLoop.slice(-2).padStart(2, '0');
+    }
+
+    const turnStr = String(turnNum || 1).replace(/[^0-9]/g, '').slice(-2).padStart(2, '0');
+
+    return `TRACE-${sNumStr}-${tNumStr}-${lNumStr}-${turnStr}`;
+  }
+
+  /**
+   * 4-1. 기존 레거시 호환 대화턴 ID 생성: TRACE-[세션번호(4자리)]-[턴번호(4자리)]
    * 예: TRACE-0011-0001
    */
   public static generateTraceId(sessionNum: number | string, turnNum: number | string): string {
