@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import https from 'https';
 import { createServer as createViteServer } from 'vite';
 import { TokenQuotaDetectionService } from './src/aiagent/domain/token-quota';
+import { GovernanceIdGenerator } from './src/aiagent/domain/governance/GovernanceIdGenerator';
 
 const app = express();
 const PORT = 3000;
@@ -67,7 +68,13 @@ function getLocalStore(): LocalStoreData {
   try {
     if (fs.existsSync(LOCAL_STORE_PATH)) {
       const raw = fs.readFileSync(LOCAL_STORE_PATH, 'utf-8');
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      return {
+        sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
+        tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
+        loops: Array.isArray(parsed.loops) ? parsed.loops : [],
+        traces: Array.isArray(parsed.traces) ? parsed.traces : [],
+      };
     }
   } catch (e) {
     console.error('Error reading local agent store:', e);
@@ -232,7 +239,7 @@ app.get('/api/db/status', async (req, res) => {
   const store = getLocalStore();
   const docsDir = path.join(process.cwd(), 'docs');
   const localDocCount = scanDocsRecursively(docsDir).length;
-  const validTraces = store.traces.filter((t) => !isQuotaLimitError(t.agent_response) && !isQuotaLimitError(t.user_prompt));
+  const validTraces = (store.traces || []).filter((t) => !isQuotaLimitError(t.agent_response) && !isQuotaLimitError(t.user_prompt));
 
   try {
     const dbRes: any = await executeSql(`
@@ -1247,7 +1254,7 @@ app.get('/api/agent/chat/traces', async (req, res) => {
     res.json({ success: true, traces: sanitized, source: 'REMOTE_DB' });
   } catch (err: any) {
     // Local Fallback filtering with token quota exclusion
-    let list = store.traces.filter(
+    let list = (store.traces || []).filter(
       (t: any) => !isQuotaLimitError(t.user_prompt) && !isQuotaLimitError(t.agent_response) && !isQuotaLimitError(t.response_summary)
     );
 
@@ -1303,10 +1310,10 @@ app.post('/api/agent/quota/check', (req, res) => {
 app.post('/api/agent/chat/traces/cleanup-quota-errors', async (req, res) => {
   try {
     const store = getLocalStore();
-    const initialCount = store.traces.length;
+    const initialCount = (store.traces || []).length;
     
     // Purge quota error traces from local store
-    store.traces = store.traces.filter(
+    store.traces = (store.traces || []).filter(
       (t) => !isQuotaLimitError(t.user_prompt) && !isQuotaLimitError(t.agent_response) && !isQuotaLimitError(t.response_summary)
     );
     const removedCount = initialCount - store.traces.length;
@@ -1352,8 +1359,11 @@ app.post('/api/agent/trace/turn', async (req, res) => {
       task_id = activeTaskId,
       loop_id = null,
       step_index,
+      turn_number,
       agent_name = 'gemini',
       model_name = 'models/gemini-3.8-flash',
+      operator_account = 'jkok2j2m',
+      user_email = 'jkok2j2m@gmail.com',
       user_prompt,
       agent_response,
       response_summary = '',
@@ -1381,22 +1391,25 @@ app.post('/api/agent/trace/turn', async (req, res) => {
       });
     }
 
-    const finalTraceId = trace_id || `TRACE-${Date.now()}`;
+    const calculatedStep = Number(turn_number || step_index) || ((store.traces || []).filter((t) => t.session_id === session_id).length + 1);
+    const finalTraceId = trace_id || GovernanceIdGenerator.generateHierarchicalTraceId(session_id, task_id, loop_id, calculatedStep);
     const escapedPrompt = String(user_prompt || '').replace(/'/g, "''");
     const escapedResponse = String(agent_response || '').replace(/'/g, "''");
     const escapedSummary = String(response_summary || '').replace(/'/g, "''");
     const safeLoopId = loop_id ? `'${String(loop_id).replace(/'/g, "''")}'` : 'NULL';
 
     // 1. Save to Local Fallback Store
-    const existingIdx = store.traces.findIndex((t) => t.trace_id === finalTraceId);
+    const existingIdx = (store.traces || []).findIndex((t) => t.trace_id === finalTraceId);
     const traceRecord = {
       trace_id: finalTraceId,
       session_id,
       task_id,
       loop_id,
-      step_index: Number(step_index) || 1,
+      step_index: calculatedStep,
       agent_name,
       model_name,
+      operator_account,
+      user_email,
       user_prompt,
       agent_response,
       response_summary,
@@ -1480,7 +1493,7 @@ app.post('/api/agent/trace/turn', async (req, res) => {
 
 app.get('/api/agent/usage', async (req, res) => {
   const store = getLocalStore();
-  const validTraces = store.traces.filter(
+  const validTraces = (store.traces || []).filter(
     (t) => !isQuotaLimitError(t.user_prompt) && !isQuotaLimitError(t.agent_response) && !isQuotaLimitError(t.response_summary)
   );
 

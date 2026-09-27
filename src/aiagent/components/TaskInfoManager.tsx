@@ -141,14 +141,108 @@ export default function TaskInfoManager({ onNavigateToTrace, dbStatus = 'CONNECT
     }
   };
 
-  const renderSortIndicator = (currentField: string, targetField: string, currentOrder: SortOrder) => {
-    if (currentField !== targetField || currentOrder === 'init') {
-      return <ArrowUpDown className="w-3 h-3 text-slate-500 opacity-60 inline ml-1 group-hover/th:opacity-100 transition-opacity" />;
+  // Column width adjustable state (px) for Sessions, Tasks, and Loops tables
+  const [sessionColWidths, setSessionColWidths] = useState<Record<string, number>>({
+    session_id: 170,
+    session_name: 300,
+    work_group: 140,
+    status_cd: 110,
+    ai_agent: 180,
+    started_at: 160,
+    actions: 170,
+  });
+
+  const [taskColWidths, setTaskColWidths] = useState<Record<string, number>>({
+    task_id: 170,
+    task_name: 300,
+    session_id: 160,
+    git_branch: 170,
+    status_cd: 110,
+    started_at: 160,
+    actions: 170,
+  });
+
+  const [loopColWidths, setLoopColWidths] = useState<Record<string, number>>({
+    loop_id: 170,
+    loop_name: 320,
+    task_id: 160,
+    status_cd: 110,
+    started_at: 160,
+    actions: 170,
+  });
+
+  const startResizeSession = (col: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startW = sessionColWidths[col] || 120;
+    const handleMove = (m: MouseEvent) => {
+      const delta = m.clientX - startX;
+      setSessionColWidths(prev => ({ ...prev, [col]: Math.max(50, startW + delta) }));
+    };
+    const handleUp = () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+    };
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+  };
+
+  const startResizeTask = (col: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startW = taskColWidths[col] || 120;
+    const handleMove = (m: MouseEvent) => {
+      const delta = m.clientX - startX;
+      setTaskColWidths(prev => ({ ...prev, [col]: Math.max(50, startW + delta) }));
+    };
+    const handleUp = () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+    };
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+  };
+
+  const startResizeLoop = (col: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startW = loopColWidths[col] || 120;
+    const handleMove = (m: MouseEvent) => {
+      const delta = m.clientX - startX;
+      setLoopColWidths(prev => ({ ...prev, [col]: Math.max(50, startW + delta) }));
+    };
+    const handleUp = () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+    };
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+  };
+
+  const renderSortButton = (currentField: string, targetField: string, currentOrder: SortOrder, onSort: () => void, label: string) => {
+    let icon = <ArrowUpDown className="w-3 h-3 text-slate-500 opacity-60 group-hover/sort:opacity-100 transition-opacity" />;
+    if (currentField === targetField && currentOrder !== 'init') {
+      icon = currentOrder === 'asc' 
+        ? <ArrowUp className="w-3 h-3 text-indigo-400 font-bold" />
+        : <ArrowDown className="w-3 h-3 text-indigo-400 font-bold" />;
     }
-    if (currentOrder === 'asc') {
-      return <ArrowUp className="w-3 h-3 text-indigo-400 inline ml-1 font-bold" />;
-    }
-    return <ArrowDown className="w-3 h-3 text-indigo-400 inline ml-1 font-bold" />;
+
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onSort();
+        }}
+        className="p-1 -mr-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer group/sort inline-flex items-center justify-center shrink-0"
+        title={`${label} 정렬 (오름차순/내림차순/초기화)`}
+      >
+        {icon}
+      </button>
+    );
   };
 
   // Dedicated Conversation Trace Modal Viewer States
@@ -620,58 +714,90 @@ export default function TaskInfoManager({ onNavigateToTrace, dbStatus = 'CONNECT
           <>
             {/* Desktop Table View */}
             <div className="hidden md:block">
-              <table className="w-full text-left border-collapse text-xs">
+              <table className="w-full table-fixed text-left border-collapse text-xs">
                 <thead className="sticky top-0 z-20 bg-slate-900 shadow-md">
                   <tr className="border-b border-slate-800 text-slate-400 select-none">
                     <th
-                      onClick={() => handleSessionSort('session_id')}
-                      className="p-3 w-44 font-mono cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                      style={{ width: `${sessionColWidths.session_id}px`, minWidth: `${sessionColWidths.session_id}px` }}
+                      className="p-3 font-mono text-center transition-colors relative"
                     >
-                      <span className="inline-flex items-center">
-                        세션 ID{renderSortIndicator(sessionSortField, 'session_id', sessionSortOrder)}
-                      </span>
+                      <div className="inline-flex items-center justify-center gap-1 w-full">
+                        <span className="truncate">세션 ID</span>
+                        {renderSortButton(sessionSortField, 'session_id', sessionSortOrder, () => handleSessionSort('session_id'), '세션 ID')}
+                      </div>
+                      <div
+                        onMouseDown={(e) => startResizeSession('session_id', e)}
+                        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                      />
                     </th>
                     <th
-                      onClick={() => handleSessionSort('session_name')}
-                      className="p-3 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                      style={{ width: `${sessionColWidths.session_name}px`, minWidth: `${sessionColWidths.session_name}px` }}
+                      className="p-3 text-center transition-colors relative"
                     >
-                      <span className="inline-flex items-center">
-                        세션명{renderSortIndicator(sessionSortField, 'session_name', sessionSortOrder)}
-                      </span>
+                      <div className="inline-flex items-center justify-center gap-1 w-full">
+                        <span className="truncate">세션명</span>
+                        {renderSortButton(sessionSortField, 'session_name', sessionSortOrder, () => handleSessionSort('session_name'), '세션명')}
+                      </div>
+                      <div
+                        onMouseDown={(e) => startResizeSession('session_name', e)}
+                        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                      />
                     </th>
                     <th
-                      onClick={() => handleSessionSort('work_group')}
-                      className="p-3 w-36 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                      style={{ width: `${sessionColWidths.work_group}px`, minWidth: `${sessionColWidths.work_group}px` }}
+                      className="p-3 text-center transition-colors relative"
                     >
-                      <span className="inline-flex items-center">
-                        작업그룹{renderSortIndicator(sessionSortField, 'work_group', sessionSortOrder)}
-                      </span>
+                      <div className="inline-flex items-center justify-center gap-1 w-full">
+                        <span className="truncate">작업그룹</span>
+                        {renderSortButton(sessionSortField, 'work_group', sessionSortOrder, () => handleSessionSort('work_group'), '작업그룹')}
+                      </div>
+                      <div
+                        onMouseDown={(e) => startResizeSession('work_group', e)}
+                        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                      />
                     </th>
                     <th
-                      onClick={() => handleSessionSort('status_cd')}
-                      className="p-3 w-28 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                      style={{ width: `${sessionColWidths.status_cd}px`, minWidth: `${sessionColWidths.status_cd}px` }}
+                      className="p-3 text-center transition-colors relative"
                     >
-                      <span className="inline-flex items-center">
-                        상태{renderSortIndicator(sessionSortField, 'status_cd', sessionSortOrder)}
-                      </span>
+                      <div className="inline-flex items-center justify-center gap-1 w-full">
+                        <span className="truncate">상태</span>
+                        {renderSortButton(sessionSortField, 'status_cd', sessionSortOrder, () => handleSessionSort('status_cd'), '상태')}
+                      </div>
+                      <div
+                        onMouseDown={(e) => startResizeSession('status_cd', e)}
+                        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                      />
                     </th>
                     <th
-                      onClick={() => handleSessionSort('ai_agent')}
-                      className="p-3 w-48 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                      style={{ width: `${sessionColWidths.ai_agent}px`, minWidth: `${sessionColWidths.ai_agent}px` }}
+                      className="p-3 text-center transition-colors relative"
                     >
-                      <span className="inline-flex items-center">
-                        담당 에이전트 / 모델{renderSortIndicator(sessionSortField, 'ai_agent', sessionSortOrder)}
-                      </span>
+                      <div className="inline-flex items-center justify-center gap-1 w-full">
+                        <span className="truncate">담당 에이전트 / 모델</span>
+                        {renderSortButton(sessionSortField, 'ai_agent', sessionSortOrder, () => handleSessionSort('ai_agent'), '담당 에이전트 / 모델')}
+                      </div>
+                      <div
+                        onMouseDown={(e) => startResizeSession('ai_agent', e)}
+                        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                      />
                     </th>
                     <th
-                      onClick={() => handleSessionSort('started_at')}
-                      className="p-3 w-40 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                      style={{ width: `${sessionColWidths.started_at}px`, minWidth: `${sessionColWidths.started_at}px` }}
+                      className="p-3 text-center transition-colors relative"
                     >
-                      <span className="inline-flex items-center">
-                        시작일시{renderSortIndicator(sessionSortField, 'started_at', sessionSortOrder)}
-                      </span>
+                      <div className="inline-flex items-center justify-center gap-1 w-full">
+                        <span>시작일시</span>
+                        {renderSortButton(sessionSortField, 'started_at', sessionSortOrder, () => handleSessionSort('started_at'), '시작일시')}
+                      </div>
+                      <div
+                        onMouseDown={(e) => startResizeSession('started_at', e)}
+                        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                      />
                     </th>
-                    <th className="p-3 text-right w-44">대화턴 및 상세</th>
+                    <th style={{ width: `${sessionColWidths.actions}px`, minWidth: `${sessionColWidths.actions}px` }} className="p-3 text-center">
+                      대화턴 및 상세
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
@@ -823,58 +949,90 @@ export default function TaskInfoManager({ onNavigateToTrace, dbStatus = 'CONNECT
           <>
             {/* Desktop Table View */}
             <div className="hidden md:block">
-              <table className="w-full text-left border-collapse text-xs">
+              <table className="w-full table-fixed text-left border-collapse text-xs">
                 <thead className="sticky top-0 z-20 bg-slate-900 shadow-md">
                   <tr className="border-b border-slate-800 text-slate-400 select-none">
                     <th
-                      onClick={() => handleTaskSort('task_id')}
-                      className="p-3 w-40 font-mono cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                      style={{ width: `${taskColWidths.task_id}px`, minWidth: `${taskColWidths.task_id}px` }}
+                      className="p-3 font-mono text-center transition-colors relative"
                     >
-                      <span className="inline-flex items-center">
-                        태스크 ID{renderSortIndicator(taskSortField, 'task_id', taskSortOrder)}
-                      </span>
+                      <div className="inline-flex items-center justify-center gap-1 w-full">
+                        <span className="truncate">태스크 ID</span>
+                        {renderSortButton(taskSortField, 'task_id', taskSortOrder, () => handleTaskSort('task_id'), '태스크 ID')}
+                      </div>
+                      <div
+                        onMouseDown={(e) => startResizeTask('task_id', e)}
+                        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                      />
                     </th>
                     <th
-                      onClick={() => handleTaskSort('task_name')}
-                      className="p-3 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                      style={{ width: `${taskColWidths.task_name}px`, minWidth: `${taskColWidths.task_name}px` }}
+                      className="p-3 text-center transition-colors relative"
                     >
-                      <span className="inline-flex items-center">
-                        태스크명{renderSortIndicator(taskSortField, 'task_name', taskSortOrder)}
-                      </span>
+                      <div className="inline-flex items-center justify-center gap-1 w-full">
+                        <span className="truncate">태스크명</span>
+                        {renderSortButton(taskSortField, 'task_name', taskSortOrder, () => handleTaskSort('task_name'), '태스크명')}
+                      </div>
+                      <div
+                        onMouseDown={(e) => startResizeTask('task_name', e)}
+                        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                      />
                     </th>
                     <th
-                      onClick={() => handleTaskSort('session_id')}
-                      className="p-3 w-40 font-mono cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                      style={{ width: `${taskColWidths.session_id}px`, minWidth: `${taskColWidths.session_id}px` }}
+                      className="p-3 font-mono text-center transition-colors relative"
                     >
-                      <span className="inline-flex items-center">
-                        연결 세션{renderSortIndicator(taskSortField, 'session_id', taskSortOrder)}
-                      </span>
+                      <div className="inline-flex items-center justify-center gap-1 w-full">
+                        <span className="truncate">연결 세션</span>
+                        {renderSortButton(taskSortField, 'session_id', taskSortOrder, () => handleTaskSort('session_id'), '연결 세션')}
+                      </div>
+                      <div
+                        onMouseDown={(e) => startResizeTask('session_id', e)}
+                        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                      />
                     </th>
                     <th
-                      onClick={() => handleTaskSort('git_branch')}
-                      className="p-3 w-40 font-mono cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                      style={{ width: `${taskColWidths.git_branch}px`, minWidth: `${taskColWidths.git_branch}px` }}
+                      className="p-3 font-mono text-center transition-colors relative"
                     >
-                      <span className="inline-flex items-center">
-                        작업 브랜치{renderSortIndicator(taskSortField, 'git_branch', taskSortOrder)}
-                      </span>
+                      <div className="inline-flex items-center justify-center gap-1 w-full">
+                        <span className="truncate">작업 브랜치</span>
+                        {renderSortButton(taskSortField, 'git_branch', taskSortOrder, () => handleTaskSort('git_branch'), '작업 브랜치')}
+                      </div>
+                      <div
+                        onMouseDown={(e) => startResizeTask('git_branch', e)}
+                        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                      />
                     </th>
                     <th
-                      onClick={() => handleTaskSort('status_cd')}
-                      className="p-3 w-28 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                      style={{ width: `${taskColWidths.status_cd}px`, minWidth: `${taskColWidths.status_cd}px` }}
+                      className="p-3 text-center transition-colors relative"
                     >
-                      <span className="inline-flex items-center">
-                        상태{renderSortIndicator(taskSortField, 'status_cd', taskSortOrder)}
-                      </span>
+                      <div className="inline-flex items-center justify-center gap-1 w-full">
+                        <span className="truncate">상태</span>
+                        {renderSortButton(taskSortField, 'status_cd', taskSortOrder, () => handleTaskSort('status_cd'), '상태')}
+                      </div>
+                      <div
+                        onMouseDown={(e) => startResizeTask('status_cd', e)}
+                        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                      />
                     </th>
                     <th
-                      onClick={() => handleTaskSort('started_at')}
-                      className="p-3 w-40 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                      style={{ width: `${taskColWidths.started_at}px`, minWidth: `${taskColWidths.started_at}px` }}
+                      className="p-3 text-center transition-colors relative"
                     >
-                      <span className="inline-flex items-center">
-                        시작일시{renderSortIndicator(taskSortField, 'started_at', taskSortOrder)}
-                      </span>
+                      <div className="inline-flex items-center justify-center gap-1 w-full">
+                        <span>시작일시</span>
+                        {renderSortButton(taskSortField, 'started_at', taskSortOrder, () => handleTaskSort('started_at'), '시작일시')}
+                      </div>
+                      <div
+                        onMouseDown={(e) => startResizeTask('started_at', e)}
+                        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                      />
                     </th>
-                    <th className="p-3 text-right w-44">대화턴 및 상세</th>
+                    <th style={{ width: `${taskColWidths.actions}px`, minWidth: `${taskColWidths.actions}px` }} className="p-3 text-center">
+                      대화턴 및 상세
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
@@ -1032,50 +1190,77 @@ export default function TaskInfoManager({ onNavigateToTrace, dbStatus = 'CONNECT
           <>
             {/* Desktop Table View */}
             <div className="hidden md:block">
-              <table className="w-full text-left border-collapse text-xs">
+              <table className="w-full table-fixed text-left border-collapse text-xs">
                 <thead className="sticky top-0 z-20 bg-slate-900 shadow-md">
                   <tr className="border-b border-slate-800 text-slate-400 select-none">
                     <th
-                      onClick={() => handleLoopSort('loop_id')}
-                      className="p-3 w-40 font-mono cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                      style={{ width: `${loopColWidths.loop_id}px`, minWidth: `${loopColWidths.loop_id}px` }}
+                      className="p-3 font-mono text-center transition-colors relative"
                     >
-                      <span className="inline-flex items-center">
-                        루프 ID{renderSortIndicator(loopSortField, 'loop_id', loopSortOrder)}
-                      </span>
+                      <div className="inline-flex items-center justify-center gap-1 w-full">
+                        <span className="truncate">루프 ID</span>
+                        {renderSortButton(loopSortField, 'loop_id', loopSortOrder, () => handleLoopSort('loop_id'), '루프 ID')}
+                      </div>
+                      <div
+                        onMouseDown={(e) => startResizeLoop('loop_id', e)}
+                        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover/th:bg-slate-700"
+                      />
                     </th>
                     <th
-                      onClick={() => handleLoopSort('loop_name')}
-                      className="p-3 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                      style={{ width: `${loopColWidths.loop_name}px`, minWidth: `${loopColWidths.loop_name}px` }}
+                      className="p-3 text-center transition-colors relative"
                     >
-                      <span className="inline-flex items-center">
-                        루프명{renderSortIndicator(loopSortField, 'loop_name', loopSortOrder)}
-                      </span>
+                      <div className="inline-flex items-center justify-center gap-1 w-full">
+                        <span className="truncate">루프명</span>
+                        {renderSortButton(loopSortField, 'loop_name', loopSortOrder, () => handleLoopSort('loop_name'), '루프명')}
+                      </div>
+                      <div
+                        onMouseDown={(e) => startResizeLoop('loop_name', e)}
+                        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover/th:bg-slate-700"
+                      />
                     </th>
                     <th
-                      onClick={() => handleLoopSort('task_id')}
-                      className="p-3 w-40 font-mono cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                      style={{ width: `${loopColWidths.task_id}px`, minWidth: `${loopColWidths.task_id}px` }}
+                      className="p-3 font-mono text-center transition-colors relative"
                     >
-                      <span className="inline-flex items-center">
-                        연결 태스크{renderSortIndicator(loopSortField, 'task_id', loopSortOrder)}
-                      </span>
+                      <div className="inline-flex items-center justify-center gap-1 w-full">
+                        <span className="truncate">연결 태스크</span>
+                        {renderSortButton(loopSortField, 'task_id', loopSortOrder, () => handleLoopSort('task_id'), '연결 태스크')}
+                      </div>
+                      <div
+                        onMouseDown={(e) => startResizeLoop('task_id', e)}
+                        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover/th:bg-slate-700"
+                      />
                     </th>
                     <th
-                      onClick={() => handleLoopSort('status_cd')}
-                      className="p-3 w-28 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                      style={{ width: `${loopColWidths.status_cd}px`, minWidth: `${loopColWidths.status_cd}px` }}
+                      className="p-3 text-center transition-colors relative"
                     >
-                      <span className="inline-flex items-center">
-                        상태{renderSortIndicator(loopSortField, 'status_cd', loopSortOrder)}
-                      </span>
+                      <div className="inline-flex items-center justify-center gap-1 w-full">
+                        <span className="truncate">상태</span>
+                        {renderSortButton(loopSortField, 'status_cd', loopSortOrder, () => handleLoopSort('status_cd'), '상태')}
+                      </div>
+                      <div
+                        onMouseDown={(e) => startResizeLoop('status_cd', e)}
+                        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover/th:bg-slate-700"
+                      />
                     </th>
                     <th
-                      onClick={() => handleLoopSort('started_at')}
-                      className="p-3 w-40 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                      style={{ width: `${loopColWidths.started_at}px`, minWidth: `${loopColWidths.started_at}px` }}
+                      className="p-3 text-center transition-colors relative"
                     >
-                      <span className="inline-flex items-center">
-                        시작일시{renderSortIndicator(loopSortField, 'started_at', loopSortOrder)}
-                      </span>
+                      <div className="inline-flex items-center justify-center gap-1 w-full">
+                        <span>시작일시</span>
+                        {renderSortButton(loopSortField, 'started_at', loopSortOrder, () => handleLoopSort('started_at'), '시작일시')}
+                      </div>
+                      <div
+                        onMouseDown={(e) => startResizeLoop('started_at', e)}
+                        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover/th:bg-slate-700"
+                      />
                     </th>
-                    <th className="p-3 text-right w-44">대화턴 및 상세</th>
+                    <th style={{ width: `${loopColWidths.actions}px`, minWidth: `${loopColWidths.actions}px` }} className="p-3 text-center">
+                      대화턴 및 상세
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
