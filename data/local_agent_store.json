@@ -6,9 +6,9 @@
       "work_group": "purePDFrend",
       "ai_agent": "gemini",
       "ai_model": "models/gemini-3.7-flash",
-      "status_cd": "진행중",
+      "status_cd": "완료",
       "started_at": "2026-09-27T12:14:29.614Z",
-      "ended_at": null,
+      "ended_at": "2026-09-27T13:43:25.800Z",
       "doc_payload": {
         "objective": "0015 토큰소진 연계작업(전수 목록 UI정책 일괄적용), 비-LLM 긴급소스 백업 복구, 와이어프레임 분석",
         "issue_number": 28,
@@ -22,7 +22,7 @@
       "created_by": "system",
       "updated_sys": "agent-harness",
       "updated_by": "system",
-      "version": 1,
+      "version": 2,
       "operator_account": "jkoogit",
       "user_email": "jkoogit@gmail.com"
     }
