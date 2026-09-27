@@ -828,11 +828,16 @@ function scanDocsRecursively(dir: string, baseDir: string = dir): any[] {
   for (const item of items) {
     const fullPath = path.join(dir, item.name);
     if (item.isDirectory()) {
+      // Exclude images directories from document scanning
+      if (item.name.toLowerCase() === 'images') {
+        continue;
+      }
       results = results.concat(scanDocsRecursively(fullPath, baseDir));
     } else if (item.isFile() && item.name.endsWith('.md')) {
       const relativePath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
       const parts = relativePath.split('/');
-      const folder = parts.length > 1 ? parts[0] : '루트';
+      // Folder is relative directory path (e.g. "06.기획" or "06.기획/UI기획")
+      const folder = parts.length > 1 ? parts.slice(0, -1).join('/') : '루트';
       const content = fs.readFileSync(fullPath, 'utf-8');
       const hash = crypto.createHash('sha256').update(content).digest('hex');
       const stat = fs.statSync(fullPath);
@@ -2215,11 +2220,19 @@ app.get('/api/agent/audit/integrity', async (req, res) => {
         const tracesCountRes: any = await executeSql(`SELECT count(*) as cnt FROM aiagent.agent_conversation_trace WHERE session_id = '${safeSessId}';`);
         sessionParity.tracesDbCount = parseInt(tracesCountRes.rows?.[0]?.cnt || '0', 10);
 
-        const totalLocal = 1 + store.tasks.length + store.loops.length + store.traces.length;
+        const localTasksCount = store.tasks.filter((t: any) => t.session_id === activeSession.session_id).length;
+        const localLoopsCount = store.loops.filter((l: any) => l.session_id === activeSession.session_id).length;
+        const localTracesCount = store.traces.filter((tr: any) => tr.session_id === activeSession.session_id).length;
+
+        sessionParity.tasksLocalCount = localTasksCount;
+        sessionParity.loopsLocalCount = localLoopsCount;
+        sessionParity.tracesLocalCount = localTracesCount;
+
+        const totalLocal = 1 + localTasksCount + localLoopsCount + localTracesCount;
         let matched = (sessionParity.sessionMatch ? 1 : 0) +
-          Math.min(store.tasks.length, sessionParity.tasksDbCount) +
-          Math.min(store.loops.length, sessionParity.loopsDbCount) +
-          Math.min(store.traces.length, sessionParity.tracesDbCount);
+          (localTasksCount === sessionParity.tasksDbCount ? localTasksCount : Math.min(localTasksCount, sessionParity.tasksDbCount)) +
+          (localLoopsCount === sessionParity.loopsDbCount ? localLoopsCount : Math.min(localLoopsCount, sessionParity.loopsDbCount)) +
+          (localTracesCount === sessionParity.tracesDbCount ? localTracesCount : Math.min(localTracesCount, sessionParity.tracesDbCount));
         sessionParity.parityPercentage = totalLocal > 0 ? Math.round((matched / totalLocal) * 100) : 100;
       } catch (e) {
         sessionParity.parityPercentage = 90; // Fallback
