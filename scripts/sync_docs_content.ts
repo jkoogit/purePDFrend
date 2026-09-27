@@ -118,6 +118,16 @@ async function main() {
   }
 
   console.log('All documents updated and hashed with full markdown content.');
+
+  // Clean up orphan documents in DB whose local files no longer exist
+  console.log('Checking and cleaning up orphan documents in DB...');
+  const activeDocIds = docs.map((d) => `'${d.docId}'`).join(', ');
+  const cleanupSql = `
+    DELETE FROM aiagent.agent_docs_meta
+    WHERE doc_id NOT IN (${activeDocIds});
+  `;
+  const cleanupRes = await executeSql(cleanupSql);
+  console.log(`Cleaned up orphan documents: ${cleanupRes.rowCount || 0} rows deleted.`);
 }
 
 main().catch(console.error);

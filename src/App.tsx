@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Navbar, ErrorBoundary, ScrollToTopFab } from './shared';
-import { ScenarioDesignView, OcrEngineManager } from './ppdf';
+import { ScenarioDesignView, OcrEngineManager, WireframeStudio } from './ppdf';
 import {
   WorkGraphViewer,
   TaskInfoManager,
@@ -8,7 +8,6 @@ import {
   IntegrityAuditManager,
   DocsGovernanceManager,
   SystemConfigManager,
-  EmergencyRecoveryPanel,
 } from './aiagent';
 import {
   SystemSettings,
@@ -148,13 +147,6 @@ export default function App() {
         }`}
       >
         <ErrorBoundary fallbackTitle="에이전트 화면 로딩 중 오류가 발생했습니다.">
-          {/* 비-LLM 긴급 Push 및 세션 DR 관제실 (에이전트통계 뷰에만 단독 배치) */}
-          {activeDomain === 'harness' && activeView === 'usage' && (
-            <div className="mb-4">
-              <EmergencyRecoveryPanel />
-            </div>
-          )}
-
           {/* [1. 하네스 거버넌스 도메인 4대 뷰] */}
           {activeView === 'graph' && (
             <div className="w-full space-y-4">
@@ -223,6 +215,12 @@ export default function App() {
           {activeView === 'scenarios' && (
             <div className="w-full space-y-4">
               <ScenarioDesignView />
+            </div>
+          )}
+
+          {activeView === 'wireframes' && (
+            <div className="w-full space-y-4">
+              <WireframeStudio />
             </div>
           )}
         </ErrorBoundary>
