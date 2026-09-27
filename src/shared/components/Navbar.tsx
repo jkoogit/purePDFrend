@@ -6,7 +6,6 @@ import {
   Layout,
   Settings,
   Database,
-  GitBranch,
   CheckCircle2,
   Server,
   ShieldCheck,
@@ -161,9 +160,8 @@ export default function Navbar({
   isHeaderPinned = true,
   onTogglePinHeader,
 }: NavbarProps) {
-  const [hoveredBadge, setHoveredBadge] = useState<'db' | 'branch' | 'status' | null>(null);
-  const [activeSessionId, setActiveSessionId] = useState<string>('SESSION-20260921-004');
-  const [activeBranch, setActiveBranch] = useState<string>('task/모바일UX_IA개편_Gemini');
+  const [hoveredBadge, setHoveredBadge] = useState<'db' | 'status' | null>(null);
+  const [activeSessionId, setActiveSessionId] = useState<string>('SESSION-0017');
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState<boolean>(false);
 
   // Emergency Disaster Recovery Modal state
@@ -199,9 +197,8 @@ export default function Navbar({
       .then((data) => {
         if (data.success && data.sessions && data.sessions.length > 0) {
           const latest = data.sessions[data.sessions.length - 1];
-          setActiveSessionId(latest.session_id);
-          if (latest.doc_payload?.gitBranch) {
-            setActiveBranch(latest.doc_payload.gitBranch);
+          if (latest.session_id) {
+            setActiveSessionId(latest.session_id);
           }
         }
       })
@@ -344,18 +341,6 @@ export default function Navbar({
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Desktop Git Branch Badge */}
-          <div
-            className="relative hidden lg:block"
-            onMouseEnter={() => setHoveredBadge('branch')}
-            onMouseLeave={() => setHoveredBadge(null)}
-          >
-            <div className="h-8 flex items-center gap-1.5 px-3 rounded-full bg-amber-950/40 border border-amber-800/40 hover:border-amber-500/60 cursor-pointer transition-colors text-xs text-amber-300 font-mono text-[11px] shrink-0">
-              <GitBranch className="w-3.5 h-3.5 text-amber-400" />
-              <span className="truncate max-w-[130px]">{activeBranch}</span>
-            </div>
           </div>
 
           {/* 비-LLM 긴급 Push 및 DR 관제실 모달 버튼 (상시 접근 가능) */}

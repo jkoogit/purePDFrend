@@ -1,6 +1,30 @@
 {
   "sessions": [
     {
+      "session_id": "SESSION-0017",
+      "session_name": "[0017] 와이어프레임 기획서 분석 및 WireframeStudio 프로토타입 연동",
+      "work_group": "purePDFrend",
+      "ai_agent": "gemini",
+      "ai_model": "models/gemini-3.8-flash",
+      "status_cd": "진행",
+      "started_at": "2026-09-27T15:25:00.000Z",
+      "ended_at": null,
+      "doc_payload": {
+        "objective": "원격 dev 최신 소스 동기화, 작업그래프 필터 무결성 보정, README 복구, WireframeStudio 25개 프로토타입 연동",
+        "branch": "task/0017_01_와이어프레임_프로토타입_Gemini",
+        "operator_account": "jkoogit",
+        "user_email": "jkoogit@gmail.com",
+        "linked_from_session": "SESSION-0016"
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 1,
+      "operator_account": "jkoogit",
+      "user_email": "jkoogit@gmail.com"
+    },
+    {
       "session_id": "SESSION-0016",
       "session_name": "[0016]0015_토큰소진_연계작업_UI정책_및_긴급백업복구",
       "work_group": "purePDFrend",
@@ -28,6 +52,35 @@
     }
   ],
   "tasks": [
+    {
+      "task_id": "TASK-0017-01",
+      "session_id": "SESSION-0017",
+      "task_name": "원격dev 풀 및 로컬수정 머지 후 작업브랜치 생성 및 작업그래프·README 복구",
+      "status_cd": "정리",
+      "priority": "HIGH",
+      "assigned_agent": "gemini",
+      "started_at": "2026-09-27T15:27:53.000Z",
+      "ended_at": "2026-09-27T15:35:00.000Z",
+      "doc_payload": {
+        "items": [
+          "원격 dev 브랜치 최신 소스 397개 파일 전수 로컬 동기화 및 누락 복원",
+          "개정된 AGENTS.md 보존 및 머지 무결성 확보",
+          "원격 dev 기준 신규 작업 브랜치 task/0017_01_와이어프레임_프로토타입_Gemini 생성",
+          "작업그래프 WorkGraphViewer 진행 상태 필터링 시 완료 카드 노출 차단",
+          "프로젝트 표준 README.md 완전 복구 (빠른 시작, 14대 관리자/9대 사용자 기능, 하네스 가이드)",
+          "식별자 포맷 정비: 세션[SESSION-SSSS], 태스크[TASK-SSSS-TT], 루프[LOOP-SSSS-TT-LL], 대화턴[TRACE-SSSS-TT-LL-NN]"
+        ],
+        "branch": "task/0017_01_와이어프레임_프로토타입_Gemini",
+        "operator_account": "jkoogit",
+        "user_email": "jkoogit@gmail.com",
+        "review_doc": "docs/10.리뷰/260927_031_원격dev_동기화_작업브랜치생성_및_작업그래프_README_복구_리뷰.md"
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 2
+    },
     {
       "task_id": "TASK-0016-01",
       "session_id": "SESSION-0016",
@@ -59,8 +112,29 @@
   ],
   "loops": [
     {
+      "loop_id": "LOOP-0017-01-01",
+      "task_id": "TASK-0017-01",
+      "session_id": "SESSION-0017",
+      "loop_name": "원격 dev 동기화 및 작업그래프 필터·README 복구 및 검증",
+      "status_cd": "정리",
+      "iteration_index": 1,
+      "started_at": "2026-09-27T15:27:53.000Z",
+      "ended_at": "2026-09-27T15:35:00.000Z",
+      "doc_payload": {
+        "action": "원격 최신 소스 397건 로컬 풀, AGENTS.md 머지, 신규 브랜치 생성, WorkGraphViewer 필터 수정, README 복구",
+        "operator_account": "jkoogit",
+        "user_email": "jkoogit@gmail.com"
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 2
+    },
+    {
       "loop_id": "LOOP-0016-01-01",
       "task_id": "TASK-0016-01",
+      "session_id": "SESSION-0016",
       "loop_name": "전수 목록 UI 정책 적용 및 긴급 백업 복구 컴파일 검증",
       "status_cd": "완료",
       "iteration_index": 1,
@@ -80,6 +154,24 @@
     }
   ],
   "traces": [
+    {
+      "trace_id": "TRACE-0017-01-01-01",
+      "session_id": "SESSION-0017",
+      "task_id": "TASK-0017-01",
+      "loop_id": "LOOP-0017-01-01",
+      "step_index": 1,
+      "agent_name": "gemini",
+      "model_name": "models/gemini-3.8-flash",
+      "operator_account": "jkoogit",
+      "user_email": "jkoogit@gmail.com",
+      "user_prompt": "#태스크처리 [0017_01] 원격dev 풀 및 로컬수정 머지 후 작업브랜치 생성 및 작업그래프·README 복구",
+      "agent_response": "원격 dev 최신 160개 파일 동기화, 사용자 AGENTS.md 머지, 작업브랜치 생성, WorkGraphViewer 필터 보정, README.md 복구 및 ID 표준화 적용 완료",
+      "response_summary": "원격 최신 소스 160건 로컬 동기화, 작업브랜치 생성, WorkGraph 필터링 버그 수정, README.md 복구",
+      "prompt_tokens": 1500,
+      "completion_tokens": 800,
+      "total_tokens": 2300,
+      "created_at": "2026-09-27T15:35:00.000Z"
+    },
     {
       "trace_id": "TRACE-0016-01-01-01",
       "session_id": "SESSION-0016",
