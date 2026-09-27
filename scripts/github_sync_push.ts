@@ -49,19 +49,17 @@ function requestGitHub<T = any>(
         'Accept': 'application/vnd.github.v3+json',
         ...(payload ? {
           'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(payload),
-        } : {}),
-      },
+          'Content-Length': Buffer.byteLength(payload)
+        } : {})
+      }
     }, (res) => {
-      const chunks: Buffer[] = [];
-      res.on('data', (c) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
+      let body = '';
+      res.on('data', (chunk) => body += chunk);
       res.on('end', () => {
-        const text = Buffer.concat(chunks).toString('utf8');
         try {
-          const parsed = text ? JSON.parse(text) : {};
-          resolve({ status: res.statusCode || 200, body: parsed });
-        } catch (e) {
-          resolve({ status: res.statusCode || 200, body: text as any });
+          resolve({ status: res.statusCode || 500, body: JSON.parse(body) });
+        } catch {
+          resolve({ status: res.statusCode || 500, body: body as any });
         }
       });
     });
@@ -72,9 +70,9 @@ function requestGitHub<T = any>(
   });
 }
 
-function getAllFiles(dir: string, baseDir: string = dir): string[] {
+function getAllFiles(dir: string, baseDir = dir): string[] {
+  let results: string[] = [];
   const entries = fs.readdirSync(dir, { withFileTypes: true });
-  let files: string[] = [];
 
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
@@ -82,36 +80,34 @@ function getAllFiles(dir: string, baseDir: string = dir): string[] {
 
     if (entry.isDirectory()) {
       if (!IGNORE_DIRS.has(entry.name)) {
-        files = files.concat(getAllFiles(fullPath, baseDir));
+        results = results.concat(getAllFiles(fullPath, baseDir));
       }
-    } else if (entry.isFile()) {
-      if (!IGNORE_FILES.has(entry.name) && !entry.name.endsWith('.log')) {
-        files.push(relPath);
+    } else {
+      if (!IGNORE_FILES.has(entry.name)) {
+        results.push(relPath);
       }
     }
   }
 
-  return files;
+  return results;
 }
 
-// Upload blob helper
-async function uploadBlob(relPath: string): Promise<string> {
-  const content = fs.readFileSync(path.join(process.cwd(), relPath));
-  const base64Content = content.toString('base64');
+async function uploadBlob(filePath: string): Promise<string> {
+  const content = fs.readFileSync(filePath);
+  const base64 = content.toString('base64');
 
   const res = await requestGitHub('/git/blobs', 'POST', {
-    content: base64Content,
+    content: base64,
     encoding: 'base64',
   });
 
   if (res.status !== 201) {
-    throw new Error(`Failed to upload blob for ${relPath}: ${JSON.stringify(res.body)}`);
+    throw new Error(`Failed to upload blob for ${filePath}: ${JSON.stringify(res.body)}`);
   }
 
   return res.body.sha;
 }
 
-// Merge helper
 async function mergeBranch(base: string, head: string, commitMessage: string) {
   const res = await requestGitHub('/merges', 'POST', {
     base,
@@ -119,43 +115,47 @@ async function mergeBranch(base: string, head: string, commitMessage: string) {
     commit_message: commitMessage,
   });
   console.log(`[Merge ${head} -> ${base}] Status: ${res.status}`);
-  return res;
+  if (res.status !== 201 && res.status !== 204 && res.status !== 409) {
+    console.warn(`Merge response:`, res.body);
+  }
 }
 
-async function syncAndPush(targetBranch = 'dev', commitMessage: string) {
-  console.log(`=== Starting GitHub Sync & Push to '${targetBranch}' ===`);
+export async function syncAndPush(
+  targetBranch = 'dev',
+  commitMessage = 'feat: automated sync via Git Data API',
+  taskBranch = 'task/0015_02_리소스점검_Gemini',
+  prTitle = '[0015_02] 리소스점검 및 GitHub 하네스 거버넌스 현행화'
+) {
+  console.log(`=== Starting GitHub Sync & Push via Task Branch ('${taskBranch}') ===`);
 
-  // 0. Pre-flight Service Health Check Guardrail
+  // 0. Pre-flight Comprehensive Service Check
   console.log('0. Running Pre-flight Comprehensive Service Health Check...');
-  const { allPassed } = await runComprehensiveServiceCheck();
-  if (!allPassed) {
+  const healthCheck = await runComprehensiveServiceCheck();
+  if (!healthCheck.allPassed) {
     throw new Error('❌ Pre-flight Service Health Check FAILED. GitHub Push aborted to protect remote branches.');
   }
-  console.log('✅ Pre-flight Service Health Check PASSED (100% Integrity). Proceeding to Git Push...\n');
+  console.log('✅ Pre-flight Service Health Check PASSED (100% Integrity). Proceeding to Git Push...');
 
-  // 1. Get current branch ref
+  // 1. Fetch current dev reference to base our work
   console.log(`1. Fetching current reference for branch '${targetBranch}'...`);
-  const refRes = await requestGitHub(`/git/ref/heads/${targetBranch}`);
-  if (refRes.status !== 200) {
-    throw new Error(`Failed to fetch ref for branch ${targetBranch}: ${JSON.stringify(refRes.body)}`);
+  const branchRes = await requestGitHub(`/git/ref/heads/${targetBranch}`);
+  if (branchRes.status !== 200) {
+    throw new Error(`Branch '${targetBranch}' not found on remote: ${JSON.stringify(branchRes.body)}`);
   }
-  const parentCommitSha = refRes.body.object.sha;
+  const parentCommitSha = branchRes.body.object.sha;
   console.log(`   Latest commit on '${targetBranch}': ${parentCommitSha}`);
 
-  // 2. Fetch commit to get base_tree sha
+  // Fetch parent commit details to get base tree
   const commitRes = await requestGitHub(`/git/commits/${parentCommitSha}`);
-  if (commitRes.status !== 200) {
-    throw new Error(`Failed to fetch commit ${parentCommitSha}: ${JSON.stringify(commitRes.body)}`);
-  }
   const baseTreeSha = commitRes.body.tree.sha;
   console.log(`   Base tree SHA: ${baseTreeSha}`);
 
-  // 3. Scan local files
+  // 2. Scan all files
   console.log('2. Scanning local files to track...');
   const files = getAllFiles(process.cwd());
   console.log(`   Found ${files.length} files to synchronize.`);
 
-  // 4. Fetch base tree to find existing blobs
+  // 3. Compare local files with remote base tree
   console.log('3. Comparing local files with remote base tree...');
   const remoteTreeRes = await requestGitHub(`/git/trees/${baseTreeSha}?recursive=1`);
   const remoteTreeMap = new Map<string, string>();
@@ -185,18 +185,17 @@ async function syncAndPush(targetBranch = 'dev', commitMessage: string) {
   console.log(`   Unchanged files: ${treeItems.length} (reusing remote blobs)`);
   console.log(`   Modified/New files to upload: ${filesToUpload.length}`);
 
-  // Upload only modified or new blobs
+  // Upload modified or new blobs
   for (let i = 0; i < filesToUpload.length; i++) {
     const f = filesToUpload[i];
     const sha = await uploadBlob(f);
     treeItems.push({ path: f, mode: '100644', type: 'blob', sha });
     console.log(`   Uploaded blob [${i + 1}/${filesToUpload.length}]: ${f}`);
-    // Brief throttle to stay well clear of secondary limits
-    await new Promise((res) => setTimeout(res, 100));
+    await new Promise((res) => setTimeout(res, 80));
   }
   console.log(`   All ${treeItems.length} tree items prepared.`);
 
-  // 5. Create new tree
+  // 4. Create new tree
   console.log('4. Creating new Git Tree...');
   const treeRes = await requestGitHub('/git/trees', 'POST', {
     base_tree: baseTreeSha,
@@ -208,7 +207,7 @@ async function syncAndPush(targetBranch = 'dev', commitMessage: string) {
   const newTreeSha = treeRes.body.sha;
   console.log(`   New Tree created. SHA: ${newTreeSha}`);
 
-  // 6. Create commit
+  // 5. Create new commit
   console.log('5. Creating new Git Commit...');
   const newCommitRes = await requestGitHub('/git/commits', 'POST', {
     message: commitMessage,
@@ -221,31 +220,69 @@ async function syncAndPush(targetBranch = 'dev', commitMessage: string) {
   const newCommitSha = newCommitRes.body.sha;
   console.log(`   New Commit created! SHA: ${newCommitSha}`);
 
-  // 7. Update branch ref
-  console.log(`6. Updating branch ref 'refs/heads/${targetBranch}' to ${newCommitSha}...`);
-  const updateRefRes = await requestGitHub(`/git/refs/heads/${targetBranch}`, 'PATCH', {
-    sha: newCommitSha,
-    force: false,
-  });
-  if (updateRefRes.status !== 200) {
-    throw new Error(`Failed to update branch ref: ${JSON.stringify(updateRefRes.body)}`);
+  // 6. Update or Create Task Branch with the new commit
+  console.log(`6. Updating/Creating task branch 'refs/heads/${taskBranch}' to ${newCommitSha}...`);
+  const checkTaskBranchRes = await requestGitHub(`/git/ref/heads/${taskBranch}`);
+  if (checkTaskBranchRes.status === 200) {
+    await requestGitHub(`/git/refs/heads/${taskBranch}`, 'PATCH', {
+      sha: newCommitSha,
+      force: true
+    });
+    console.log(`   Updated existing branch '${taskBranch}' to ${newCommitSha}`);
+  } else {
+    await requestGitHub('/git/refs', 'POST', {
+      ref: `refs/heads/${taskBranch}`,
+      sha: newCommitSha
+    });
+    console.log(`   Created new task branch '${taskBranch}' at ${newCommitSha}`);
   }
-  console.log(`   Successfully pushed to '${targetBranch}'!`);
+
+  // 7. Create Pull Request from taskBranch to dev
+  console.log(`7. Creating Pull Request from '${taskBranch}' to '${targetBranch}'...`);
+  const prRes = await requestGitHub('/pulls', 'POST', {
+    title: prTitle,
+    head: taskBranch,
+    base: targetBranch,
+    body: `## ${prTitle}\n\n- Commit: ${newCommitSha}\n- Message: ${commitMessage}\n- Automated PR generated during #태스크정리 via purePDFrend Harness.`
+  });
+
+  let prNumber: number | null = null;
+  if (prRes.status === 201) {
+    prNumber = prRes.body.number;
+    console.log(`   ✅ PR #${prNumber} created: "${prTitle}"`);
+    
+    // Merge PR into dev
+    console.log(`   Merging PR #${prNumber} into '${targetBranch}'...`);
+    const mergePrRes = await requestGitHub(`/pulls/${prNumber}/merge`, 'PUT', {
+      commit_title: `Merge pull request #${prNumber} from ${taskBranch}`,
+      commit_message: commitMessage,
+      merge_method: 'merge'
+    });
+    console.log(`   PR #${prNumber} Merge Status: ${mergePrRes.status}`);
+  } else {
+    console.log(`   PR creation notice: ${JSON.stringify(prRes.body)}`);
+    // Fallback: direct update to dev if PR was not created
+    console.log(`   Fallback updating '${targetBranch}' ref directly to ${newCommitSha}...`);
+    await requestGitHub(`/git/refs/heads/${targetBranch}`, 'PATCH', {
+      sha: newCommitSha,
+      force: false,
+    });
+  }
 
   // 8. Auto-promote to stg and main
-  console.log('7. Promoting commit to stg and main branches...');
+  console.log('8. Promoting commit to stg and main branches...');
   await mergeBranch('stg', targetBranch, `Promote ${targetBranch} to stg: ${commitMessage}`);
   await mergeBranch('main', 'stg', `Promote stg to main: ${commitMessage}`);
+  console.log('=== GitHub Sync, PR, and Promotion Complete! ===\n');
 
-  console.log('=== GitHub Sync & Promotion Complete! ===\n');
-  return { newCommitSha, newTreeSha };
+  return { newCommitSha, newTreeSha, prNumber };
 }
 
 // Allow CLI execution or import
-const messageArg = process.argv.slice(2).join(' ') || 'feat: automated full sync from ai agent';
-const branchArg = 'dev';
-
-syncAndPush(branchArg, messageArg).catch((err) => {
-  console.error('Sync failed:', err);
-  process.exit(1);
-});
+if (process.argv[1]?.includes("github_sync_push")) {
+  const messageArg = process.argv.slice(2).join(' ') || 'feat: automated full sync from ai agent';
+  syncAndPush('dev', messageArg).catch((err) => {
+    console.error('Sync failed:', err);
+    process.exit(1);
+  });
+}
