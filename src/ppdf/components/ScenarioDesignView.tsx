@@ -8,14 +8,10 @@ import {
   CheckCircle2,
   CheckCircle,
   ShieldCheck,
-  Lock,
 } from 'lucide-react';
-import PdfSecurityConfigManager from './PdfSecurityConfigManager';
-import PdfExportConfigModal from './PdfExportConfigModal';
 
 export default function ScenarioDesignView() {
   const [activeScenario, setActiveScenario] = useState<number>(1);
-  const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
 
   // Interactive mockup states
   // Scenario 1: Upload & Virtual Loader
@@ -82,13 +78,6 @@ export default function ScenarioDesignView() {
       subtitle: '원본 이미지 + 보정 OCR 레이어 + 북마크 결합 빌드',
       icon: Download,
       color: 'sky',
-    },
-    {
-      id: 6,
-      title: '시나리오 6: PDF 보안 권한 및 상황별 암호화 정책 관리자',
-      subtitle: '전략/팩토리/빌더/파사드 패턴 기반 상황별(공개/열람/대외비/DRM) 보안 관리',
-      icon: Lock,
-      color: 'emerald',
     },
   ];
 
@@ -188,15 +177,6 @@ export default function ScenarioDesignView() {
                 <li><strong className="text-slate-200">비용 0원 빌드:</strong> 로컬 Tesseract 및 브라우저 엔진으로 API 비용 발생 없이 완료</li>
               </ul>
             )}
-
-            {activeScenario === 6 && (
-              <ul className="space-y-1.5 text-slate-400 list-disc list-inside text-[11px]">
-                <li><strong className="text-slate-200">상황별 전략 패턴:</strong> 공개/열람전용/대외비/DRM 등 배포 목적별 보안 정책 즉시 전환</li>
-                <li><strong className="text-slate-200">ISO 32000-1 권한:</strong> 8대 세부 권한 플래그(인쇄, 수정, 복사, 주석 등) 비트마스크 연산</li>
-                <li><strong className="text-slate-200">표준 키 유도 (Alg 2~7):</strong> MD5/SHA-256 KDF 및 32B 표준 패딩 기반 /O, /U 해시 생성</li>
-                <li><strong className="text-slate-200">메타데이터 보안 연계:</strong> TASK-0014-01 서지/활동 메타데이터의 /EncryptMetadata 통제</li>
-              </ul>
-            )}
           </div>
 
           {/* Logical Completeness Checklist */}
@@ -227,7 +207,7 @@ export default function ScenarioDesignView() {
         </div>
 
         {/* Right 8 Cols: Interactive Visual Prototype Workspace */}
-        <div className="lg:col-span-8 bg-slate-950 border border-slate-800 rounded-xl p-5 flex flex-col shadow-xl overflow-y-auto">
+        <div className="lg:col-span-8 bg-slate-950 border border-slate-800 rounded-xl p-5 flex flex-col shadow-xl overflow-hidden">
           {/* Scenario 1: Upload & Virtual 800-Page Loader Mockup */}
           {activeScenario === 1 && (
             <div className="flex flex-col h-full space-y-4">
@@ -500,47 +480,10 @@ export default function ScenarioDesignView() {
                   <strong className="font-mono text-amber-400">1.8초 (클라이언트 WASM)</strong>
                 </div>
               </div>
-
-              <div className="pt-2">
-                <button
-                  onClick={() => setIsExportModalOpen(true)}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg transition-all"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>PDF 내보내기 & 보안/메타데이터 통합 설정</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Scenario 6: PDF Security & Situational Encryption Policy Manager */}
-          {activeScenario === 6 && (
-            <div className="flex flex-col h-full space-y-4">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <span className="text-xs text-slate-400">상황별 보안 프로필을 실제 PDF 파일에 주입하여 다운로드합니다.</span>
-                <button
-                  onClick={() => setIsExportModalOpen(true)}
-                  className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>내보내기 모달 열기</span>
-                </button>
-              </div>
-              <PdfSecurityConfigManager />
             </div>
           )}
         </div>
       </div>
-
-      {/* PDF Export Config Modal */}
-      <PdfExportConfigModal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        defaultTitle="디지털 도서 아카이빙 표준 가이드"
-        defaultAuthor="purePDFrend 연구소"
-        pageCount={simulatedPageCount}
-        sampleText="제1장 디지털 도서의 아카이빙 개요 - purePDFrend 고품질 컴파일 검증 문서"
-      />
     </div>
   );
 }
