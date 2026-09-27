@@ -116,6 +116,41 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
   const [sortField, setSortField] = useState<'docNum' | 'folder' | 'title' | 'sizeBytes' | 'isSynced'>('docNum');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
+  // Column width adjustable state (px)
+  const [colWidths, setColWidths] = useState<Record<string, number>>({
+    folder: 140,
+    docNum: 220,
+    title: 320,
+    sizeBytes: 110,
+    isSynced: 120,
+    actions: 70,
+  });
+
+  const startResize = (col: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const startX = e.clientX;
+    const startW = colWidths[col] || 100;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientX - startX;
+      const newWidth = Math.max(50, startW + delta);
+      setColWidths((prev) => ({
+        ...prev,
+        [col]: newWidth,
+      }));
+    };
+
+    const handleMouseUp = () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
   const handleSort = (field: 'docNum' | 'folder' | 'title' | 'sizeBytes' | 'isSynced') => {
     if (sortField === field) {
       setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
@@ -123,6 +158,29 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
       setSortField(field);
       setSortOrder(field === 'docNum' ? 'desc' : 'asc');
     }
+  };
+
+  const renderSortButton = (field: 'docNum' | 'folder' | 'title' | 'sizeBytes' | 'isSynced', label: string) => {
+    let icon = <ArrowUpDown className="w-3 h-3 text-slate-500 opacity-60 group-hover/sort:opacity-100 transition-opacity" />;
+    if (sortField === field) {
+      icon = sortOrder === 'asc' 
+        ? <ArrowUp className="w-3 h-3 text-indigo-400 font-bold" />
+        : <ArrowDown className="w-3 h-3 text-indigo-400 font-bold" />;
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleSort(field);
+        }}
+        className="p-1 -mr-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer group/sort inline-flex items-center justify-center shrink-0"
+        title={`${label} 정렬 (오름차순/내림차순)`}
+      >
+        {icon}
+      </button>
+    );
   };
 
   const fetchDocs = async () => {
@@ -449,75 +507,77 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
 
           {/* Desktop Table (< md hidden) */}
           <div className="hidden md:block overflow-x-auto flex-1">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="w-full table-fixed text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-slate-800 bg-slate-900/60 text-slate-400 select-none">
                   <th
-                    onClick={() => handleSort('folder')}
-                    className="p-3 cursor-pointer hover:text-white transition-colors"
+                    style={{ width: `${colWidths.folder}px`, minWidth: `${colWidths.folder}px` }}
+                    className="p-3 text-center transition-colors relative"
                   >
-                    <div className="flex items-center gap-1">
-                      <span>분류 폴더</span>
-                      {sortField === 'folder' ? (
-                        sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-indigo-400" /> : <ArrowDown className="w-3.5 h-3.5 text-indigo-400" />
-                      ) : (
-                        <ArrowUpDown className="w-3 h-3 text-slate-600 opacity-60" />
-                      )}
+                    <div className="inline-flex items-center justify-center gap-1 w-full">
+                      <span className="truncate">분류 폴더</span>
+                      {renderSortButton('folder', '분류 폴더')}
                     </div>
+                    <div
+                      onMouseDown={(e) => startResize('folder', e)}
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                    />
                   </th>
                   <th
-                    onClick={() => handleSort('docNum')}
-                    className="p-3 cursor-pointer hover:text-white transition-colors"
+                    style={{ width: `${colWidths.docNum}px`, minWidth: `${colWidths.docNum}px` }}
+                    className="p-3 text-center transition-colors relative"
                   >
-                    <div className="flex items-center gap-1">
-                      <span>문서번호 & 파일명</span>
-                      {sortField === 'docNum' ? (
-                        sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-indigo-400" /> : <ArrowDown className="w-3.5 h-3.5 text-indigo-400" />
-                      ) : (
-                        <ArrowUpDown className="w-3 h-3 text-slate-600 opacity-60" />
-                      )}
+                    <div className="inline-flex items-center justify-center gap-1 w-full">
+                      <span className="truncate">문서번호 & 파일명</span>
+                      {renderSortButton('docNum', '문서번호 & 파일명')}
                     </div>
+                    <div
+                      onMouseDown={(e) => startResize('docNum', e)}
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                    />
                   </th>
                   <th
-                    onClick={() => handleSort('title')}
-                    className="p-3 cursor-pointer hover:text-white transition-colors"
+                    style={{ width: `${colWidths.title}px`, minWidth: `${colWidths.title}px` }}
+                    className="p-3 text-center transition-colors relative"
                   >
-                    <div className="flex items-center gap-1">
-                      <span>문서 제목</span>
-                      {sortField === 'title' ? (
-                        sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-indigo-400" /> : <ArrowDown className="w-3.5 h-3.5 text-indigo-400" />
-                      ) : (
-                        <ArrowUpDown className="w-3 h-3 text-slate-600 opacity-60" />
-                      )}
+                    <div className="inline-flex items-center justify-center gap-1 w-full">
+                      <span className="truncate">문서 제목</span>
+                      {renderSortButton('title', '문서 제목')}
                     </div>
+                    <div
+                      onMouseDown={(e) => startResize('title', e)}
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                    />
                   </th>
                   <th
-                    onClick={() => handleSort('sizeBytes')}
-                    className="p-3 cursor-pointer hover:text-white transition-colors"
+                    style={{ width: `${colWidths.sizeBytes}px`, minWidth: `${colWidths.sizeBytes}px` }}
+                    className="p-3 text-center transition-colors relative"
                   >
-                    <div className="flex items-center gap-1">
-                      <span>용량</span>
-                      {sortField === 'sizeBytes' ? (
-                        sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-indigo-400" /> : <ArrowDown className="w-3.5 h-3.5 text-indigo-400" />
-                      ) : (
-                        <ArrowUpDown className="w-3 h-3 text-slate-600 opacity-60" />
-                      )}
+                    <div className="inline-flex items-center justify-center gap-1 w-full">
+                      <span className="truncate">용량</span>
+                      {renderSortButton('sizeBytes', '용량')}
                     </div>
+                    <div
+                      onMouseDown={(e) => startResize('sizeBytes', e)}
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                    />
                   </th>
                   <th
-                    onClick={() => handleSort('isSynced')}
-                    className="p-3 cursor-pointer hover:text-white transition-colors"
+                    style={{ width: `${colWidths.isSynced}px`, minWidth: `${colWidths.isSynced}px` }}
+                    className="p-3 text-center transition-colors relative"
                   >
-                    <div className="flex items-center gap-1">
-                      <span>DB 동기화</span>
-                      {sortField === 'isSynced' ? (
-                        sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-indigo-400" /> : <ArrowDown className="w-3.5 h-3.5 text-indigo-400" />
-                      ) : (
-                        <ArrowUpDown className="w-3 h-3 text-slate-600 opacity-60" />
-                      )}
+                    <div className="inline-flex items-center justify-center gap-1 w-full">
+                      <span className="truncate">DB 동기화</span>
+                      {renderSortButton('isSynced', 'DB 동기화')}
                     </div>
+                    <div
+                      onMouseDown={(e) => startResize('isSynced', e)}
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                    />
                   </th>
-                  <th className="p-3 text-right">보기</th>
+                  <th style={{ width: `${colWidths.actions}px`, minWidth: `${colWidths.actions}px` }} className="p-3 text-center">
+                    보기
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">

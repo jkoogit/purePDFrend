@@ -18,6 +18,7 @@ import {
   AlertOctagon,
 } from 'lucide-react';
 
+
 interface BillingPlan {
   plan_id: string;
   plan_name: string;
@@ -117,6 +118,55 @@ export const MetaGovernanceBackoffice: React.FC = () => {
   useEffect(() => {
     fetchAllMeta();
   }, [selectedUserId]);
+
+  const [userColWidths, setUserColWidths] = useState<Record<string, number>>({
+    user: 220,
+    plan: 140,
+    quota: 220,
+    status: 120,
+    actions: 140,
+  });
+
+  const [modelColWidths, setModelColWidths] = useState<Record<string, number>>({
+    model_id: 220,
+    tier: 140,
+    context: 140,
+    prompt_cost: 140,
+    completion_cost: 140,
+    status: 90,
+  });
+
+  const startResizeUser = (col: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startW = userColWidths[col] || 120;
+    const handleMove = (m: MouseEvent) => {
+      setUserColWidths(prev => ({ ...prev, [col]: Math.max(50, startW + (m.clientX - startX)) }));
+    };
+    const handleUp = () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+    };
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+  };
+
+  const startResizeModel = (col: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startW = modelColWidths[col] || 120;
+    const handleMove = (m: MouseEvent) => {
+      setModelColWidths(prev => ({ ...prev, [col]: Math.max(50, startW + (m.clientX - startX)) }));
+    };
+    const handleUp = () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+    };
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+  };
 
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
     setToastMsg({ text, type });
@@ -311,14 +361,60 @@ export const MetaGovernanceBackoffice: React.FC = () => {
       {activeSubTab === 'users' && (
         <div className="space-y-3">
           <div className="overflow-x-auto rounded-lg border border-slate-800">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800">
+            <table className="w-full table-fixed text-left text-xs">
+              <thead className="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 select-none">
                 <tr>
-                  <th className="py-2.5 px-3">사용자 ID / 성명</th>
-                  <th className="py-2.5 px-3">요금제</th>
-                  <th className="py-2.5 px-3">잔여 / 부여 쿼터</th>
-                  <th className="py-2.5 px-3">원장 상태</th>
-                  <th className="py-2.5 px-3 text-right">거버넌스 제어</th>
+                  <th
+                    style={{ width: `${userColWidths.user}px`, minWidth: `${userColWidths.user}px` }}
+                    className="py-2.5 px-3 text-center relative"
+                  >
+                    <div className="inline-flex items-center justify-center gap-1 w-full">
+                      <span className="truncate">사용자 ID / 성명</span>
+                    </div>
+                    <div
+                      onMouseDown={(e) => startResizeUser('user', e)}
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                    />
+                  </th>
+                  <th
+                    style={{ width: `${userColWidths.plan}px`, minWidth: `${userColWidths.plan}px` }}
+                    className="py-2.5 px-3 text-center relative"
+                  >
+                    <div className="inline-flex items-center justify-center gap-1 w-full">
+                      <span className="truncate">요금제</span>
+                    </div>
+                    <div
+                      onMouseDown={(e) => startResizeUser('plan', e)}
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                    />
+                  </th>
+                  <th
+                    style={{ width: `${userColWidths.quota}px`, minWidth: `${userColWidths.quota}px` }}
+                    className="py-2.5 px-3 text-center relative"
+                  >
+                    <div className="inline-flex items-center justify-center gap-1 w-full">
+                      <span className="truncate">잔여 / 부여 쿼터</span>
+                    </div>
+                    <div
+                      onMouseDown={(e) => startResizeUser('quota', e)}
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                    />
+                  </th>
+                  <th
+                    style={{ width: `${userColWidths.status}px`, minWidth: `${userColWidths.status}px` }}
+                    className="py-2.5 px-3 text-center relative"
+                  >
+                    <div className="inline-flex items-center justify-center gap-1 w-full">
+                      <span className="truncate">원장 상태</span>
+                    </div>
+                    <div
+                      onMouseDown={(e) => startResizeUser('status', e)}
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                    />
+                  </th>
+                  <th style={{ width: `${userColWidths.actions}px`, minWidth: `${userColWidths.actions}px` }} className="py-2.5 px-3 text-center">
+                    거버넌스 제어
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 bg-slate-900/60">
@@ -479,15 +575,72 @@ export const MetaGovernanceBackoffice: React.FC = () => {
       {/* Tab 3: 멀티 모델 카탈로그 (Multi-Model Catalog) */}
       {activeSubTab === 'models' && (
         <div className="overflow-x-auto rounded-lg border border-slate-800">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800">
+          <table className="w-full table-fixed text-left text-xs">
+            <thead className="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 select-none">
               <tr>
-                <th className="py-2.5 px-3">모델 식별자</th>
-                <th className="py-2.5 px-3">티어 / 제공자</th>
-                <th className="py-2.5 px-3">컨텍스트 윈도우</th>
-                <th className="py-2.5 px-3">1K 입력 단가 (USD)</th>
-                <th className="py-2.5 px-3">1K 출력 단가 (USD)</th>
-                <th className="py-2.5 px-3 text-right">상태</th>
+                <th
+                  style={{ width: `${modelColWidths.model_id}px`, minWidth: `${modelColWidths.model_id}px` }}
+                  className="py-2.5 px-3 text-center relative"
+                >
+                  <div className="inline-flex items-center justify-center gap-1 w-full">
+                    <span className="truncate">모델 식별자</span>
+                  </div>
+                  <div
+                    onMouseDown={(e) => startResizeModel('model_id', e)}
+                    className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                  />
+                </th>
+                <th
+                  style={{ width: `${modelColWidths.tier}px`, minWidth: `${modelColWidths.tier}px` }}
+                  className="py-2.5 px-3 text-center relative"
+                >
+                  <div className="inline-flex items-center justify-center gap-1 w-full">
+                    <span className="truncate">티어 / 제공자</span>
+                  </div>
+                  <div
+                    onMouseDown={(e) => startResizeModel('tier', e)}
+                    className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                  />
+                </th>
+                <th
+                  style={{ width: `${modelColWidths.context}px`, minWidth: `${modelColWidths.context}px` }}
+                  className="py-2.5 px-3 text-center relative"
+                >
+                  <div className="inline-flex items-center justify-center gap-1 w-full">
+                    <span className="truncate">컨텍스트 윈도우</span>
+                  </div>
+                  <div
+                    onMouseDown={(e) => startResizeModel('context', e)}
+                    className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                  />
+                </th>
+                <th
+                  style={{ width: `${modelColWidths.prompt_cost}px`, minWidth: `${modelColWidths.prompt_cost}px` }}
+                  className="py-2.5 px-3 text-center relative"
+                >
+                  <div className="inline-flex items-center justify-center gap-1 w-full">
+                    <span className="truncate">1K 입력 단가 (USD)</span>
+                  </div>
+                  <div
+                    onMouseDown={(e) => startResizeModel('prompt_cost', e)}
+                    className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                  />
+                </th>
+                <th
+                  style={{ width: `${modelColWidths.completion_cost}px`, minWidth: `${modelColWidths.completion_cost}px` }}
+                  className="py-2.5 px-3 text-center relative"
+                >
+                  <div className="inline-flex items-center justify-center gap-1 w-full">
+                    <span className="truncate">1K 출력 단가 (USD)</span>
+                  </div>
+                  <div
+                    onMouseDown={(e) => startResizeModel('completion_cost', e)}
+                    className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover:bg-slate-700"
+                  />
+                </th>
+                <th style={{ width: `${modelColWidths.status}px`, minWidth: `${modelColWidths.status}px` }} className="py-2.5 px-3 text-center">
+                  상태
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 bg-slate-900/60 font-mono">

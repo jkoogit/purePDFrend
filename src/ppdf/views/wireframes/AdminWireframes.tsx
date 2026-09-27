@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ViewerConfigRegistry } from '../../domain/ViewerConfigRegistry';
-import { IconResourceRegistry, TOOL_ICON_RESOURCES } from '../../domain/IconResourceRegistry';
+import { IconResourceRegistry } from '../../domain/IconResourceRegistry';
 
 export const ADMIN_PROGRAMS = [
   { id: 'PG-ADM-01', name: '보안관리', desc: 'IP접근제어, 2FA 강제화, 세션만료, 오프라인 토큰기간 설정' },

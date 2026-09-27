@@ -17,7 +17,12 @@ import {
   Database,
   ArrowUp,
   ArrowDown,
-  ArrowUpDown
+  ArrowUpDown,
+  User,
+  Info,
+  GitBranch,
+  Calendar,
+  CheckCircle2
 } from 'lucide-react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -27,8 +32,21 @@ interface AgentUsageViewerProps {
   dbStatus?: string;
 }
 
-type SortField = 'step_index' | 'trace_id' | 'loop_id' | 'model_name' | 'user_prompt' | 'agent_response' | 'created_at';
+type SortField = 'step_index' | 'trace_id' | 'user_email' | 'loop_id' | 'model_name' | 'user_prompt' | 'agent_response' | 'created_at';
 type SortOrder = 'asc' | 'desc' | 'init';
+
+interface HarnessEntityModalData {
+  type: 'session' | 'task' | 'loop';
+  id: string;
+  title?: string;
+  status?: string;
+  branch?: string;
+  operator?: string;
+  email?: string;
+  startedAt?: string;
+  endedAt?: string;
+  raw?: any;
+}
 
 export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED' }: AgentUsageViewerProps = {}) {
   const [traces, setTraces] = useState<ConversationTrace[]>([]);
@@ -38,12 +56,50 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
   const [sessionFilter, setSessionFilter] = useState<string>('ALL');
   const [availableSessions, setAvailableSessions] = useState<{ id: string; name: string }[]>([]);
   const [selectedTrace, setSelectedTrace] = useState<ConversationTrace | null>(null);
+  const [harnessModalData, setHarnessModalData] = useState<HarnessEntityModalData | null>(null);
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [copiedResponse, setCopiedResponse] = useState(false);
 
   // 3-state cyclic sort: 'init' -> 'asc' -> 'desc' -> 'init'
   const [sortField, setSortField] = useState<SortField>('step_index');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
+  // Column width adjustable state (px)
+  const [colWidths, setColWidths] = useState<Record<string, number>>({
+    step_index: 70,
+    trace_id: 250,
+    user_email: 140,
+    model_name: 150,
+    user_prompt: 280,
+    agent_response: 320,
+    created_at: 170,
+    details: 60,
+  });
+
+  const startResize = (col: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const startX = e.clientX;
+    const startW = colWidths[col] || 100;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientX - startX;
+      const newWidth = Math.max(50, startW + delta);
+      setColWidths((prev) => ({
+        ...prev,
+        [col]: newWidth,
+      }));
+    };
+
+    const handleMouseUp = () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
 
   const handleHeaderSort = (field: SortField) => {
     if (sortField !== field) {
@@ -60,14 +116,107 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
     }
   };
 
-  const renderSortIndicator = (field: SortField) => {
-    if (sortField !== field || sortOrder === 'init') {
-      return <ArrowUpDown className="w-3 h-3 text-slate-500 opacity-60 inline ml-1 group-hover/th:opacity-100 transition-opacity" />;
+  const renderSortButton = (field: SortField, label: string) => {
+    let icon = <ArrowUpDown className="w-3 h-3 text-slate-500 opacity-60 group-hover/sort:opacity-100 transition-opacity" />;
+    if (sortField === field && sortOrder !== 'init') {
+      icon = sortOrder === 'asc' 
+        ? <ArrowUp className="w-3 h-3 text-indigo-400 font-bold" />
+        : <ArrowDown className="w-3 h-3 text-indigo-400 font-bold" />;
     }
-    if (sortOrder === 'asc') {
-      return <ArrowUp className="w-3 h-3 text-indigo-400 inline ml-1 font-bold" />;
+
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleHeaderSort(field);
+        }}
+        className="p-1 -mr-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer group/sort inline-flex items-center justify-center shrink-0"
+        title={`${label} 정렬 (오름차순/내림차순/초기화)`}
+      >
+        {icon}
+      </button>
+    );
+  };
+
+  const openHarnessModal = async (type: 'session' | 'task' | 'loop', id: string, trace?: ConversationTrace) => {
+    if (!id) return;
+    try {
+      if (type === 'session') {
+        const res = await fetch('/api/agent/sessions');
+        const data = await res.json();
+        const cleanId = String(id).replace(/[^0-9]/g, '');
+        const found = (data.sessions || []).find((s: any) => 
+          s.session_id === id || 
+          s.session_id.includes(id) || 
+          (cleanId && s.session_id.endsWith(cleanId))
+        );
+        const targetId = found?.session_id || id;
+        const opAcc = found?.operator_account || found?.doc_payload?.operator_account || trace?.operator_account || 'jkoogit';
+        const uEmail = found?.user_email || found?.doc_payload?.user_email || trace?.user_email || 'jkoogit@gmail.com';
+        setHarnessModalData({
+          type: 'session',
+          id: targetId,
+          title: found?.session_name || `세션 [${targetId}]`,
+          status: found?.status_cd || '완료',
+          operator: opAcc,
+          email: uEmail,
+          startedAt: found?.started_at,
+          endedAt: found?.ended_at,
+          raw: found
+        });
+      } else if (type === 'task') {
+        const res = await fetch(`/api/agent/graph`);
+        const data = await res.json();
+        const cleanId = String(id).replace(/[^0-9]/g, '');
+        const found = (data.nodes || []).find((n: any) => 
+          n.id === id || 
+          n.id.includes(id) || 
+          (cleanId && n.id.endsWith(cleanId))
+        );
+        const targetId = found?.id || id;
+        setHarnessModalData({
+          type: 'task',
+          id: targetId,
+          title: found?.title || `태스크 [${targetId}]`,
+          status: found?.status || '완료',
+          branch: found?.branch,
+          operator: trace?.operator_account || 'jkoogit',
+          email: trace?.user_email || 'jkoogit@gmail.com',
+          startedAt: found?.time,
+          raw: found
+        });
+      } else if (type === 'loop') {
+        const res = await fetch(`/api/agent/graph`);
+        const data = await res.json();
+        const cleanId = String(id).replace(/[^0-9]/g, '');
+        const found = (data.nodes || []).find((n: any) => 
+          n.id === id || 
+          n.id.includes(id) || 
+          (cleanId && n.id.endsWith(cleanId))
+        );
+        const targetId = found?.id || id;
+        setHarnessModalData({
+          type: 'loop',
+          id: targetId,
+          title: found?.title || `루프 [${targetId}]`,
+          status: found?.status || '완료',
+          operator: trace?.operator_account || 'jkoogit',
+          email: trace?.user_email || 'jkoogit@gmail.com',
+          startedAt: found?.time,
+          raw: found
+        });
+      }
+    } catch {
+      setHarnessModalData({
+        type,
+        id,
+        title: `${type.toUpperCase()} 정보: ${id}`,
+        status: '조회완료',
+        operator: trace?.operator_account || 'jkoogit',
+        email: trace?.user_email || 'jkoogit@gmail.com',
+      });
     }
-    return <ArrowDown className="w-3 h-3 text-indigo-400 inline ml-1 font-bold" />;
   };
 
   useEffect(() => {
@@ -93,12 +242,14 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
       .catch(() => {});
   }, []);
 
-  const fetchUsage = async (query = '') => {
+  const fetchUsage = async (query = '', selectedSession = sessionFilter) => {
     setIsLoading(true);
     try {
-      const url = query.trim()
-        ? `/api/agent/chat/traces?q=${encodeURIComponent(query.trim())}`
-        : '/api/agent/chat/traces';
+      const params = new URLSearchParams();
+      if (query.trim()) params.append('q', query.trim());
+      if (selectedSession && selectedSession !== 'ALL') params.append('sessionId', selectedSession);
+
+      const url = params.toString() ? `/api/agent/chat/traces?${params.toString()}` : '/api/agent/chat/traces';
       const [traceRes, usageRes] = await Promise.all([
         fetch(url),
         fetch('/api/agent/usage'),
@@ -118,8 +269,8 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
   };
 
   useEffect(() => {
-    fetchUsage(searchKeyword);
-  }, [searchKeyword]);
+    fetchUsage(searchKeyword, sessionFilter);
+  }, [searchKeyword, sessionFilter]);
 
   // Client-side quick filter and 3-state sort across all key attributes
   const displayTraces = useMemo(() => {
@@ -162,6 +313,10 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
         case 'trace_id':
           valA = a.trace_id || '';
           valB = b.trace_id || '';
+          break;
+        case 'user_email':
+          valA = a.user_email || a.operator_account || '';
+          valB = b.user_email || b.operator_account || '';
           break;
         case 'loop_id':
           valA = a.loop_id || '';
@@ -327,66 +482,103 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
       <div className="flex-1 overflow-auto p-3 sm:p-4 relative">
         {/* Desktop Table View */}
         <div className="hidden md:block border border-slate-800 rounded-xl overflow-hidden bg-slate-900/40">
-          <table className="w-full text-left border-collapse text-xs">
+          <table className="w-full table-fixed text-left border-collapse text-xs">
             <thead className="sticky top-0 z-20 bg-slate-900 shadow-md">
               <tr className="border-b border-slate-800 text-slate-400 select-none">
                 <th
-                  onClick={() => handleHeaderSort('step_index')}
-                  className="p-3 w-20 text-center cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                  style={{ width: `${colWidths.step_index}px`, minWidth: `${colWidths.step_index}px` }}
+                  className="p-3 text-center transition-colors relative"
                 >
-                  <span className="inline-flex items-center justify-center">
-                    턴 #{renderSortIndicator('step_index')}
-                  </span>
+                  <div className="inline-flex items-center justify-center gap-1 w-full">
+                    <span>턴 #</span>
+                    {renderSortButton('step_index', '턴 순번')}
+                  </div>
+                  <div
+                    onMouseDown={(e) => startResize('step_index', e)}
+                    className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover/th:bg-slate-700"
+                  />
                 </th>
                 <th
-                  onClick={() => handleHeaderSort('trace_id')}
-                  className="p-3 w-36 font-mono cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                  style={{ width: `${colWidths.trace_id}px`, minWidth: `${colWidths.trace_id}px` }}
+                  className="p-3 font-mono text-center transition-colors relative"
                 >
-                  <span className="inline-flex items-center">
-                    Trace ID{renderSortIndicator('trace_id')}
-                  </span>
+                  <div className="inline-flex items-center justify-center gap-1 w-full">
+                    <span className="truncate">Trace ID</span>
+                    {renderSortButton('trace_id', 'Trace ID')}
+                  </div>
+                  <div
+                    onMouseDown={(e) => startResize('trace_id', e)}
+                    className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover/th:bg-slate-700"
+                  />
                 </th>
                 <th
-                  onClick={() => handleHeaderSort('loop_id')}
-                  className="p-3 w-32 font-mono cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                  style={{ width: `${colWidths.user_email}px`, minWidth: `${colWidths.user_email}px` }}
+                  className="p-3 text-center transition-colors relative"
                 >
-                  <span className="inline-flex items-center">
-                    루프 ID{renderSortIndicator('loop_id')}
-                  </span>
+                  <div className="inline-flex items-center justify-center gap-1 w-full">
+                    <span className="truncate">사용계정</span>
+                    {renderSortButton('user_email', '사용계정')}
+                  </div>
+                  <div
+                    onMouseDown={(e) => startResize('user_email', e)}
+                    className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover/th:bg-slate-700"
+                  />
                 </th>
                 <th
-                  onClick={() => handleHeaderSort('model_name')}
-                  className="p-3 w-36 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                  style={{ width: `${colWidths.model_name}px`, minWidth: `${colWidths.model_name}px` }}
+                  className="p-3 text-center transition-colors relative"
                 >
-                  <span className="inline-flex items-center">
-                    모델 / 에이전트{renderSortIndicator('model_name')}
-                  </span>
+                  <div className="inline-flex items-center justify-center gap-1 w-full">
+                    <span className="truncate">모델 / 에이전트</span>
+                    {renderSortButton('model_name', '모델 / 에이전트')}
+                  </div>
+                  <div
+                    onMouseDown={(e) => startResize('model_name', e)}
+                    className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover/th:bg-slate-700"
+                  />
                 </th>
                 <th
-                  onClick={() => handleHeaderSort('user_prompt')}
-                  className="p-3 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                  style={{ width: `${colWidths.user_prompt}px`, minWidth: `${colWidths.user_prompt}px` }}
+                  className="p-3 text-center transition-colors relative"
                 >
-                  <span className="inline-flex items-center">
-                    요청 요약 (Prompt){renderSortIndicator('user_prompt')}
-                  </span>
+                  <div className="inline-flex items-center justify-center gap-1 w-full">
+                    <span className="truncate">요청 요약 (Prompt)</span>
+                    {renderSortButton('user_prompt', '요청 요약')}
+                  </div>
+                  <div
+                    onMouseDown={(e) => startResize('user_prompt', e)}
+                    className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover/th:bg-slate-700"
+                  />
                 </th>
                 <th
-                  onClick={() => handleHeaderSort('agent_response')}
-                  className="p-3 cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                  style={{ width: `${colWidths.agent_response}px`, minWidth: `${colWidths.agent_response}px` }}
+                  className="p-3 text-center transition-colors relative"
                 >
-                  <span className="inline-flex items-center">
-                    응답 요약 (Response){renderSortIndicator('agent_response')}
-                  </span>
+                  <div className="inline-flex items-center justify-center gap-1 w-full">
+                    <span className="truncate">응답 요약 (Response)</span>
+                    {renderSortButton('agent_response', '응답 요약')}
+                  </div>
+                  <div
+                    onMouseDown={(e) => startResize('agent_response', e)}
+                    className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover/th:bg-slate-700"
+                  />
                 </th>
                 <th
-                  onClick={() => handleHeaderSort('created_at')}
-                  className="p-3 w-28 text-center cursor-pointer hover:bg-slate-800/80 hover:text-white transition-colors group/th"
+                  style={{ width: `${colWidths.created_at}px`, minWidth: `${colWidths.created_at}px` }}
+                  className="p-3 text-center transition-colors relative"
                 >
-                  <span className="inline-flex items-center justify-center">
-                    시각{renderSortIndicator('created_at')}
-                  </span>
+                  <div className="inline-flex items-center justify-center gap-1 w-full">
+                    <span>생성일시</span>
+                    {renderSortButton('created_at', '생성일시')}
+                  </div>
+                  <div
+                    onMouseDown={(e) => startResize('created_at', e)}
+                    className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/80 group-hover/th:bg-slate-700"
+                  />
                 </th>
-                <th className="p-3 w-14 text-center">상세</th>
+                <th style={{ width: `${colWidths.details}px`, minWidth: `${colWidths.details}px` }} className="p-3 text-center">
+                  상세
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
@@ -400,26 +592,87 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
                   ? trace.agent_response.split('\n')[0].substring(0, 55) + (trace.agent_response.length > 55 ? '...' : '')
                   : '(응답 없음)';
 
+                const accountDisplay = trace.user_email || trace.operator_account || 'jkoogit@gmail.com';
+
+                // Segment parse: TRACE-0002-06-14-01 -> parts: ["TRACE", "0002", "06", "14", "01"]
+                const parts = (trace.trace_id || '').split('-');
+                const hasSegments = parts.length === 5 && parts[0] === 'TRACE';
+                const prefixPart = hasSegments ? parts[0] : 'TRACE';
+                const sessionPart = hasSegments ? parts[1] : (trace.session_id ? trace.session_id.split('-').pop() : '0000');
+                const taskPart = hasSegments ? parts[2] : (trace.task_id ? trace.task_id.split('-').pop() : '00');
+                const loopPart = hasSegments ? parts[3] : (trace.loop_id ? trace.loop_id.split('-').pop() : '00');
+                const turnPart = hasSegments ? parts[4] : String(trace.step_index).padStart(2, '0');
+
                 return (
                   <tr
                     key={trace.trace_id}
-                    onClick={() => setSelectedTrace(trace)}
-                    className="hover:bg-slate-800/40 cursor-pointer transition-colors group"
+                    className="hover:bg-slate-800/40 transition-colors group"
                   >
                     <td className="p-3 text-center">
                       <span className="px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/50 font-mono text-[11px] font-bold">
                         #{trace.step_index}
                       </span>
                     </td>
-                    <td className="p-3 font-mono text-slate-300 text-[11px] truncate">{trace.trace_id}</td>
                     <td className="p-3 font-mono text-[11px]">
-                      {trace.loop_id ? (
-                        <span className="px-1.5 py-0.5 rounded bg-indigo-950/80 text-indigo-300 border border-indigo-800/40">
-                          {trace.loop_id}
-                        </span>
-                      ) : (
+                      <div className="inline-flex items-center gap-0.5 p-1 rounded-lg bg-slate-950 border border-slate-800">
+                        {/* TRACE 시작값: 트레이스 전문 팝업 */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTrace(trace)}
+                          className="px-1 py-0.5 rounded hover:bg-indigo-600/30 text-indigo-400 font-bold transition-colors cursor-pointer"
+                          title="대화 턴 전문 상세 팝업"
+                        >
+                          {prefixPart}
+                        </button>
                         <span className="text-slate-600">-</span>
-                      )}
+                        {/* 0002 : 세션정보 팝업 */}
+                        <button
+                          type="button"
+                          onClick={() => openHarnessModal('session', trace.session_id || sessionPart || '', trace)}
+                          className="px-1 py-0.5 rounded hover:bg-sky-600/30 text-sky-300 font-semibold transition-colors cursor-pointer"
+                          title={`세션 정보 팝업 (SESSION-${sessionPart})`}
+                        >
+                          {sessionPart}
+                        </button>
+                        <span className="text-slate-600">-</span>
+                        {/* 06 : 태스크정보 팝업 */}
+                        <button
+                          type="button"
+                          onClick={() => openHarnessModal('task', trace.task_id || taskPart || '', trace)}
+                          className="px-1 py-0.5 rounded hover:bg-emerald-600/30 text-emerald-300 font-semibold transition-colors cursor-pointer"
+                          title={`태스크 정보 팝업 (TASK-${taskPart})`}
+                        >
+                          {taskPart}
+                        </button>
+                        <span className="text-slate-600">-</span>
+                        {/* 14 : 루프정보 팝업 */}
+                        <button
+                          type="button"
+                          onClick={() => openHarnessModal('loop', trace.loop_id || loopPart || '', trace)}
+                          className="px-1 py-0.5 rounded hover:bg-amber-600/30 text-amber-300 font-semibold transition-colors cursor-pointer"
+                          title={`루프 정보 팝업 (LOOP-${loopPart})`}
+                        >
+                          {loopPart}
+                        </button>
+                        <span className="text-slate-600">-</span>
+                        {/* 01 끝값 : 트레이스 팝업 */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTrace(trace)}
+                          className="px-1 py-0.5 rounded hover:bg-indigo-600/30 text-indigo-300 font-bold transition-colors cursor-pointer"
+                          title="대화 턴 전문 상세 팝업"
+                        >
+                          {turnPart}
+                        </button>
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-1.5 text-slate-300">
+                        <User className="w-3 h-3 text-slate-500 shrink-0" />
+                        <span className="truncate text-[11px] font-mono text-slate-300" title={accountDisplay}>
+                          {accountDisplay.split('@')[0]}
+                        </span>
+                      </div>
                     </td>
                     <td className="p-3">
                       <div className="flex flex-col">
@@ -427,17 +680,40 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
                         <span className="text-[10px] text-indigo-400 font-mono">@{trace.agent_name}</span>
                       </div>
                     </td>
-                    <td className="p-3 text-slate-300 font-medium max-w-xs truncate group-hover:text-indigo-200">
+                    <td
+                      onClick={() => setSelectedTrace(trace)}
+                      className="p-3 text-slate-300 font-medium truncate overflow-hidden group-hover:text-indigo-200 cursor-pointer"
+                      title="클릭하여 요청 전문 상세 팝업 열기"
+                    >
                       {promptSummary}
                     </td>
-                    <td className="p-3 text-slate-400 max-w-sm truncate">
+                    <td
+                      onClick={() => setSelectedTrace(trace)}
+                      className="p-3 text-slate-400 truncate overflow-hidden group-hover:text-slate-200 cursor-pointer"
+                      title="클릭하여 응답 전문 상세 팝업 열기"
+                    >
                       {responseSummary}
                     </td>
-                    <td className="p-3 text-center text-[11px] text-slate-500 font-mono whitespace-nowrap">
-                      {new Date(trace.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    <td className="p-3 text-center text-[11px] text-slate-400 font-mono whitespace-nowrap">
+                      {new Date(trace.created_at).toLocaleString('ko-KR', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                      })}
                     </td>
                     <td className="p-3 text-center">
-                      <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all inline-block" />
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTrace(trace)}
+                        className="p-1 rounded hover:bg-slate-700 text-slate-400 hover:text-indigo-300 transition-colors"
+                        title="대화 전문 상세 팝업"
+                      >
+                        <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-all inline-block" />
+                      </button>
                     </td>
                   </tr>
                 );
@@ -485,11 +761,64 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
                     <span className="px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/50 font-mono text-[11px] font-bold">
                       #{trace.step_index}
                     </span>
-                    <span className="font-mono text-slate-400 text-[11px]">{trace.trace_id}</span>
+                    {/* Mobile Segment Buttons */}
+                    {(() => {
+                      const parts = (trace.trace_id || '').split('-');
+                      const hasSegments = parts.length === 5 && parts[0] === 'TRACE';
+                      const prefixPart = hasSegments ? parts[0] : 'TRACE';
+                      const sessionPart = hasSegments ? parts[1] : (trace.session_id ? trace.session_id.split('-').pop() : '0000');
+                      const taskPart = hasSegments ? parts[2] : (trace.task_id ? trace.task_id.split('-').pop() : '00');
+                      const loopPart = hasSegments ? parts[3] : (trace.loop_id ? trace.loop_id.split('-').pop() : '00');
+                      const turnPart = hasSegments ? parts[4] : String(trace.step_index).padStart(2, '0');
+
+                      return (
+                        <div className="inline-flex items-center gap-0.5 p-0.5 rounded bg-slate-950 border border-slate-800 font-mono text-[10px]">
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setSelectedTrace(trace); }}
+                            className="px-1 text-indigo-400 font-bold hover:underline"
+                          >
+                            {prefixPart}
+                          </button>
+                          <span className="text-slate-600">-</span>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); openHarnessModal('session', trace.session_id || sessionPart || '', trace); }}
+                            className="px-1 text-sky-300 font-semibold hover:underline"
+                          >
+                            {sessionPart}
+                          </button>
+                          <span className="text-slate-600">-</span>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); openHarnessModal('task', trace.task_id || taskPart || '', trace); }}
+                            className="px-1 text-emerald-300 font-semibold hover:underline"
+                          >
+                            {taskPart}
+                          </button>
+                          <span className="text-slate-600">-</span>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); openHarnessModal('loop', trace.loop_id || loopPart || '', trace); }}
+                            className="px-1 text-amber-300 font-semibold hover:underline"
+                          >
+                            {loopPart}
+                          </button>
+                          <span className="text-slate-600">-</span>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setSelectedTrace(trace); }}
+                            className="px-1 text-indigo-300 font-bold hover:underline"
+                          >
+                            {turnPart}
+                          </button>
+                        </div>
+                      );
+                    })()}
                   </div>
-                  <span className="text-[11px] text-slate-500 font-mono">
-                    {new Date(trace.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-mono">
+                    <span className="text-[10px] text-slate-400">{(trace.user_email || trace.operator_account || 'jkoogit@gmail.com').split('@')[0]}</span>
+                  </div>
                 </div>
 
                 <div className="text-xs text-white font-medium line-clamp-2">
@@ -502,13 +831,19 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
                   {responseSummary}
                 </div>
 
-                <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-[11px] text-slate-400">
-                  <div className="flex items-center gap-2 truncate">
+                <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-[11px] text-slate-400 font-mono">
+                  <div className="flex items-center gap-1.5 truncate">
                     <span className="font-semibold text-slate-300 truncate">{trace.model_name?.replace('models/', '')}</span>
                     <span className="text-indigo-400 font-mono">@{trace.agent_name}</span>
                   </div>
-                  <span className="text-indigo-400 font-semibold flex items-center gap-0.5 shrink-0">
-                    전문보기 <ChevronRight className="w-3.5 h-3.5" />
+                  <span className="text-[10px] text-slate-400">
+                    {new Date(trace.created_at).toLocaleString('ko-KR', {
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: false
+                    })}
                   </span>
                 </div>
               </div>
@@ -558,6 +893,10 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
                     )}
                     <span className="text-slate-500 text-[10px]">
                       {new Date(selectedTrace.created_at).toLocaleString('ko-KR')}
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded bg-indigo-950/70 border border-indigo-800/40 text-indigo-300 font-semibold flex items-center gap-1">
+                      <User className="w-3 h-3 text-indigo-400" />
+                      사용계정: {selectedTrace.user_email || selectedTrace.operator_account || 'jkok2j2m@gmail.com'}
                     </span>
                   </div>
                 </div>
@@ -701,6 +1040,85 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
                 className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold transition-colors shrink-0"
               >
                 닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Harness Entity Info Modal (세션/태스크/루프 상세 팝업) */}
+      {harnessModalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-slate-900 border border-indigo-900/60 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-slate-800 bg-slate-950 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400">
+                  <Info className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span>
+                      {harnessModalData.type === 'session' ? '세션 메타정보' : harnessModalData.type === 'task' ? '태스크 메타정보' : '루프 메타정보'}
+                    </span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-indigo-950 text-indigo-300 border border-indigo-800/60 font-semibold">
+                      {harnessModalData.status || '완료'}
+                    </span>
+                  </h3>
+                  <div className="text-[11px] font-mono text-slate-400 mt-0.5">{harnessModalData.id}</div>
+                </div>
+              </div>
+              <button
+                onClick={() => setHarnessModalData(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-3.5 text-xs">
+              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800/80 space-y-1">
+                <div className="text-[11px] text-slate-400 font-semibold">작업 명칭</div>
+                <div className="text-white font-medium text-sm leading-snug">{harnessModalData.title || '(이름 없음)'}</div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800/80 space-y-1">
+                  <div className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
+                    <User className="w-3 h-3 text-indigo-400" /> 실행 계정
+                  </div>
+                  <div className="font-mono text-slate-200 truncate">{harnessModalData.email || 'jkok2j2m@gmail.com'}</div>
+                  <div className="text-[10px] text-slate-500 font-mono">@{harnessModalData.operator || 'jkok2j2m'}</div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800/80 space-y-1">
+                  <div className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
+                    <GitBranch className="w-3 h-3 text-emerald-400" /> 작업 브랜치
+                  </div>
+                  <div className="font-mono text-slate-200 truncate text-[11px]">
+                    {harnessModalData.branch || 'task/0015_02_리소스점검_Gemini'}
+                  </div>
+                  <div className="text-[10px] text-emerald-400 font-medium flex items-center gap-0.5">
+                    <CheckCircle2 className="w-3 h-3" /> 원격 dev/stg/main 동기화됨
+                  </div>
+                </div>
+              </div>
+
+              {harnessModalData.startedAt && (
+                <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-indigo-400" /> 작업 일시:
+                  </span>
+                  <span className="text-slate-200">{new Date(harnessModalData.startedAt).toLocaleString('ko-KR')}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="p-3 border-t border-slate-800 bg-slate-950 flex items-center justify-end">
+              <button
+                onClick={() => setHarnessModalData(null)}
+                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition-colors"
+              >
+                확인
               </button>
             </div>
           </div>
