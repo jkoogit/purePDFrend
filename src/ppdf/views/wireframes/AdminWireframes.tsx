@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { ViewerConfigRegistry } from '../../domain/ViewerConfigRegistry';
-import { IconResourceRegistry } from '../../domain/IconResourceRegistry';
-import { HorizontalSlideContainer } from '../../components/HorizontalSlideContainer';
-import { WireframeTopLayer } from '../../components/WireframeTopLayer';
+import { IconResourceRegistry, TOOL_ICON_RESOURCES } from '../../domain/IconResourceRegistry';
 
 export const ADMIN_PROGRAMS = [
   { id: 'PG-ADM-01', name: '보안관리', desc: 'IP접근제어, 2FA 강제화, 세션만료, 오프라인 토큰기간 설정' },
@@ -23,11 +21,7 @@ export const ADMIN_PROGRAMS = [
   { id: 'PG-ADM-16', name: '도구그룹관리', desc: '8대 뷰어모드별 기본도구 편성, 그룹간 중복허용 정책, 도구그룹 기본값 배포' },
 ];
 
-export interface AdminWireframesProps {
-  isMobileMode?: boolean;
-}
-
-export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) {
+export function AdminWireframes() {
   const [selectedProg, setSelectedProg] = useState('PG-ADM-01');
 
   // Registry
@@ -56,43 +50,59 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
 
   return (
     <div className="space-y-6">
-      {/* 16대 관리자 프로그램 선택 칩 바 (가로 슬라이드 컨테이너 적용) */}
+      {/* 14대 관리자 프로그램 선택 칩 바 (가로 스크롤 가능) */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-lg">
         <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-xs text-slate-400">
-          <span className="font-semibold text-indigo-400">16대 관리자 운영관리 프로그램 (Admin Modules)</span>
+          <span className="font-semibold text-indigo-400">14대 관리자 운영관리 프로그램 (Admin Modules)</span>
           <span>선택: <strong className="text-white">{selectedProg}</strong></span>
         </div>
-        <HorizontalSlideContainer scrollStep={280} className="w-full">
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
           {ADMIN_PROGRAMS.map((p) => {
             const active = p.id === selectedProg;
             return (
               <button
                 key={p.id}
                 onClick={() => setSelectedProg(p.id)}
-                className={`shrink-0 px-3.5 py-2.5 min-h-[44px] rounded-lg text-xs font-mono transition-all flex items-center gap-2 ${
+                className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-mono transition-all flex items-center gap-1.5 ${
                   active
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 ring-1 ring-indigo-400 font-semibold'
-                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                 }`}
               >
-                <span className="opacity-80 px-1 py-0.5 rounded bg-black/25 text-[11px]">{p.id}</span>
-                <span className="font-sans font-medium whitespace-nowrap">{p.name}</span>
+                <span className="opacity-75">{p.id}</span>
+                <span className="font-sans font-medium">{p.name}</span>
               </button>
             );
           })}
-        </HorizontalSlideContainer>
+        </div>
       </div>
 
-      {/* 실제 프로덕션 대상 순수 화면 캔버스 (설명 배제, 화면 컴포넌트만 정확히 렌더링) */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-2xl space-y-6 min-h-[540px]">
-        {/* 모든 화면 공통 상단 탑 레이어 (WireframeTopLayer): 관리자 모드 기본 로그인 상태 */}
-        <WireframeTopLayer
-          currentProgramId={selectedProg}
-          isLoggedIn={true}
-          userRole="시스템총괄관리자"
-          isMobileMode={isMobileMode}
-          onNavigate={(progId) => setSelectedProg(progId)}
-        />
+      {/* 프로그램별 와이어프레임 컨텐츠 */}
+      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-2xl space-y-6 min-h-[520px]">
+        {/* 헤더 정보 */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded text-xs font-mono bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                {selectedProg}
+              </span>
+              <h2 className="text-lg font-bold text-white">
+                {ADMIN_PROGRAMS.find((p) => p.id === selectedProg)?.name}
+              </h2>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              {ADMIN_PROGRAMS.find((p) => p.id === selectedProg)?.desc}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs px-2 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded">
+              ROLE_ADMIN 전용
+            </span>
+            <span className="text-xs px-2 py-1 bg-slate-800 text-slate-300 rounded font-mono">
+              /admin/{selectedProg.toLowerCase().replace('pg-adm-', '')}
+            </span>
+          </div>
+        </div>
 
         {/* PG-ADM-01: 보안관리 */}
         {selectedProg === 'PG-ADM-01' && (

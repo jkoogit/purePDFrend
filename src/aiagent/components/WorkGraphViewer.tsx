@@ -962,27 +962,14 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
             {/* 1. Mobile: All Hierarchy Tree View */}
             {mobileTab === 'all' && (
               <div className="space-y-3">
-                {(() => {
-                  const visibleSessions = nodes
-                    .filter((n) => n.level === 'session')
-                    .filter((session) => {
-                      if (statusFilters.all) return true;
-                      const sessionDirectMatch = sessionNodes.some((s) => s.id === session.id);
-                      const hasChildTasksMatch = taskNodes.some((t) => t.parentId === session.id);
-                      const hasChildLoopsMatch = loopNodes.some((l) => {
-                        const parentTask = nodes.find((t) => t.id === l.parentId);
-                        return parentTask?.parentId === session.id;
-                      });
-                      return sessionDirectMatch || hasChildTasksMatch || hasChildLoopsMatch;
-                    });
-
-                  return visibleSessions.map((session) => {
+                {nodes
+                  .filter((n) => n.level === 'session')
+                  .map((session) => {
                     const isSessionCollapsed = Boolean(collapsedSessions[session.id]);
-                    const childTasks = taskNodes.filter((n) => n.parentId === session.id);
-                    const allChildLoops = loopNodes.filter((l) => {
-                      const parentTask = nodes.find((t) => t.id === l.parentId);
-                      return parentTask?.parentId === session.id;
-                    });
+                    const childTasks = nodes.filter((n) => n.level === 'task' && n.parentId === session.id);
+                    const allChildLoops = nodes.filter(
+                      (l) => l.level === 'loop' && childTasks.some((t) => t.id === l.parentId)
+                    );
                     const isFocused = focusedCardId === session.id;
 
                     return (
@@ -1037,7 +1024,7 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
                           <div className="p-2.5 space-y-2 bg-slate-950/40">
                             {childTasks.map((task) => {
                               const isTaskCollapsed = Boolean(collapsedTasks[task.id]);
-                              const taskLoops = loopNodes.filter((l) => l.parentId === task.id);
+                              const taskLoops = nodes.filter((l) => l.level === 'loop' && l.parentId === task.id);
 
                               return (
                                 <div
@@ -1118,8 +1105,7 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
                         )}
                       </div>
                     );
-                  });
-                })()}
+                  })}
               </div>
             )}
 
@@ -1714,28 +1700,14 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
             {/* ================= MODE 2: HIERARCHICAL GROUP VIEW (세션 > 태스크 > 루프) ================= */}
             {layoutMode === 'grouped' && (
               <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
-                {(() => {
-                  // In grouped mode: find sessions that are either in sessionNodes OR have children in taskNodes/loopNodes
-                  const visibleSessions = nodes
-                    .filter((n) => n.level === 'session')
-                    .filter((session) => {
-                      if (statusFilters.all) return true;
-                      const sessionDirectMatch = sessionNodes.some((s) => s.id === session.id);
-                      const hasChildTasksMatch = taskNodes.some((t) => t.parentId === session.id);
-                      const hasChildLoopsMatch = loopNodes.some((l) => {
-                        const parentTask = nodes.find((t) => t.id === l.parentId);
-                        return parentTask?.parentId === session.id;
-                      });
-                      return sessionDirectMatch || hasChildTasksMatch || hasChildLoopsMatch;
-                    });
-
-                  return visibleSessions.map((session) => {
+                {nodes
+                  .filter((n) => n.level === 'session')
+                  .map((session) => {
                     const isSessionCollapsed = Boolean(collapsedSessions[session.id]);
-                    const childTasks = taskNodes.filter((n) => n.parentId === session.id);
-                    const allChildLoops = loopNodes.filter((l) => {
-                      const parentTask = nodes.find((t) => t.id === l.parentId);
-                      return parentTask?.parentId === session.id;
-                    });
+                    const childTasks = nodes.filter((n) => n.level === 'task' && n.parentId === session.id);
+                    const allChildLoops = nodes.filter(
+                      (l) => l.level === 'loop' && childTasks.some((t) => t.id === l.parentId)
+                    );
 
                     const isFocused = focusedCardId === session.id;
                     const isDimmed = Boolean(activeDownstreamIds && !activeDownstreamIds.has(session.id));
@@ -1822,7 +1794,7 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
                           <div className="p-4 space-y-4 bg-slate-950/40">
                             {childTasks.map((task) => {
                               const isTaskCollapsed = Boolean(collapsedTasks[task.id]);
-                              const taskLoops = loopNodes.filter((l) => l.parentId === task.id);
+                              const taskLoops = nodes.filter((l) => l.level === 'loop' && l.parentId === task.id);
                               const isTaskFocused = focusedCardId === task.id;
                               const isTaskDimmed = Boolean(activeDownstreamIds && !activeDownstreamIds.has(task.id));
 
@@ -1969,8 +1941,7 @@ export default function WorkGraphViewer({ nodes, edges: _edges, onRefresh, isLoa
                         )}
                       </div>
                     );
-                  });
-                })()}
+                  })}
               </div>
             )}
           </div>
