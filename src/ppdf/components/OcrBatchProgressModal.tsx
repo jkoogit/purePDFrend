@@ -9,6 +9,7 @@ import {
   Pause, 
   XSquare, 
   CheckCircle2, 
+  AlertCircle, 
   Clock, 
   Zap, 
   Layers, 
@@ -280,7 +281,7 @@ export const OcrBatchProgressModal: React.FC<OcrBatchProgressModalProps> = ({
                 {selectedJob.durationMs && <span className="text-slate-400 mr-3">소요: {selectedJob.durationMs}ms</span>}
                 {selectedJob.retryCount > 0 && <span className="text-amber-400 mr-3">재시도: {selectedJob.retryCount}회</span>}
                 {selectedJob.error && <span className="text-rose-400">오류: {selectedJob.error}</span>}
-                {selectedJob.result && <span className="text-emerald-400">인식 텍스트: {(selectedJob.result.text || selectedJob.result.fullText || '').slice(0, 30)}...</span>}
+                {selectedJob.result && <span className="text-emerald-400">인식 텍스트: {selectedJob.result.text.slice(0, 30)}...</span>}
               </div>
               <button
                 onClick={() => setSelectedJob(null)}
