@@ -1,4 +1,3 @@
-import '../src/shared/envLoader';
 import https from 'https';
 import { runComprehensiveServiceCheck } from './service_health_check';
 
