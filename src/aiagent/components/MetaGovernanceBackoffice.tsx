@@ -16,10 +16,8 @@ import {
   RefreshCw,
   CheckCircle,
   AlertOctagon,
-  ArrowUp,
-  ArrowDown,
-  ArrowUpDown,
 } from 'lucide-react';
+
 
 interface BillingPlan {
   plan_id: string;
