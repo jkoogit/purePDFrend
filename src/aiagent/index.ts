@@ -5,11 +5,9 @@ export { default as AgentUsageViewer } from './components/AgentUsageViewer';
 export { default as DocsGovernanceManager } from './components/DocsGovernanceManager';
 export { default as SystemConfigManager } from './components/SystemConfigManager';
 export { default as SystemSettingsView } from './components/SystemSettingsView';
-export { EmergencyRecoveryPanel } from './components/EmergencyRecoveryPanel';
 export { PpdfAuditAdapter } from './adapters/PpdfAuditAdapter';
 export { IntegrityAuditFacade } from './domain/audit/IntegrityAuditFacade';
 export { SettingsService } from './services/SettingsService';
 export { DocsService } from './services/DocsService';
 export * from './domain/token-quota';
-
 
