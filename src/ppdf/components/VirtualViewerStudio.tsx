@@ -339,7 +339,8 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
     const updatedMap = new Map(jobs.filter(j => j.status === 'COMPLETED' && j.result).map(j => [j.pageNumber, j.result!]));
     if (updatedMap.size > 0) {
       const nextPages = pages.map(p => {
-        const ocrRes = updatedMap.get(p.pageNumber);
+        const pNum = p.pageNum ?? p.pageNumber ?? 1;
+        const ocrRes = updatedMap.get(pNum);
         if (ocrRes) {
           return {
             ...p,
@@ -352,6 +353,7 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
       syncHistoryAndState(nextPages, `${updatedMap.size}개 페이지 다국어 일괄 OCR 적용 완료`);
     }
   };
+
 
   // BBox 교정 스튜디오로 인계
   const handleOpenCorrection = (page: PdfPageItem) => {
@@ -437,15 +439,16 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
         isOpen={isBatchOcrOpen}
         onClose={() => setIsBatchOcrOpen(false)}
         pages={pages.filter(p => !p.isDeleted).map(p => ({
-          pageNumber: p.pageNumber,
-          imageBlobUrl: p.imageUrl,
-          imageBase64: p.imageUrl,
+          pageNumber: p.pageNum ?? p.pageNumber ?? 1,
+          imageBlobUrl: p.imageUrl || p.dataUrl || p.imageSrc,
+          imageBase64: p.imageUrl || p.dataUrl || p.imageSrc,
         }))}
         language="kor+eng"
         engineType="ensemble"
         concurrency={3}
         onComplete={handleBatchOcrComplete}
       />
+
 
       {/* 1. Left Thumbnail Sidebar (DnD & Layout) */}
       <PageThumbnailSidebar
@@ -747,7 +750,7 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
           >
             {layoutMode === 'single' ? (
               // 단면 모드 렌더링
-              scrollState.visiblePages.map((page) => {
+              scrollState.visiblePages.map((page: any) => {
                 const isDeleted = !!page.isDeleted;
                 return (
                   <div
@@ -864,7 +867,7 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
             ) : (
               // 양면 펼침면(Facing Spread) 모드 렌더링
               <div className="w-full flex flex-col items-center gap-8">
-                {scrollState.visiblePages.map((page) => {
+                {scrollState.visiblePages.map((page: any) => {
                   const isDeleted = !!page.isDeleted;
                   return (
                     <div
