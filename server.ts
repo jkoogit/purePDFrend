@@ -68,13 +68,7 @@ function getLocalStore(): LocalStoreData {
   try {
     if (fs.existsSync(LOCAL_STORE_PATH)) {
       const raw = fs.readFileSync(LOCAL_STORE_PATH, 'utf-8');
-      const parsed = JSON.parse(raw);
-      return {
-        sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
-        tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
-        loops: Array.isArray(parsed.loops) ? parsed.loops : [],
-        traces: Array.isArray(parsed.traces) ? parsed.traces : [],
-      };
+      return JSON.parse(raw);
     }
   } catch (e) {
     console.error('Error reading local agent store:', e);
@@ -239,7 +233,7 @@ app.get('/api/db/status', async (req, res) => {
   const store = getLocalStore();
   const docsDir = path.join(process.cwd(), 'docs');
   const localDocCount = scanDocsRecursively(docsDir).length;
-  const validTraces = (store.traces || []).filter((t) => !isQuotaLimitError(t.agent_response) && !isQuotaLimitError(t.user_prompt));
+  const validTraces = store.traces.filter((t) => !isQuotaLimitError(t.agent_response) && !isQuotaLimitError(t.user_prompt));
 
   try {
     const dbRes: any = await executeSql(`
@@ -828,16 +822,11 @@ function scanDocsRecursively(dir: string, baseDir: string = dir): any[] {
   for (const item of items) {
     const fullPath = path.join(dir, item.name);
     if (item.isDirectory()) {
-      // Exclude images directories from document scanning
-      if (item.name.toLowerCase() === 'images') {
-        continue;
-      }
       results = results.concat(scanDocsRecursively(fullPath, baseDir));
     } else if (item.isFile() && item.name.endsWith('.md')) {
       const relativePath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
       const parts = relativePath.split('/');
-      // Folder is relative directory path (e.g. "06.기획" or "06.기획/UI기획")
-      const folder = parts.length > 1 ? parts.slice(0, -1).join('/') : '루트';
+      const folder = parts.length > 1 ? parts[0] : '루트';
       const content = fs.readFileSync(fullPath, 'utf-8');
       const hash = crypto.createHash('sha256').update(content).digest('hex');
       const stat = fs.statSync(fullPath);
@@ -1259,7 +1248,7 @@ app.get('/api/agent/chat/traces', async (req, res) => {
     res.json({ success: true, traces: sanitized, source: 'REMOTE_DB' });
   } catch (err: any) {
     // Local Fallback filtering with token quota exclusion
-    let list = (store.traces || []).filter(
+    let list = store.traces.filter(
       (t: any) => !isQuotaLimitError(t.user_prompt) && !isQuotaLimitError(t.agent_response) && !isQuotaLimitError(t.response_summary)
     );
 
@@ -1315,10 +1304,10 @@ app.post('/api/agent/quota/check', (req, res) => {
 app.post('/api/agent/chat/traces/cleanup-quota-errors', async (req, res) => {
   try {
     const store = getLocalStore();
-    const initialCount = (store.traces || []).length;
+    const initialCount = store.traces.length;
     
     // Purge quota error traces from local store
-    store.traces = (store.traces || []).filter(
+    store.traces = store.traces.filter(
       (t) => !isQuotaLimitError(t.user_prompt) && !isQuotaLimitError(t.agent_response) && !isQuotaLimitError(t.response_summary)
     );
     const removedCount = initialCount - store.traces.length;
@@ -1396,7 +1385,7 @@ app.post('/api/agent/trace/turn', async (req, res) => {
       });
     }
 
-    const calculatedStep = Number(turn_number || step_index) || ((store.traces || []).filter((t) => t.session_id === session_id).length + 1);
+    const calculatedStep = Number(turn_number || step_index) || (store.traces.filter((t) => t.session_id === session_id).length + 1);
     const finalTraceId = trace_id || GovernanceIdGenerator.generateHierarchicalTraceId(session_id, task_id, loop_id, calculatedStep);
     const escapedPrompt = String(user_prompt || '').replace(/'/g, "''");
     const escapedResponse = String(agent_response || '').replace(/'/g, "''");
@@ -1404,7 +1393,7 @@ app.post('/api/agent/trace/turn', async (req, res) => {
     const safeLoopId = loop_id ? `'${String(loop_id).replace(/'/g, "''")}'` : 'NULL';
 
     // 1. Save to Local Fallback Store
-    const existingIdx = (store.traces || []).findIndex((t) => t.trace_id === finalTraceId);
+    const existingIdx = store.traces.findIndex((t) => t.trace_id === finalTraceId);
     const traceRecord = {
       trace_id: finalTraceId,
       session_id,
@@ -1498,7 +1487,7 @@ app.post('/api/agent/trace/turn', async (req, res) => {
 
 app.get('/api/agent/usage', async (req, res) => {
   const store = getLocalStore();
-  const validTraces = (store.traces || []).filter(
+  const validTraces = store.traces.filter(
     (t) => !isQuotaLimitError(t.user_prompt) && !isQuotaLimitError(t.agent_response) && !isQuotaLimitError(t.response_summary)
   );
 
@@ -2220,19 +2209,11 @@ app.get('/api/agent/audit/integrity', async (req, res) => {
         const tracesCountRes: any = await executeSql(`SELECT count(*) as cnt FROM aiagent.agent_conversation_trace WHERE session_id = '${safeSessId}';`);
         sessionParity.tracesDbCount = parseInt(tracesCountRes.rows?.[0]?.cnt || '0', 10);
 
-        const localTasksCount = store.tasks.filter((t: any) => t.session_id === activeSession.session_id).length;
-        const localLoopsCount = store.loops.filter((l: any) => l.session_id === activeSession.session_id).length;
-        const localTracesCount = store.traces.filter((tr: any) => tr.session_id === activeSession.session_id).length;
-
-        sessionParity.tasksLocalCount = localTasksCount;
-        sessionParity.loopsLocalCount = localLoopsCount;
-        sessionParity.tracesLocalCount = localTracesCount;
-
-        const totalLocal = 1 + localTasksCount + localLoopsCount + localTracesCount;
+        const totalLocal = 1 + store.tasks.length + store.loops.length + store.traces.length;
         let matched = (sessionParity.sessionMatch ? 1 : 0) +
-          (localTasksCount === sessionParity.tasksDbCount ? localTasksCount : Math.min(localTasksCount, sessionParity.tasksDbCount)) +
-          (localLoopsCount === sessionParity.loopsDbCount ? localLoopsCount : Math.min(localLoopsCount, sessionParity.loopsDbCount)) +
-          (localTracesCount === sessionParity.tracesDbCount ? localTracesCount : Math.min(localTracesCount, sessionParity.tracesDbCount));
+          Math.min(store.tasks.length, sessionParity.tasksDbCount) +
+          Math.min(store.loops.length, sessionParity.loopsDbCount) +
+          Math.min(store.traces.length, sessionParity.tracesDbCount);
         sessionParity.parityPercentage = totalLocal > 0 ? Math.round((matched / totalLocal) * 100) : 100;
       } catch (e) {
         sessionParity.parityPercentage = 90; // Fallback

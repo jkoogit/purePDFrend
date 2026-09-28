@@ -31,12 +31,10 @@ export class EnsembleOcrRouter {
 
     // 2단계: 신뢰도 검사 및 저신뢰도 바운딩 박스 감지
     const lowConfidenceBoxes: BoundingBoxItem[] = [];
-    const refinedBoxes: (BoundingBoxItem & { originalText?: string; isEnsembleRefined?: boolean })[] = [];
-    const rawBoxes = baseResult.boxes || [];
+    const refinedBoxes: BoundingBoxItem[] = [];
 
-    rawBoxes.forEach((box: BoundingBoxItem) => {
-      const conf = box.confidence ?? 1.0;
-      if (conf < threshold || /[一-龥∑∫√π]/.test(box.text) || /formula|수식/i.test(box.text)) {
+    baseResult.boxes.forEach((box) => {
+      if (box.confidence < threshold || /[一-龥∑∫√π]/.test(box.text) || /formula|수식/i.test(box.text)) {
         lowConfidenceBoxes.push(box);
         // 3단계: 정밀 AI(Gemini 2.5 Flash)로 선택적 보정 시뮬레이션
         refinedBoxes.push({
@@ -59,7 +57,7 @@ export class EnsembleOcrRouter {
     const refinedCount = refinedBoxes.filter((b) => b.isEnsembleRefined).length;
 
     // 예상 비용 절감액 계산 (전체 클라우드 호출 대비 85% 절약)
-    const savedCost = `${((rawBoxes.length - lowConfidenceCount) / Math.max(1, rawBoxes.length) * 100).toFixed(0)}% (약 0.015 USD 절감)`;
+    const savedCost = `${((baseResult.boxes.length - lowConfidenceCount) / Math.max(1, baseResult.boxes.length) * 100).toFixed(0)}% (약 0.015 USD 절감)`;
 
     return {
       engine: 'ensemble',
