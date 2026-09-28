@@ -165,7 +165,7 @@ export class HarnessAutomationService {
       parentSessionId: session.session_id || sessionId,
       lastTaskId: lastTask.task_id || 'TASK-NONE',
       lastTaskName: lastTask.task_name || '진행 태스크 없음',
-      branch: baselineRefs.current_branch || 'dev',
+      branch: baselineRefs.current_branch,
       baselineRefs,
       pendingBacklogs,
       reason,
