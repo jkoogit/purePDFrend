@@ -65,14 +65,14 @@ export const HandoffDossierModal: React.FC<HandoffDossierModalProps> = ({
 
   const handleCopyPrompt = () => {
     if (!dossier) return;
-    navigator.clipboard.writeText(dossier.resume_prompt);
+    navigator.clipboard.writeText(dossier.resume_prompt || '');
     setCopiedPrompt(true);
     setTimeout(() => setCopiedPrompt(false), 2000);
   };
 
   const handleCopyToken = () => {
     if (!dossier) return;
-    navigator.clipboard.writeText(dossier.handoff_token);
+    navigator.clipboard.writeText(dossier.handoff_token || '');
     setCopiedToken(true);
     setTimeout(() => setCopiedToken(false), 2000);
   };
@@ -163,7 +163,7 @@ export const HandoffDossierModal: React.FC<HandoffDossierModalProps> = ({
                   <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">인계 토큰 (Handoff Token)</div>
                   <div className="flex items-center justify-between mt-1">
                     <div className="text-xs font-mono font-bold text-amber-300 truncate" title={dossier.handoff_token}>
-                      {dossier.handoff_token.slice(0, 18)}...
+                      {dossier.handoff_token ? `${dossier.handoff_token.slice(0, 18)}...` : 'N/A'}
                     </div>
                     <button
                       onClick={handleCopyToken}
@@ -192,20 +192,20 @@ export const HandoffDossierModal: React.FC<HandoffDossierModalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] font-mono">
                   <div className="p-2 rounded bg-slate-900 border border-slate-800">
                     <div className="text-slate-400 text-[10px]">1. 세션 원점 (Base Ref)</div>
-                    <div className="text-slate-200 truncate mt-0.5" title={dossier.baseline_refs.base_ref}>
-                      {dossier.baseline_refs.base_ref.slice(0, 12)}...
+                    <div className="text-slate-200 truncate mt-0.5" title={dossier.baseline_refs?.base_ref}>
+                      {dossier.baseline_refs?.base_ref ? `${dossier.baseline_refs.base_ref.slice(0, 12)}...` : '-'}
                     </div>
                   </div>
                   <div className="p-2 rounded bg-slate-900 border border-slate-800">
                     <div className="text-slate-400 text-[10px]">2. 태스크 체크포인트 (Checkpoint Ref)</div>
-                    <div className="text-slate-200 truncate mt-0.5" title={dossier.baseline_refs.task_checkpoint_ref}>
-                      {dossier.baseline_refs.task_checkpoint_ref.slice(0, 12)}...
+                    <div className="text-slate-200 truncate mt-0.5" title={dossier.baseline_refs?.task_checkpoint_ref}>
+                      {dossier.baseline_refs?.task_checkpoint_ref ? `${dossier.baseline_refs.task_checkpoint_ref.slice(0, 12)}...` : '-'}
                     </div>
                   </div>
                   <div className="p-2 rounded bg-slate-900 border border-slate-800">
                     <div className="text-slate-400 text-[10px]">3. 작업 브랜치 (Branch)</div>
-                    <div className="text-emerald-300 truncate mt-0.5" title={dossier.baseline_refs.current_branch}>
-                      {dossier.baseline_refs.current_branch}
+                    <div className="text-emerald-300 truncate mt-0.5" title={dossier.baseline_refs?.current_branch}>
+                      {dossier.baseline_refs?.current_branch || '-'}
                     </div>
                   </div>
                 </div>
@@ -215,13 +215,13 @@ export const HandoffDossierModal: React.FC<HandoffDossierModalProps> = ({
               <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-white">
                   <Layers className="w-4 h-4 text-indigo-400" />
-                  <span>계승 대상 미완료 백로그 ({dossier.pending_backlogs.length}건)</span>
+                  <span>계승 대상 미완료 백로그 ({(dossier.pending_backlogs || []).length}건)</span>
                 </div>
-                {dossier.pending_backlogs.length === 0 ? (
+                {(dossier.pending_backlogs || []).length === 0 ? (
                   <div className="text-slate-500 text-[11px]">미완료 백로그가 없습니다. 모든 작업이 순조롭게 정리되었습니다.</div>
                 ) : (
                   <div className="space-y-1.5">
-                    {dossier.pending_backlogs.map((b, idx) => (
+                    {(dossier.pending_backlogs || []).map((b: any, idx: number) => (
                       <div key={idx} className="flex items-center justify-between p-2 rounded bg-slate-900 border border-slate-800/80 text-[11px]">
                         <span className="font-semibold text-slate-200">{b.title}</span>
                         <span className="px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/50 font-mono text-[10px]">
@@ -232,6 +232,7 @@ export const HandoffDossierModal: React.FC<HandoffDossierModalProps> = ({
                   </div>
                 )}
               </div>
+
 
               {/* One-click Markdown Prompt Box */}
               <div className="p-3.5 rounded-xl bg-slate-950 border border-indigo-900/40 space-y-2">
@@ -249,8 +250,9 @@ export const HandoffDossierModal: React.FC<HandoffDossierModalProps> = ({
                   </button>
                 </div>
                 <pre className="p-3 bg-slate-900 rounded-lg text-slate-300 font-mono text-[11px] leading-relaxed overflow-x-auto whitespace-pre-wrap border border-slate-800 max-h-48">
-                  {dossier.resume_prompt}
+                  {dossier.resume_prompt || ''}
                 </pre>
+
               </div>
 
               {/* Extended Session Result Alert */}

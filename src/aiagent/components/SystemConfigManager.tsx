@@ -11,6 +11,7 @@ import {
   Sliders,
   ShieldAlert,
 } from 'lucide-react';
+import { EmergencyRecoveryPanel } from './EmergencyRecoveryPanel';
 
 interface SystemConfigManagerProps {
   settings: SystemSettings | null;
@@ -255,6 +256,12 @@ export default function SystemConfigManager({
           </div>
         </div>
       </div>
+
+      {/* 비-LLM 긴급 소스 Push, 세션 재해복구(DR), 스냅샷 파일화 및 행(Hang) 관제실 패널 */}
+      <div className="pt-2">
+        <EmergencyRecoveryPanel />
+      </div>
     </div>
   );
 }
+

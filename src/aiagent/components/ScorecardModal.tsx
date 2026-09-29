@@ -99,10 +99,10 @@ export const ScorecardModal: React.FC<ScorecardModalProps> = ({ sessionId, onClo
                     <span>세션 총 소비 토큰</span>
                   </div>
                   <div className="text-base font-bold font-mono text-white mt-1">
-                    {scorecard.total_tokens.toLocaleString()}
+                    {(scorecard.total_tokens ?? 0).toLocaleString()}
                   </div>
                   <div className="text-[10px] text-slate-500 mt-0.5">
-                    {scorecard.total_turns}턴 / {scorecard.total_loops}루프
+                    {scorecard.total_turns ?? 0}턴 / {scorecard.total_loops ?? 0}루프
                   </div>
                 </div>
 
@@ -112,9 +112,9 @@ export const ScorecardModal: React.FC<ScorecardModalProps> = ({ sessionId, onClo
                     <span>루프당 평균 비용</span>
                   </div>
                   <div className="text-base font-bold font-mono text-amber-300 mt-1">
-                    {(scorecard.total_loops > 0
-                      ? Math.round(scorecard.total_tokens / scorecard.total_loops)
-                      : Math.round(scorecard.avg_tokens_per_turn)
+                    {(((scorecard.total_loops ?? 0) > 0)
+                      ? Math.round((scorecard.total_tokens ?? 0) / (scorecard.total_loops || 1))
+                      : Math.round(scorecard.avg_tokens_per_turn ?? 0)
                     ).toLocaleString()}
                   </div>
                   <div className="text-[10px] text-slate-500 mt-0.5">
@@ -128,10 +128,10 @@ export const ScorecardModal: React.FC<ScorecardModalProps> = ({ sessionId, onClo
                     <span>추정 오차율 (MAPE)</span>
                   </div>
                   <div className="text-base font-bold font-mono text-emerald-300 mt-1">
-                    {scorecard.mape_percent}%
+                    {scorecard.mape_percent ?? 0}%
                   </div>
                   <div className="text-[10px] text-slate-500 mt-0.5">
-                    {scorecard.mape_percent < 20 ? '고신뢰 구간 (<20%)' : '보정 필요 구간'}
+                    {(scorecard.mape_percent ?? 0) < 20 ? '고신뢰 구간 (<20%)' : '보정 필요 구간'}
                   </div>
                 </div>
 
@@ -141,7 +141,7 @@ export const ScorecardModal: React.FC<ScorecardModalProps> = ({ sessionId, onClo
                     <span>갱신 가중치 (α)</span>
                   </div>
                   <div className="text-base font-bold font-mono text-indigo-300 mt-1">
-                    {scorecard.calibration_weight_alpha.toFixed(3)}
+                    {(scorecard.calibration_weight_alpha ?? 1.05).toFixed(3)}
                   </div>
                   <div className="text-[10px] text-slate-500 mt-0.5">
                     차기 세션에 자동 반영
