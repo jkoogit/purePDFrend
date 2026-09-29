@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ScrollSnapCarousel } from './ScrollSnapCarousel';
+import { EmergencyRecoveryPanel } from '../../aiagent/components/EmergencyRecoveryPanel';
 import {
   Layout,
   Settings,
   Database,
-  GitBranch,
   CheckCircle2,
   Server,
   ShieldCheck,
+  ShieldAlert,
   Layers,
   Bot,
   AlertTriangle,
@@ -159,10 +160,12 @@ export default function Navbar({
   isHeaderPinned = true,
   onTogglePinHeader,
 }: NavbarProps) {
-  const [hoveredBadge, setHoveredBadge] = useState<'db' | 'branch' | 'status' | null>(null);
-  const [activeSessionId, setActiveSessionId] = useState<string>('SESSION-20260921-004');
-  const [activeBranch, setActiveBranch] = useState<string>('task/모바일UX_IA개편_Gemini');
+  const [hoveredBadge, setHoveredBadge] = useState<'db' | 'status' | null>(null);
+  const [activeSessionId, setActiveSessionId] = useState<string>('SESSION-0017');
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState<boolean>(false);
+
+  // Emergency Disaster Recovery Modal state
+  const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState<boolean>(false);
 
   // Service Health Check state
   const [isCheckModalOpen, setIsCheckModalOpen] = useState<boolean>(false);
@@ -194,9 +197,8 @@ export default function Navbar({
       .then((data) => {
         if (data.success && data.sessions && data.sessions.length > 0) {
           const latest = data.sessions[data.sessions.length - 1];
-          setActiveSessionId(latest.session_id);
-          if (latest.doc_payload?.gitBranch) {
-            setActiveBranch(latest.doc_payload.gitBranch);
+          if (latest.session_id) {
+            setActiveSessionId(latest.session_id);
           }
         }
       })
@@ -341,17 +343,17 @@ export default function Navbar({
             )}
           </div>
 
-          {/* Desktop Git Branch Badge */}
-          <div
-            className="relative hidden lg:block"
-            onMouseEnter={() => setHoveredBadge('branch')}
-            onMouseLeave={() => setHoveredBadge(null)}
+          {/* 비-LLM 긴급 Push 및 DR 관제실 모달 버튼 (상시 접근 가능) */}
+          <button
+            id="btn-emergency-recovery-panel"
+            onClick={() => setIsEmergencyModalOpen(true)}
+            className="h-8 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-full bg-amber-950/70 border border-amber-600/80 hover:border-amber-400 hover:bg-amber-900/70 cursor-pointer transition-all text-amber-300 text-xs font-semibold shadow-sm shrink-0 whitespace-nowrap select-none"
+            title="비-LLM 긴급 소스 GitHub Push 및 세션 DR 관제실"
           >
-            <div className="h-8 flex items-center gap-1.5 px-3 rounded-full bg-amber-950/40 border border-amber-800/40 hover:border-amber-500/60 cursor-pointer transition-colors text-xs text-amber-300 font-mono text-[11px] shrink-0">
-              <GitBranch className="w-3.5 h-3.5 text-amber-400" />
-              <span className="truncate max-w-[130px]">{activeBranch}</span>
-            </div>
-          </div>
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+            <ShieldAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="inline font-semibold">DR 긴급관제</span>
+          </button>
 
           {/* Comprehensive Service Health Check Button (모바일 및 PC 상시 표시) */}
           <button
@@ -650,6 +652,17 @@ export default function Navbar({
               <button
                 onClick={() => {
                   setIsMobileDrawerOpen(false);
+                  setIsEmergencyModalOpen(true);
+                }}
+                className="w-full min-h-[44px] px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-600/20 active:scale-98 transition-all"
+              >
+                <ShieldAlert className="w-4 h-4" />
+                <span>🚨 비-LLM 긴급 Push & DR 관제</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsMobileDrawerOpen(false);
                   setIsCheckModalOpen(true);
                   if (!checkResults) runServiceCheck();
                 }}
@@ -786,6 +799,63 @@ export default function Navbar({
         </div>,
         document.body
       )}
+
+      {/* 5. Emergency Disaster Recovery (DR) & Push Modal (Portal to document.body) */}
+      {isEmergencyModalOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-md z-[9999] flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in duration-150"
+          onClick={() => setIsEmergencyModalOpen(false)}
+        >
+          <div
+            className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] my-auto animate-in zoom-in-95 duration-150 relative z-10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 shrink-0">
+                  <ShieldAlert className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    비-LLM 세션 재해복구(DR) 및 긴급 백업 관제실
+                  </h3>
+                  <p className="text-[10px] text-slate-400">
+                    토큰 소진, 세션 행(Hang) 또는 브라우저 먹통 발생 시 LLM을 거치지 않고 소스를 원격에 즉시 안전 보존합니다.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsEmergencyModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                aria-label="닫기"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body: EmergencyRecoveryPanel Component */}
+            <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
+              <EmergencyRecoveryPanel />
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-5 py-2.5 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between text-[11px] text-slate-400 shrink-0">
+              <span className="text-amber-400/90 font-mono">
+                REST API: <code>POST /api/agent/emergency/push</code> (무중단 백엔드 직접 전송)
+              </span>
+              <button
+                onClick={() => setIsEmergencyModalOpen(false)}
+                className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs transition-colors shadow-sm"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </header>
   );
 }
+
