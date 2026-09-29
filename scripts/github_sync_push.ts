@@ -1,3 +1,4 @@
+import '../src/shared/envLoader';
 import fs from 'fs';
 import path from 'path';
 import https from 'https';
@@ -32,6 +33,10 @@ const IGNORE_FILES = new Set([
   '.DS_Store',
   'package-lock.json',
   'yarn.lock',
+  '.env',
+  '.env.local',
+  '.env.development',
+  '.env.production',
 ]);
 
 function requestGitHub<T = any>(
@@ -123,9 +128,31 @@ async function mergeBranch(base: string, head: string, commitMessage: string) {
 export async function syncAndPush(
   targetBranch = 'dev',
   commitMessage = 'feat: automated sync via Git Data API',
-  taskBranch = 'task/0015_02_리소스점검_Gemini',
-  prTitle = '[0015_02] 리소스점검 및 GitHub 하네스 거버넌스 현행화'
+  taskBranch?: string,
+  prTitle?: string
 ) {
+  // Dynamically resolve active task branch and title if not provided
+  if (!taskBranch || !prTitle) {
+    try {
+      const storePath = path.join(process.cwd(), 'data', 'local_agent_store.json');
+      if (fs.existsSync(storePath)) {
+        const store = JSON.parse(fs.readFileSync(storePath, 'utf8'));
+        const activeSession = store.sessions?.[0];
+        const activeTask = store.tasks?.find((t: any) => t.session_id === activeSession?.session_id) || store.tasks?.[0];
+        if (!taskBranch) {
+          taskBranch = activeSession?.doc_payload?.branch || activeTask?.doc_payload?.branch || 'task/0018_01_가상화뷰어최적화_사용자대시보드연동_Gemini';
+        }
+        if (!prTitle) {
+          prTitle = activeTask ? `[${activeTask.task_id}] ${activeTask.task_name}` : `[0018] SESSION-0018 최신 소스 복원 및 작업 브랜치 동기화`;
+        }
+      }
+    } catch (e) {
+      // Fallback defaults
+    }
+  }
+  taskBranch = taskBranch || 'task/0016_01_UI정책_긴급백업복구_Gemini';
+  prTitle = prTitle || '[0016-01] 전수 목록 화면 UI 정책 일괄 적용 및 긴급 백업 복구';
+
   console.log(`=== Starting GitHub Sync & Push via Task Branch ('${taskBranch}') ===`);
 
   // 0. Pre-flight Comprehensive Service Check

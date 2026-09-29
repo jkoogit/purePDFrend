@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { AgentDoc } from '../../types';
 import {
   FileText,
@@ -19,7 +19,9 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
-  Search
+  Search,
+  ChevronRight,
+  ChevronDown
 } from 'lucide-react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -97,6 +99,17 @@ interface DocsGovernanceManagerProps {
 export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGovernanceManagerProps = {}) {
   const [docs, setDocs] = useState<AgentDoc[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<string>('전체');
+  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({
+    '06.기획': true,
+  });
+
+  const toggleFolderExpand = (folder: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedFolders((prev) => ({
+      ...prev,
+      [folder]: !prev[folder],
+    }));
+  };
   const [activeDoc, setActiveDoc] = useState<AgentDoc | null>(null);
   const [docContent, setDocContent] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'preview' | 'source'>('preview');
@@ -302,8 +315,8 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
     return () => clearTimeout(timer);
   }, [searchKeyword, searchInContent]);
 
-  const folders = [
-    '전체',
+  // 18 Standard Core Folders
+  const rootFolders = [
     '00.시작',
     '01.프로젝트',
     '02.조직',
@@ -322,7 +335,28 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
     '15.학습',
     '16.로그',
     '17.참고',
+    '18.메뉴얼',
   ];
+
+  // Derive all active subfolders from loaded docs (excluding 'images' or paths with images)
+  const subfoldersByParent = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    docs.forEach((d) => {
+      const folder = d.folder;
+      if (folder && folder.includes('/')) {
+        const parts = folder.split('/');
+        const parent = parts[0];
+        const sub = parts.slice(1).join('/');
+        if (sub.toLowerCase() !== 'images' && !sub.toLowerCase().includes('images')) {
+          if (!map[parent]) map[parent] = [];
+          if (!map[parent].includes(folder)) {
+            map[parent].push(folder);
+          }
+        }
+      }
+    });
+    return map;
+  }, [docs]);
 
   const getDocSortKey = (doc: AgentDoc): string => {
     if (doc.fileName.startsWith('README_')) {
@@ -333,9 +367,16 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
   };
 
   const filteredDocs = docs.filter((d) => {
-    // Folder filter
-    if (selectedFolder !== '전체' && d.folder !== selectedFolder) {
+    // Exclude docs inside images folders
+    if (d.folder && (d.folder.endsWith('/images') || d.folder === 'images')) {
       return false;
+    }
+
+    // Folder filter: match exact folder or child folders when parent is selected
+    if (selectedFolder !== '전체') {
+      if (d.folder !== selectedFolder && !d.folder.startsWith(selectedFolder + '/')) {
+        return false;
+      }
     }
 
     // Keyword filter
@@ -420,42 +461,131 @@ export default function DocsGovernanceManager({ dbStatus = 'CONNECTED' }: DocsGo
             <Layers className="w-3.5 h-3.5 text-indigo-400" />
             18대 문서 분류 폴더
           </div>
-          {folders.map((folder) => {
-            const count = folder === '전체'
-              ? docs.length
-              : docs.filter((d) => d.folder === folder).length;
-            const isSelected = selectedFolder === folder;
+          {/* All Folder Button */}
+          <button
+            onClick={() => setSelectedFolder('전체')}
+            className={`text-left px-2.5 py-1.5 sm:py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-between gap-2 shrink-0 whitespace-nowrap ${
+              selectedFolder === '전체'
+                ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/30'
+                : 'text-slate-300 bg-slate-950/40 lg:bg-transparent hover:bg-slate-800/70 hover:text-white border border-slate-800 lg:border-transparent'
+            }`}
+          >
+            <div className="flex items-center gap-1.5 sm:gap-2 truncate">
+              {selectedFolder === '전체' ? (
+                <FolderOpen className="w-3.5 h-3.5 text-indigo-200 shrink-0" />
+              ) : (
+                <Folder className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              )}
+              <span className="truncate">전체</span>
+            </div>
+            <span
+              className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
+                selectedFolder === '전체'
+                  ? 'bg-indigo-700 text-white'
+                  : 'bg-slate-800 text-indigo-300'
+              }`}
+            >
+              {docs.filter((d) => !d.folder?.endsWith('/images') && d.folder !== 'images').length}
+            </span>
+          </button>
+
+          {/* 18 Root Folders and their Collapsible Subfolders */}
+          {rootFolders.map((rootFolder) => {
+            const subfolders = subfoldersByParent[rootFolder] || [];
+            const hasSubfolders = subfolders.length > 0;
+            const isExpanded = Boolean(expandedFolders[rootFolder]);
+
+            // Count docs in this root folder and its subfolders
+            const totalBranchDocs = docs.filter(
+              (d) =>
+                (d.folder === rootFolder || d.folder?.startsWith(rootFolder + '/')) &&
+                !d.folder?.endsWith('/images')
+            );
+            const isSelected = selectedFolder === rootFolder;
 
             return (
-              <button
-                key={folder}
-                onClick={() => setSelectedFolder(folder)}
-                className={`text-left px-2.5 py-1.5 sm:py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-between gap-2 shrink-0 whitespace-nowrap ${
-                  isSelected
-                    ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/30'
-                    : 'text-slate-300 bg-slate-950/40 lg:bg-transparent hover:bg-slate-800/70 hover:text-white border border-slate-800 lg:border-transparent'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 sm:gap-2 truncate">
-                  {isSelected ? (
-                    <FolderOpen className="w-3.5 h-3.5 text-indigo-200 shrink-0" />
-                  ) : (
-                    <Folder className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  )}
-                  <span className="truncate">{folder}</span>
-                </div>
-                <span
-                  className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
+              <div key={rootFolder} className="flex flex-col space-y-0.5 shrink-0">
+                <div
+                  onClick={() => setSelectedFolder(rootFolder)}
+                  className={`cursor-pointer px-2.5 py-1.5 sm:py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-between gap-1.5 shrink-0 whitespace-nowrap select-none ${
                     isSelected
-                      ? 'bg-indigo-700 text-white'
-                      : count > 0
-                      ? 'bg-slate-800 text-indigo-300'
-                      : 'bg-slate-900 text-slate-500'
+                      ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/30'
+                      : 'text-slate-300 bg-slate-950/40 lg:bg-transparent hover:bg-slate-800/70 hover:text-white border border-slate-800 lg:border-transparent'
                   }`}
                 >
-                  {count}
-                </span>
-              </button>
+                  <div className="flex items-center gap-1.5 sm:gap-2 truncate">
+                    {hasSubfolders && (
+                      <button
+                        onClick={(e) => toggleFolderExpand(rootFolder, e)}
+                        className={`p-0.5 rounded hover:bg-slate-700/60 transition-colors ${
+                          isSelected ? 'text-indigo-200 hover:text-white' : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                        title={isExpanded ? '하위폴더 접기' : '하위폴더 열기'}
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        ) : (
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    )}
+                    {isSelected ? (
+                      <FolderOpen className="w-3.5 h-3.5 text-indigo-200 shrink-0" />
+                    ) : (
+                      <Folder className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    )}
+                    <span className="truncate">{rootFolder}</span>
+                  </div>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
+                      isSelected
+                        ? 'bg-indigo-700 text-white'
+                        : totalBranchDocs.length > 0
+                        ? 'bg-slate-800 text-indigo-300'
+                        : 'bg-slate-900 text-slate-500'
+                    }`}
+                  >
+                    {totalBranchDocs.length}
+                  </span>
+                </div>
+
+                {/* Subfolders list (Collapsible Accordion) */}
+                {hasSubfolders && isExpanded && (
+                  <div className="pl-4 sm:pl-5 space-y-0.5 pt-0.5 pb-1 border-l-2 border-indigo-900/40 ml-2">
+                    {subfolders.map((subfolder) => {
+                      const subLabel = subfolder.split('/').slice(1).join('/');
+                      const subDocs = docs.filter((d) => d.folder === subfolder);
+                      const isSubSelected = selectedFolder === subfolder;
+
+                      return (
+                        <button
+                          key={subfolder}
+                          onClick={() => setSelectedFolder(subfolder)}
+                          className={`w-full text-left px-2 py-1 sm:py-1.5 rounded-md text-[11px] transition-all flex items-center justify-between gap-1.5 whitespace-nowrap ${
+                            isSubSelected
+                              ? 'bg-indigo-600/90 text-white font-semibold shadow-sm'
+                              : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 truncate">
+                            <Folder className={`w-3 h-3 ${isSubSelected ? 'text-indigo-200' : 'text-slate-500'}`} />
+                            <span className="truncate">{subLabel}</span>
+                          </div>
+                          <span
+                            className={`text-[9px] px-1 py-0.2 rounded font-mono ${
+                              isSubSelected
+                                ? 'bg-indigo-800 text-white'
+                                : 'bg-slate-900/80 text-slate-400'
+                            }`}
+                          >
+                            {subDocs.length}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
