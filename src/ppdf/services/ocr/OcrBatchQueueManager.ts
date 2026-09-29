@@ -69,7 +69,7 @@ export class OcrBatchQueueManager {
   private batchStartTime: number = 0;
   private completedTimestamps: number[] = [];
   private resolveBatchPromise: ((jobs: PageOcrJob[]) => void) | null = null;
-  private rejectBatchPromise: ((err: Error) => void) | null = null;
+  private _rejectBatchPromise: ((err: Error) => void) | null = null;
 
   constructor() {
     // 기본 브라우저 코어 감지
@@ -141,7 +141,7 @@ export class OcrBatchQueueManager {
 
     return new Promise<PageOcrJob[]>((resolve, reject) => {
       this.resolveBatchPromise = resolve;
-      this.rejectBatchPromise = reject;
+      this._rejectBatchPromise = reject;
 
       // 작업 디스패치 루프 시작
       this.dispatchNextJobs();
@@ -186,7 +186,7 @@ export class OcrBatchQueueManager {
       if (this.resolveBatchPromise) {
         this.resolveBatchPromise(this.jobs);
         this.resolveBatchPromise = null;
-        this.rejectBatchPromise = null;
+        this._rejectBatchPromise = null;
       }
     }
   }
@@ -201,7 +201,7 @@ export class OcrBatchQueueManager {
     this.completedTimestamps = [];
     this.batchStartTime = 0;
     this.resolveBatchPromise = null;
-    this.rejectBatchPromise = null;
+    this._rejectBatchPromise = null;
     this.notifyObservers();
   }
 
@@ -346,8 +346,12 @@ export class OcrBatchQueueManager {
       if (this.resolveBatchPromise) {
         this.resolveBatchPromise([...this.jobs]);
         this.resolveBatchPromise = null;
-        this.rejectBatchPromise = null;
+        if (this._rejectBatchPromise) {
+          this._rejectBatchPromise = null;
+        }
       }
+
+
     }
   }
 

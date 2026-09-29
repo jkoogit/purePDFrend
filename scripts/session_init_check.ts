@@ -68,7 +68,7 @@ async function run() {
   // Create issue for session 0012
   console.log('\n--- 3. Creating session 0012 issue ---');
   const issuePayload = {
-    title: '[0015_01]_작업명' PDF 페이지 레이아웃 편집기 및 Searchable PDF 내보내기 구현',
+    title: '[0015_01]_PDF 페이지 레이아웃 편집기 및 Searchable PDF 내보내기 구현',
     body: `## 📌 세션 정보
 - **세션 ID**: \`SESSION-260924-0012\`
 - **세션명**: \`[0012]PDF 페이지 레이아웃 편집기 및 투명 텍스트 레이어 임베딩 Searchable PDF 내보내기 구현\`
