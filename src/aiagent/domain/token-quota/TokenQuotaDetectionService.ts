@@ -92,4 +92,30 @@ export class TokenQuotaDetectionService {
 
     return false;
   }
+
+  /**
+   * 에러 텍스트/객체를 분석하여 원인 코드 및 진단 메시지 반환
+   */
+  public analyzeError(input: unknown): TokenQuotaCheckResult {
+    let payload: AgentTurnPayload;
+    if (typeof input === 'string') {
+      payload = { agentResponse: input };
+    } else if (typeof input === 'object' && input !== null) {
+      const obj = input as any;
+      payload = {
+        agentName: obj.agent_name || obj.agentName,
+        modelName: obj.model_name || obj.modelName,
+        userPrompt: obj.user_prompt || obj.userPrompt,
+        agentResponse: obj.agent_response || obj.agentResponse,
+        responseSummary: obj.response_summary || obj.responseSummary,
+        httpStatus: obj.httpStatus || obj.status,
+        rawError: obj.rawError || obj.error,
+      };
+    } else {
+      payload = { agentResponse: String(input || '') };
+    }
+
+    return this.checkQuota(payload);
+  }
 }
+

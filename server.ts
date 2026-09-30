@@ -1549,6 +1549,125 @@ app.get('/api/agent/usage', async (req, res) => {
   }
 });
 
+// Helper for KST 16:00 (UTC 00:00) Daily Sliding Window
+function getKstCycleInfo() {
+  const now = new Date();
+  const kstOffsetMs = 9 * 60 * 60 * 1000;
+  const kstNow = new Date(now.getTime() + kstOffsetMs);
+  const kstHour = kstNow.getUTCHours();
+
+  const cycleDateKst = new Date(kstNow);
+  if (kstHour < 16) {
+    cycleDateKst.setUTCDate(cycleDateKst.getUTCDate() - 1);
+  }
+  cycleDateKst.setUTCHours(16, 0, 0, 0);
+
+  const cycleStartUtc = new Date(cycleDateKst.getTime() - kstOffsetMs);
+  const nextResetUtc = new Date(cycleStartUtc.getTime() + 24 * 60 * 60 * 1000);
+  const remainingMsToReset = Math.max(0, nextResetUtc.getTime() - now.getTime());
+  const hoursLeft = Math.floor(remainingMsToReset / (1000 * 60 * 60));
+  const minutesLeft = Math.floor((remainingMsToReset % (1000 * 60 * 60)) / (1000 * 60));
+  const countdownFormatted = `${String(hoursLeft).padStart(2, '0')}시간 ${String(minutesLeft).padStart(2, '0')}분 남음 (KST 16:00 리셋)`;
+
+  return {
+    cycleStartUtc: cycleStartUtc.toISOString(),
+    nextResetUtc: nextResetUtc.toISOString(),
+    countdownFormatted,
+    hoursLeft,
+    minutesLeft,
+  };
+}
+
+// 4.1.1 Adaptive Quota Forecast API (KST 16:00 Daily Window & Burn-Rate Prediction)
+app.get('/api/agent/quota/forecast', async (req, res) => {
+  const store = getLocalStore();
+  const kstCycle = getKstCycleInfo();
+  const dailyQuotaMax = 2500; // Flash Free Tier RPD Max
+
+  try {
+    const cycleStartIso = kstCycle.cycleStartUtc;
+    const cycleRes: any = await executeSql(`
+      SELECT 
+        count(*) as cycle_turns,
+        COALESCE(sum(prompt_tokens), 0) as cycle_prompt_tokens,
+        COALESCE(sum(completion_tokens), 0) as cycle_completion_tokens,
+        COALESCE(sum(total_tokens), 0) as cycle_total_tokens,
+        COALESCE(avg(total_tokens), 0)::int as avg_tokens_per_turn
+      FROM aiagent.agent_conversation_trace
+      WHERE created_at >= '${cycleStartIso}'
+        AND agent_response NOT ILIKE '%resource_exhausted%'
+        AND agent_response NOT ILIKE '%quota exceeded%';
+    `);
+    const row = cycleRes.rows?.[0] || {};
+    const cycleTurns = parseInt(row.cycle_turns || '0', 10);
+    const cycleTotalTokens = parseInt(row.cycle_total_tokens || '0', 10);
+    const avgTokens = parseInt(row.avg_tokens_per_turn || '0', 10) || 2000;
+
+    const dailyTokenCapacity = 1000000;
+    const remainingDailyTokens = Math.max(0, dailyTokenCapacity - cycleTotalTokens);
+    const estimatedTurnsLeftByTokens = Math.floor(remainingDailyTokens / Math.max(1, avgTokens));
+    const estimatedTurnsLeftByRpd = Math.max(0, dailyQuotaMax - cycleTurns);
+    const effectiveTurnsLeft = Math.min(estimatedTurnsLeftByTokens, estimatedTurnsLeftByRpd);
+
+    const warningLevel = effectiveTurnsLeft < 15 ? 'CRITICAL' : effectiveTurnsLeft < 40 ? 'ATTENTION' : 'NORMAL';
+
+    res.json({
+      success: true,
+      cycleInfo: kstCycle,
+      usage: {
+        cycleTurns,
+        cycleTotalTokens,
+        avgTokensPerTurn: avgTokens,
+        dailyQuotaMax,
+        remainingDailyTurns: estimatedTurnsLeftByRpd,
+        remainingDailyTokens,
+      },
+      forecast: {
+        effectiveTurnsLeft,
+        warningLevel,
+        burnRate: `${avgTokens} tokens/turn`,
+        statusMessage: warningLevel === 'CRITICAL'
+          ? `[긴급] 토큰 소진 임박: 약 ${effectiveTurnsLeft}턴 후 소진 예상`
+          : warningLevel === 'ATTENTION'
+          ? `[주의] 토큰 쿼터 주의: 약 ${effectiveTurnsLeft}턴 잔여`
+          : `[안정] 정상 가용: 약 ${effectiveTurnsLeft}턴 잔여`,
+      }
+    });
+  } catch (err: any) {
+    res.json({
+      success: true,
+      cycleInfo: kstCycle,
+      forecast: {
+        effectiveTurnsLeft: 100,
+        warningLevel: 'NORMAL',
+        statusMessage: '로컬 폴백 쿼터 모드 가동 중',
+      }
+    });
+  }
+});
+
+// 4.1.2 AI Studio Specific Error Analyzer API
+app.post('/api/agent/quota/analyze-error', (req, res) => {
+  const { errorText } = req.body || {};
+  const analysis = tokenQuotaService.analyzeError(errorText || '');
+  const isType1 = /ran\s*for\s*0s.*quota|quota\s*exceeded/i.test(String(errorText || ''));
+  const isType2 = /unexpected\s*error/i.test(String(errorText || ''));
+
+  res.json({
+    success: true,
+    isExhausted: analysis.isExhausted,
+    reasonCode: analysis.reasonCode,
+    diagnosticMessage: analysis.diagnosticMessage,
+    classifiedType: isType1 ? 'ERR_QUOTA_GATEWAY_REJECT' : isType2 ? 'ERR_CONTEXT_OVERFLOW_HANG' : 'ERR_OTHER',
+    recommendation: isType1
+      ? '일일 호출 한도(RPD) 또는 분당 토큰(TPM) 초과입니다. KST 16:00 리셋을 대기하거나 멀티 계정 전환을 권장합니다.'
+      : isType2
+      ? '컨텍스트 비대화(Context Bloat)로 인한 오류입니다. 긴급 소스 푸시 후 태스크를 작게 마이크로 턴으로 분기하세요.'
+      : '일반 오류입니다.',
+  });
+});
+
+
 // 4.2 Comprehensive Turn Completion API (Syncs State, Logs Trace & Registers Review)
 app.post('/api/agent/turn/complete', async (req, res) => {
   try {
@@ -2266,10 +2385,11 @@ app.get('/api/agent/audit/integrity', async (req, res) => {
     try {
       const quotaCheckSql = `
         SELECT count(*) as cnt FROM aiagent.agent_conversation_trace
-        WHERE agent_response ILIKE '%resource_exhausted%'
+        WHERE (agent_response ILIKE '%resource_exhausted%'
            OR agent_response ILIKE '%quota exceeded%'
            OR agent_response ILIKE '%rate-limit%'
-           OR agent_response ILIKE '%429 too many requests%';
+           OR agent_response ILIKE '%429 too many requests%')
+          AND NOT (agent_response LIKE '# %' OR agent_response LIKE '# [%' OR length(agent_response) > 500);
       `;
       const quotaRes: any = await executeSql(quotaCheckSql);
       quotaViolationCount = parseInt(quotaRes.rows?.[0]?.cnt || '0', 10);

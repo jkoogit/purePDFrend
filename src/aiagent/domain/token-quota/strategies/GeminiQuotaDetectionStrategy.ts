@@ -22,6 +22,21 @@ export class GeminiQuotaDetectionStrategy extends AbstractTokenQuotaStrategy {
     // 1. Google API 명시적 리소스 소진 패턴 (Resource Exhausted / Quota Exceeded)
     const geminiPatterns: Array<{ pattern: RegExp; code: string; message: string }> = [
       {
+        pattern: /ran\s*for\s*0s.*quota\s*exceeded/i,
+        code: 'ERR_QUOTA_GATEWAY_REJECT',
+        message: 'AI Studio 실행시간 0초 거절: 일일(RPD)/분당(TPM) 쿼터 소진',
+      },
+      {
+        pattern: /quota\s*exceeded\.\s*please\s*try\s*again\s*later/i,
+        code: 'ERR_QUOTA_GATEWAY_REJECT',
+        message: 'AI Studio Quota exceeded. Please try again later',
+      },
+      {
+        pattern: /there\s*was\s*an\s*unexpected\s*error\.\s*finish\s*what\s*you\s*were\s*doing/i,
+        code: 'ERR_CONTEXT_OVERFLOW_HANG',
+        message: 'AI Studio 컨텍스트 과다(Context Bloat) 또는 세션 직렬화 타임아웃 오류',
+      },
+      {
         pattern: /resource_exhausted/i,
         code: 'GEMINI_RESOURCE_EXHAUSTED',
         message: 'Google Cloud RESOURCE_EXHAUSTED (gRPC status 8)',
