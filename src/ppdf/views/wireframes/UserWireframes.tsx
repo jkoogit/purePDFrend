@@ -1,4 +1,27 @@
 import { useState, useRef, useEffect } from 'react';
+import {
+  ArrowLeft,
+  Camera,
+  Image as ImageIcon,
+  FileText,
+  Minimize2,
+  Lock,
+  UploadCloud,
+  CheckCircle2,
+  Download,
+  Copy,
+  Sparkles,
+  Plus,
+  Trash2,
+  RotateCw,
+  Split,
+  FileCheck,
+  Check,
+  Pencil,
+  ChevronDown,
+  ChevronUp,
+  ShieldCheck,
+} from 'lucide-react';
 import { ViewerConfigRegistry, ViewerConfigState } from '../../domain/ViewerConfigRegistry';
 import { HorizontalSlideContainer } from '../../components/HorizontalSlideContainer';
 import { WireframeTopLayer } from '../../components/WireframeTopLayer';
@@ -21,6 +44,27 @@ export interface UserWireframesProps {
 
 export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
   const [selectedProg, setSelectedProg] = useState('PG-USR-01');
+
+  // PG-USR-03 Active Tool Subpage state (7대 PDF 핵심 문서 도구 전용 작업화면)
+  const [activePdfTool, setActivePdfTool] = useState<string | null>(null);
+  const [ocrEngineTab, setOcrEngineTab] = useState<'gemini' | 'tesseract' | 'paddle'>('gemini');
+  const [ocrLangs, setOcrLangs] = useState<{ kor: boolean; eng: boolean; jpn: boolean }>({ kor: true, eng: true, jpn: false });
+  const [compressLevel, setCompressLevel] = useState<'high' | 'recommended' | 'max'>('recommended');
+  const [cameraActive, setCameraActive] = useState(false);
+  const [capturedScans, setCapturedScans] = useState<number[]>([1, 2]);
+  const [userPasswordInput, setUserPasswordInput] = useState('');
+  const [extractedSampleText, setExtractedSampleText] = useState(
+    '제 1 장 총 칙\n\n제 1 조 (목적)\n본 규정은 purePDFrend 가상화 뷰어 엔진 및 고속 주석 시스템의 표준 운용 기준을 정함을 목적으로 한다.\n\n제 2 조 (용어의 정의)\n1. "Searchable PDF"란 스캔 이미지 하단에 OCR로 인식된 투명 텍스트 레이어가 합성된 문서를 말한다.\n2. "가상화 뷰어"란 800쪽 이상의 대용량 문서에 대해 화면 가시영역 페이지만 동적 렌더링하는 고속 엔진을 말한다.'
+  );
+  const [isCopiedToClipboard, setIsCopiedToClipboard] = useState(false);
+  const [docMgmtPages, setDocMgmtPages] = useState<Array<{ id: number; page: number; rotated: number }>>([
+    { id: 1, page: 1, rotated: 0 },
+    { id: 2, page: 2, rotated: 0 },
+    { id: 3, page: 3, rotated: 90 },
+    { id: 4, page: 4, rotated: 0 },
+    { id: 5, page: 5, rotated: 0 },
+    { id: 6, page: 6, rotated: 0 },
+  ]);
 
   // Viewer Config Registry
   const registry = ViewerConfigRegistry.getInstance();
@@ -201,6 +245,44 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
   const [isAuthVerified, setIsAuthVerified] = useState(false);
   const [authCode, setAuthCode] = useState('');
 
+  // [요청 3 반영] PG-USR-04 비밀번호 변경 접이식 서랍 및 확인 필드 상태
+  const [isPasswordChangeOpen, setIsPasswordChangeOpen] = useState(false);
+  const [currentPwInput, setCurrentPwInput] = useState('');
+  const [newPwInput, setNewPwInput] = useState('');
+  const [confirmPwInput, setConfirmPwInput] = useState('');
+  const [pwUpdateMessage, setPwUpdateMessage] = useState<string | null>(null);
+  const [socialLinkStates, setSocialLinkStates] = useState<{ google: boolean; kakao: boolean; naver: boolean; github: boolean }>({
+    google: true,
+    kakao: true,
+    naver: false,
+    github: true,
+  });
+
+  // [요청 반영] PG-USR-04 회원 기본정보(이름·별명·전화번호·이메일) 인라인 수정 모드 상태
+  const [isInfoEditMode, setIsInfoEditMode] = useState(false);
+  const [editName, setEditName] = useState('홍길동');
+  const [editNickname, setEditNickname] = useState('pureMaster');
+  const [editPhone, setEditPhone] = useState('010-1234-5678');
+  const [editEmail, setEditEmail] = useState('hong@purepdfrend.io');
+  const [infoSaveMessage, setInfoSaveMessage] = useState<string | null>(null);
+
+  // [0013 반영] 시스템 정책에 따른 이메일/소셜/2FA 옵션화 및 인라인 인증 상태
+  const [isEmailAuthPolicyRequired, setIsEmailAuthPolicyRequired] = useState(true); // 시스템 정책: 이메일 인증 필수 여부 (기본: 필수)
+  const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
+  const [emailInputCode, setEmailInputCode] = useState('');
+  const [isEmailCodeVerified, setIsEmailCodeVerified] = useState(false);
+  const [emailVerifyFeedback, setEmailVerifyFeedback] = useState<string | null>(null);
+
+  // 시스템 정책: 소셜 연동 허용 여부 & 2FA 사용자 활성화 토글 & 주수단 & 비상 복구코드 상태
+  const [isSocialAuthPolicyEnabled, setIsSocialAuthPolicyEnabled] = useState(true); // 시스템 정책: 소셜인증 옵션
+  const [is2FaUserEnabled, setIs2FaUserEnabled] = useState(true); // 2FA 선택 정책일 때 사용자 ON/OFF
+  const [primary2FaMethod, setPrimary2FaMethod] = useState<'kakao' | 'google' | 'naver' | 'email'>('kakao');
+  const [isBackupCodeModalOpen, setIsBackupCodeModalOpen] = useState(false);
+  const [backupCodes, setBackupCodes] = useState<string[]>([
+    'A9B2-4F1C', 'K3L8-9D2P', 'M5N7-1R4Q', 'P8Q2-6S9T', 'U1V4-8W3X',
+    'X9Y3-5Z1A', 'B4C7-2D8E', 'F1G6-3H9J', 'J7K2-4L8M', 'N3P9-5Q1R'
+  ]);
+
   // PG-USR-06 Viewer Toolbar state
   const [isToolbarModalOpen, setIsToolbarModalOpen] = useState(false);
   const [activeViewerTab, setActiveViewerTab] = useState<'bookmarks' | 'toc' | 'annots'>('toc');
@@ -214,6 +296,19 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
   const [settingsTab, setSettingsTab] = useState<'general' | 'shortcuts' | 'groups'>('groups');
   const [targetGroupForAdd, setTargetGroupForAdd] = useState('annot');
   const [selectedToolToAdd, setSelectedToolToAdd] = useState('rect');
+  const [quickBookmarks, setQuickBookmarks] = useState<string[]>([
+    'theme', 'ocr', 'virtual', 'shortcuts', 'autosave', 'masking', 'dpi', 'rect', 'highlight'
+  ]);
+
+  const toggleQuickBookmark = (id: string, name: string) => {
+    if (quickBookmarks.includes(id)) {
+      setQuickBookmarks(quickBookmarks.filter(b => b !== id));
+      alert(`⭐ 퀵설정 해제: [${name}] 항목이 프로필 하단 퀵설정 드로어에서 제거되었습니다.`);
+    } else {
+      setQuickBookmarks([...quickBookmarks, id]);
+      alert(`🌟 퀵설정 즐겨찾기 등록: [${name}] 항목이 프로필 하단 퀵설정 드로어에 추가되었습니다!`);
+    }
+  };
 
   const handleResetConfig = () => {
     const fresh = registry.resetToDefault();
@@ -373,7 +468,7 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
       </div>
 
       {/* 실제 프로덕션 대상 순수 화면 캔버스 (설명 배제, 화면 컴포넌트만 정확히 렌더링) */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-2xl space-y-6 min-h-[540px]">
+      <div className={`bg-slate-900/90 border border-slate-800 rounded-2xl ${isMobileMode ? 'p-2.5 sm:p-4' : 'p-5'} shadow-2xl space-y-6 min-h-[540px]`}>
         {/* PG-USR-02(로그인/회원가입)는 전용 독립 진입 화면이므로 상단 탑 레이어(WireframeTopLayer)를 제외하고, 그 외 화면에만 상단 헤더 배치 */}
         {selectedProg !== 'PG-USR-02' && (
           <WireframeTopLayer
@@ -1067,256 +1162,6 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                       </div>
                     </div>
 
-                    {/* [요청 4] 더 많은 프리셋 선택 모달 */}
-                    {isPresetModalOpen && (
-                      <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-                        <div className="bg-slate-900 border border-slate-700 rounded-2xl p-5 max-w-md w-full space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
-                          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                            <div className="flex items-center gap-2">
-                              <h5 className="font-bold text-white text-sm">프리셋 아바타 전체 선택</h5>
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono">
-                                총 {AVATAR_PRESETS.length}종
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => setIsPresetModalOpen(false)}
-                              className="text-slate-400 hover:text-white"
-                            >
-                              ✕
-                            </button>
-                          </div>
-
-                          {/* 카테고리 필터 탭 */}
-                          <div className="flex gap-1.5 text-[11px] pb-1 border-b border-slate-800/80">
-                            {[
-                              { id: 'all', label: '전체' },
-                              { id: 'person', label: '인물' },
-                              { id: '3d', label: '3D 아바타' },
-                              { id: 'character', label: '캐릭터' },
-                            ].map((tab) => (
-                              <button
-                                key={tab.id}
-                                type="button"
-                                onClick={() => setPresetCategory(tab.id as any)}
-                                className={`px-2.5 py-1 rounded-lg transition-colors ${
-                                  presetCategory === tab.id
-                                    ? 'bg-sky-600 text-white font-semibold'
-                                    : 'text-slate-400 hover:text-slate-200 bg-slate-950'
-                                }`}
-                              >
-                                {tab.label}
-                              </button>
-                            ))}
-                          </div>
-
-                          {/* 프리셋 그리드 */}
-                          <div className="grid grid-cols-4 gap-3 max-h-64 overflow-y-auto pr-1 no-scrollbar py-1">
-                            {AVATAR_PRESETS.filter((p) => presetCategory === 'all' || p.category === presetCategory).map((item) => (
-                              <button
-                                key={item.id}
-                                type="button"
-                                onClick={() => {
-                                  setSignupAvatar(item.url);
-                                  setAvatarScale(100);
-                                  setAvatarPosX(0);
-                                  setAvatarPosY(0);
-                                  setAvatarStatus('프리셋 적용');
-                                  setIsPresetModalOpen(false);
-                                }}
-                                className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all hover:scale-105 active:scale-95 ${
-                                  signupAvatar === item.url
-                                    ? 'bg-sky-950/60 border-sky-400 ring-2 ring-sky-500/30'
-                                    : 'border-slate-800 hover:border-slate-600 bg-slate-950'
-                                }`}
-                              >
-                                <img src={item.url} alt={item.name} className="w-12 h-12 rounded-full object-cover shadow-sm ring-1 ring-slate-800" />
-                                <span className="text-[10px] text-slate-300 truncate w-full text-center">{item.name}</span>
-                              </button>
-                            ))}
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => setIsPresetModalOpen(false)}
-                            className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium"
-                          >
-                            닫기
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* [요청 3] 프로필 사진 업로드 팝업: 마우스 드래그로 위치 이동 + 모서리로 크기조절 + 실제 자르기(Canvas Crop) 저장 */}
-                    {isCropModalOpen && (
-                      <div
-                        onMouseMove={onGlobalPointerMove}
-                        onMouseUp={onGlobalPointerEnd}
-                        onTouchMove={onGlobalPointerMove}
-                        onTouchEnd={onGlobalPointerEnd}
-                        className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 select-none"
-                      >
-                        <div
-                          onClick={(e) => e.stopPropagation()}
-                          className="bg-slate-900 border border-slate-700 rounded-2xl p-5 max-w-sm w-full space-y-4 shadow-2xl animate-in zoom-in-95 duration-150"
-                        >
-                          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                            <div className="flex items-center gap-2">
-                              <h5 className="font-bold text-white text-sm">사진 자르기 및 위치·크기 조절</h5>
-                              <span className="text-[10px] text-sky-400 font-mono px-1.5 py-0.5 rounded bg-sky-950/50 border border-sky-500/30">
-                                드래그 / 4방향 모서리 조절
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => setIsCropModalOpen(false)}
-                              className="text-slate-400 hover:text-white"
-                            >
-                              ✕
-                            </button>
-                          </div>
-
-                          {/* 인터랙티브 크롭 뷰포트 (드래그 위치이동 + 4방향 모서리 핸들 크기조절) */}
-                          <div className="relative w-56 h-56 mx-auto select-none">
-                            {/* 원형 마스크 프레임 */}
-                            <div
-                              onMouseDown={onDragStart}
-                              onTouchStart={onDragStart}
-                              className={`w-full h-full rounded-full bg-slate-950 border-2 border-sky-400 shadow-2xl overflow-hidden relative cursor-grab active:cursor-grabbing ${
-                                isAvatarDragging ? 'cursor-grabbing' : ''
-                              }`}
-                            >
-                              {/* 실제 드래그 가능한 이미지 캔버스 */}
-                              <img
-                                src={tempCropImage || signupAvatar}
-                                alt="영역 조절 미리보기"
-                                style={{
-                                  transform: `scale(${tempCropScale / 100}) translate(${tempCropPosX}px, ${tempCropPosY}px)`,
-                                }}
-                                className="w-full h-full object-cover pointer-events-none select-none transition-transform duration-75"
-                              />
-
-                              {/* 3x3 가이드 라인 오버레이 */}
-                              <div className="absolute inset-0 pointer-events-none opacity-20">
-                                <div className="w-full h-1/3 border-b border-sky-400" />
-                                <div className="w-full h-1/3 border-b border-sky-400" />
-                                <div className="absolute top-0 bottom-0 left-1/3 border-r border-sky-400" />
-                                <div className="absolute top-0 bottom-0 left-2/3 border-r border-sky-400" />
-                              </div>
-                            </div>
-
-                            {/* 4방향 모서리 크기조절 핸들 (원형 모서리 4개 핸들) */}
-                            {/* 1. 좌상단 */}
-                            <div
-                              onMouseDown={onCornerResizeStart}
-                              onTouchStart={onCornerResizeStart}
-                              className="absolute -top-1 -left-1 w-6 h-6 rounded-full bg-sky-500 hover:bg-sky-400 text-white flex items-center justify-center text-[10px] font-bold shadow-lg cursor-nwse-resize z-20 ring-2 ring-slate-900 active:scale-110"
-                              title="모서리를 드래그하여 크기 조절"
-                            >
-                              ⤡
-                            </div>
-                            {/* 2. 우상단 */}
-                            <div
-                              onMouseDown={onCornerResizeStart}
-                              onTouchStart={onCornerResizeStart}
-                              className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-sky-500 hover:bg-sky-400 text-white flex items-center justify-center text-[10px] font-bold shadow-lg cursor-nesw-resize z-20 ring-2 ring-slate-900 active:scale-110"
-                              title="모서리를 드래그하여 크기 조절"
-                            >
-                              ⤢
-                            </div>
-                            {/* 3. 좌하단 */}
-                            <div
-                              onMouseDown={onCornerResizeStart}
-                              onTouchStart={onCornerResizeStart}
-                              className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full bg-sky-500 hover:bg-sky-400 text-white flex items-center justify-center text-[10px] font-bold shadow-lg cursor-nesw-resize z-20 ring-2 ring-slate-900 active:scale-110"
-                              title="모서리를 드래그하여 크기 조절"
-                            >
-                              ⤢
-                            </div>
-                            {/* 4. 우하단 */}
-                            <div
-                              onMouseDown={onCornerResizeStart}
-                              onTouchStart={onCornerResizeStart}
-                              className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-sky-500 hover:bg-sky-400 text-white flex items-center justify-center text-[10px] font-bold shadow-lg cursor-nwse-resize z-20 ring-2 ring-slate-900 active:scale-110"
-                              title="모서리를 드래그하여 크기 조절"
-                            >
-                              ⤡
-                            </div>
-                          </div>
-
-                          {/* 자르기/위치 상태 요약 바 */}
-                          <div className="p-2.5 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-between text-[11px] text-slate-300 font-mono">
-                            <span>확대배율: <strong className="text-sky-400">{tempCropScale}%</strong></span>
-                            <span>위치: <strong className="text-sky-400">X:{tempCropPosX}px, Y:{tempCropPosY}px</strong></span>
-                          </div>
-
-                          {/* 슬라이더 및 빠른 조작 툴바 */}
-                          <div className="space-y-1.5 text-xs">
-                            <div className="flex justify-between items-center text-slate-400 text-[11px]">
-                              <span>배율 및 위치 미세조절</span>
-                              <div className="flex gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => setTempCropScale((s) => Math.max(50, s - 10))}
-                                  className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px]"
-                                  title="축소"
-                                >
-                                  - 줌
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setTempCropScale((s) => Math.min(250, s + 10))}
-                                  className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px]"
-                                  title="확대"
-                                >
-                                  + 줌
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setTempCropScale(100);
-                                    setTempCropPosX(0);
-                                    setTempCropPosY(0);
-                                  }}
-                                  className="text-sky-400 hover:underline text-[10px]"
-                                >
-                                  중앙 초기화
-                                </button>
-                              </div>
-                            </div>
-                            <input
-                              type="range"
-                              min="50"
-                              max="250"
-                              step="5"
-                              value={tempCropScale}
-                              onChange={(e) => setTempCropScale(Number(e.target.value))}
-                              className="w-full accent-sky-500 h-1.5 bg-slate-950 rounded cursor-pointer"
-                            />
-                          </div>
-
-                          {/* 모달 액션 버튼: [자르기 및 선택영역 저장] ➔ 실제 Canvas Crop 실행 */}
-                          <div className="flex gap-2 pt-2">
-                            <button
-                              type="button"
-                              onClick={() => setIsCropModalOpen(false)}
-                              className="w-1/3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs"
-                            >
-                              취소
-                            </button>
-                            <button
-                              type="button"
-                              onClick={handleApplyCrop}
-                              className="w-2/3 py-2.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs shadow-md shadow-sky-600/30 flex items-center justify-center gap-1.5 active:scale-95"
-                            >
-                              <span>자르기 및 영역 저장</span>
-                              <span>✓</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
                     {/* 2.2 이름, 별명, 전화번호 및 시스템 2차인증 해제 시 이메일주소 입력 필드 */}
                     <div className="space-y-3">
                       <div>
@@ -1668,51 +1513,639 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
         {/* PG-USR-03: 홈화면 (대시보드 및 7대 PDF 도구) */}
         {selectedProg === 'PG-USR-03' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-indigo-600/40 border border-indigo-500/50 flex items-center justify-center font-bold text-white">
-                  JK
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-white">jkok2j2m (시스템관리자)</div>
-                  <div className="text-xs text-slate-400 font-mono">ROLE_SYSADMIN · .env 인증 완료</div>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button className="px-2.5 py-1 bg-purple-600/20 text-purple-300 border border-purple-500/30 rounded text-xs flex items-center gap-1">
-                  🤖 에이전트 서비스
-                </button>
-                <button className="px-2.5 py-1 bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 rounded text-xs flex items-center gap-1">
-                  🛠 관리자 서비스
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <span className="text-xs font-semibold text-slate-400 block mb-2">
-                ⚡ 7대 PDF 핵심 문서 도구 (Quick Action Grid)
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                {[
-                  { name: '1. 카메라 문서스캔', icon: '📷', desc: '실물 촬영 후 PDF 즉시 추가' },
-                  { name: '2. 이미지 ➔ PDF', icon: '🖼', desc: '다중 이미지 병합 변환' },
-                  { name: '3. PDF OCR', icon: '🔤', desc: '투명 텍스트 레이어 생성' },
-                  { name: '4. PDF OCR ➔ TEXT', icon: '📝', desc: '텍스트 추출 및 .txt 다운로드' },
-                  { name: '5. PDF 문서관리', icon: '📑', desc: '병합/추출/순서재배열/삭제' },
-                  { name: '6. PDF 압축', icon: '🗜', desc: '이미지 최적화 및 용량 축소' },
-                  { name: '7. PDF 보안', icon: '🔒', desc: '비밀번호 및 권한 암호화' },
-                ].map((tool) => (
-                  <div
-                    key={tool.name}
-                    className="p-3 bg-slate-950 border border-slate-800 rounded-xl hover:border-sky-500/50 transition-all cursor-pointer group"
-                  >
-                    <div className="text-xl mb-1.5">{tool.icon}</div>
-                    <div className="font-semibold text-slate-200 group-hover:text-sky-400">{tool.name}</div>
-                    <div className="text-[11px] text-slate-500 mt-0.5">{tool.desc}</div>
+            {/* [요청 반영] 7대 PDF 문서도구: 선택 여부에 따른 화면 분기 (프로필 및 서비스 버튼은 WireframeTopLayer 단일 모듈에서 전담) */}
+            {activePdfTool === null ? (
+              /* 기본 대시보드 뷰: 7대 도구 선택 퀵 그리드 */
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+                      7대 PDF 핵심 문서 도구 (Quick Action Studio)
+                    </span>
+                    <span className="text-[10px] text-slate-500">도구를 선택하면 전용 작업화면으로 전환됩니다.</span>
                   </div>
-                ))}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                  {[
+                    { id: 'tool-camera', name: '1. 카메라 문서스캔', icon: '📷', desc: '모바일/웹캠 실물 촬영 후 즉시 PDF 생성', badge: '실시간 가이드' },
+                    { id: 'tool-img2pdf', name: '2. 이미지 ➔ PDF', icon: '🖼', desc: '다중 JPG/PNG 드래그 업로드 및 일괄 병합', badge: '다중 변환' },
+                    { id: 'tool-ocr', name: '3. PDF OCR', icon: '🔤', desc: 'Gemini / Tesseract 투명 텍스트 레이어 생성', badge: '듀얼 엔진' },
+                    { id: 'tool-ocr2text', name: '4. PDF OCR ➔ TEXT', icon: '📝', desc: '스캔 문서 내 텍스트 추출 및 .txt/.md 저장', badge: '텍스트 추출' },
+                    { id: 'tool-docmgmt', name: '5. PDF 문서관리', icon: '📑', desc: '페이지 회전/삭제/병합(Merge)/분할(Split)', badge: '페이지 편집' },
+                    { id: 'tool-compress', name: '6. PDF 압축', icon: '🗜', desc: 'DPI 최적화 및 최대 85% 용량 다이어트', badge: '초경량화' },
+                    { id: 'tool-security', name: '7. PDF 보안', icon: '🔒', desc: 'AES-256 열람 비밀번호 및 권한 암호화', badge: '보안 통제' },
+                  ].map((tool) => (
+                    <div
+                      key={tool.id}
+                      onClick={() => setActivePdfTool(tool.id)}
+                      className="p-3.5 bg-slate-950 border border-slate-800 rounded-xl hover:border-sky-500/60 hover:bg-slate-900/60 transition-all cursor-pointer group flex flex-col justify-between shadow-xs hover:shadow-sky-500/10"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-2xl">{tool.icon}</span>
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-sky-950/80 text-sky-400 border border-sky-800/60">
+                            {tool.badge}
+                          </span>
+                        </div>
+                        <div className="font-bold text-slate-200 group-hover:text-sky-400 transition-colors">
+                          {tool.name}
+                        </div>
+                        <div className="text-[11px] text-slate-400 mt-1 line-clamp-2">
+                          {tool.desc}
+                        </div>
+                      </div>
+                      <div className="mt-3 pt-2 border-t border-slate-900 flex items-center justify-between text-[11px] text-slate-500 group-hover:text-sky-300 font-medium">
+                        <span>작업 시작하기</span>
+                        <span className="transition-transform group-hover:translate-x-1">→</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 최근 작업 문서 및 퀵 통계 배너 */}
+                <div className="p-3.5 bg-slate-950/70 rounded-xl border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 shrink-0">
+                      <FileCheck className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-white">최근 처리 문서: ISO 32000-2 표준 가이드북 (840쪽)</div>
+                      <div className="text-[11px] text-slate-400">가상화 렌더링 최적화 적용 · 2회독 주석 이벤트 완료</div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedProg('PG-USR-06')}
+                    className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-sky-400 border border-slate-700 rounded-lg font-semibold shrink-0 transition-colors flex items-center gap-1.5"
+                  >
+                    <span>뷰어로 열기</span>
+                    <span>→</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              /* [작업화면] 7대 PDF 문서도구 전용 인라인 작업 스튜디오 */
+              <div className="space-y-4">
+                {/* 상단 공통 네비게이션 바: 뒤로가기 버튼 및 도구 정보 */}
+                <div className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800">
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setActivePdfTool(null)}
+                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg border border-slate-700 font-semibold text-xs flex items-center gap-1.5 transition-all shadow-xs active:scale-98"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>대시보드로 돌아가기</span>
+                    </button>
+                    <span className="text-slate-600">|</span>
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      {activePdfTool === 'tool-camera' && '📷 1. 카메라 문서스캔 스튜디오'}
+                      {activePdfTool === 'tool-img2pdf' && '🖼 2. 이미지 ➔ PDF 변환 스튜디오'}
+                      {activePdfTool === 'tool-ocr' && '🔤 3. PDF OCR 투명 레이어 스튜디오'}
+                      {activePdfTool === 'tool-ocr2text' && '📝 4. PDF OCR ➔ TEXT 추출 스튜디오'}
+                      {activePdfTool === 'tool-docmgmt' && '📑 5. PDF 문서관리 (페이지 편집기)'}
+                      {activePdfTool === 'tool-compress' && '🗜 6. PDF 압축 및 경량화 스튜디오'}
+                      {activePdfTool === 'tool-security' && '🔒 7. PDF 보안 및 AES-256 암호화'}
+                    </span>
+                  </div>
+
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-sky-950 text-sky-400 border border-sky-800">
+                    purePDFrend Tool Studio v1.0
+                  </span>
+                </div>
+
+                {/* 1. 카메라 문서스캔 작업화면 */}
+                {activePdfTool === 'tool-camera' && (
+                  <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-4 text-xs">
+                    <div className="flex flex-col md:flex-row gap-4">
+                      {/* 카메라 뷰파인더 모의 캔버스 */}
+                      <div className="flex-1 bg-slate-900 rounded-xl border border-slate-800 relative aspect-4/3 flex flex-col items-center justify-center overflow-hidden">
+                        {cameraActive ? (
+                          <div className="w-full h-full bg-slate-800 flex flex-col items-center justify-center relative">
+                            {/* 촬영 가이드 그리드 오버레이 */}
+                            <div className="absolute inset-8 border-2 border-dashed border-sky-400/80 rounded-lg pointer-events-none flex items-center justify-center">
+                              <span className="px-2 py-1 bg-slate-950/80 text-sky-300 text-[10px] rounded font-mono">
+                                A4 문서 테두리를 가이드 라인에 맞춰주세요
+                              </span>
+                            </div>
+                            <Camera className="w-12 h-12 text-sky-400 animate-pulse mb-2" />
+                            <span className="text-white font-semibold">웹캠/카메라 실시간 스트리밍 중...</span>
+                            <span className="text-slate-400 text-[11px] mt-1 font-mono">1920 x 1080 Full HD · 자동 왜곡 보정 ON</span>
+                          </div>
+                        ) : (
+                          <div className="text-center p-6 space-y-3">
+                            <div className="w-14 h-14 mx-auto rounded-2xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
+                              <Camera className="w-7 h-7" />
+                            </div>
+                            <div>
+                              <div className="font-bold text-white text-sm">카메라가 아직 기동되지 않았습니다</div>
+                              <div className="text-slate-400 text-[11px] mt-1">웹캠 또는 모바일 카메라 권한을 승인하여 실물 문서를 스캔하세요.</div>
+                            </div>
+                            <button
+                              onClick={() => setCameraActive(true)}
+                              className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold shadow-md shadow-sky-600/30 transition-all"
+                            >
+                              카메라 켜기 (웹캠 연동)
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 촬영 컨트롤 및 옵션 패널 */}
+                      <div className="w-full md:w-80 space-y-3 shrink-0">
+                        <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 space-y-2">
+                          <span className="font-bold text-white block">스캔 옵션 설정</span>
+                          <div className="space-y-1.5 text-[11px]">
+                            <label className="flex items-center justify-between text-slate-300">
+                              <span>자동 테두리 왜곡 보정</span>
+                              <input type="checkbox" defaultChecked className="rounded accent-sky-500" />
+                            </label>
+                            <label className="flex items-center justify-between text-slate-300">
+                              <span>명암 및 텍스트 선명화</span>
+                              <input type="checkbox" defaultChecked className="rounded accent-sky-500" />
+                            </label>
+                            <label className="flex items-center justify-between text-slate-300">
+                              <span>해상도</span>
+                              <select className="bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-slate-200">
+                                <option>A4 (300 DPI 표준)</option>
+                                <option>A4 (600 DPI 고정밀)</option>
+                              </select>
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* 촬영된 페이지 목록 */}
+                        <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-white">촬영된 페이지 목록</span>
+                            <span className="text-[11px] text-sky-400 font-mono font-bold">{capturedScans.length}장 캡처됨</span>
+                          </div>
+                          <div className="flex gap-2 overflow-x-auto pb-1">
+                            {capturedScans.map((p, idx) => (
+                              <div key={idx} className="w-16 h-20 bg-slate-950 border border-slate-700 rounded-lg flex flex-col items-center justify-center shrink-0 relative group">
+                                <span className="text-[10px] font-mono text-slate-400">{p}쪽</span>
+                                <span className="text-xs">📄</span>
+                                <button
+                                  onClick={() => setCapturedScans(capturedScans.filter((_, i) => i !== idx))}
+                                  className="absolute top-0.5 right-0.5 w-4 h-4 bg-rose-600 text-white rounded flex items-center justify-center text-[9px] opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              onClick={() => setCapturedScans([...capturedScans, capturedScans.length + 1])}
+                              className="w-16 h-20 bg-slate-950/50 border border-dashed border-slate-700 rounded-lg flex flex-col items-center justify-center shrink-0 hover:border-sky-500 text-slate-500 hover:text-sky-400 transition-colors"
+                            >
+                              <Plus className="w-4 h-4" />
+                              <span className="text-[10px]">추가촬영</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* 최종 PDF 변환 실행 */}
+                        <button
+                          onClick={() => alert(`총 ${capturedScans.length}장의 촬영본을 단일 Searchable PDF로 변환 저장하였습니다.`)}
+                          className="w-full py-2.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-sky-600/20 transition-all"
+                        >
+                          <FileText className="w-4 h-4" />
+                          <span>PDF 문서로 병합 저장</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. 이미지 ➔ PDF 변환 작업화면 */}
+                {activePdfTool === 'tool-img2pdf' && (
+                  <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-4 text-xs">
+                    <div className="p-8 border-2 border-dashed border-slate-700 hover:border-sky-500 rounded-2xl bg-slate-900/60 text-center space-y-3 transition-colors cursor-pointer">
+                      <div className="w-12 h-12 mx-auto rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
+                        <UploadCloud className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-white text-sm">변환할 이미지들을 드래그하여 놓으세요</div>
+                        <div className="text-slate-400 text-[11px] mt-1">지원 형식: JPG, PNG, WEBP, BMP (다중 파일 동시 선택 가능)</div>
+                      </div>
+                      <button className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-600 font-semibold text-xs">
+                        내 컴퓨터에서 이미지 선택
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 space-y-2">
+                        <span className="font-bold text-white">용지 규격</span>
+                        <select className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200">
+                          <option>A4 (210 x 297 mm)</option>
+                          <option>Letter (8.5 x 11 in)</option>
+                          <option>이미지 원본 크기에 맞춤</option>
+                        </select>
+                      </div>
+                      <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 space-y-2">
+                        <span className="font-bold text-white">용지 방향</span>
+                        <select className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200">
+                          <option>자동 (이미지 비율에 따라 결정)</option>
+                          <option>세로 (Portrait)</option>
+                          <option>가로 (Landscape)</option>
+                        </select>
+                      </div>
+                      <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 space-y-2">
+                        <span className="font-bold text-white">여백 설정</span>
+                        <select className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200">
+                          <option>여백 없음 (꽉 차게 맞춤)</option>
+                          <option>좁은 여백 (10mm)</option>
+                          <option>기본 여백 (20mm)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-2">
+                      <button
+                        onClick={() => alert('선택된 이미지들을 단일 PDF로 변환 생성 완료하였습니다.')}
+                        className="px-6 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-sky-600/30 transition-all"
+                      >
+                        <ImageIcon className="w-4 h-4" />
+                        <span>PDF 변환 및 다운로드 실행</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. PDF OCR 투명 레이어 스튜디오 */}
+                {activePdfTool === 'tool-ocr' && (
+                  <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-4 text-xs">
+                    {/* OCR 엔진 선택 탭 */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-slate-900 rounded-xl border border-slate-800">
+                      <span className="font-bold text-white ml-1">OCR 인식 엔진 선택:</span>
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() => setOcrEngineTab('gemini')}
+                          className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                            ocrEngineTab === 'gemini'
+                              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                              : 'bg-slate-950 text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          ✨ Google Gemini Vision (초고정밀)
+                        </button>
+                        <button
+                          onClick={() => setOcrEngineTab('tesseract')}
+                          className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                            ocrEngineTab === 'tesseract'
+                              ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30'
+                              : 'bg-slate-950 text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          ⚡ Tesseract OCR (오프라인 로컬)
+                        </button>
+                        <button
+                          onClick={() => setOcrEngineTab('paddle')}
+                          className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                            ocrEngineTab === 'paddle'
+                              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+                              : 'bg-slate-950 text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          🐧 PaddleOCR (도커 배치)
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* 언어 선택 및 파라미터 */}
+                      <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 space-y-3">
+                        <span className="font-bold text-white block">다국어 인식 언어 선택</span>
+                        <div className="grid grid-cols-3 gap-2">
+                          <label className="flex items-center gap-2 p-2 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={ocrLangs.kor}
+                              onChange={(e) => setOcrLangs({ ...ocrLangs, kor: e.target.checked })}
+                              className="accent-sky-500 rounded"
+                            />
+                            <span className="text-slate-200">한국어 (kor)</span>
+                          </label>
+                          <label className="flex items-center gap-2 p-2 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={ocrLangs.eng}
+                              onChange={(e) => setOcrLangs({ ...ocrLangs, eng: e.target.checked })}
+                              className="accent-sky-500 rounded"
+                            />
+                            <span className="text-slate-200">영어 (eng)</span>
+                          </label>
+                          <label className="flex items-center gap-2 p-2 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={ocrLangs.jpn}
+                              onChange={(e) => setOcrLangs({ ...ocrLangs, jpn: e.target.checked })}
+                              className="accent-sky-500 rounded"
+                            />
+                            <span className="text-slate-200">일본어 (jpn)</span>
+                          </label>
+                        </div>
+
+                        <div className="pt-2 border-t border-slate-800/80 space-y-1.5 text-[11px] text-slate-300">
+                          <div className="flex justify-between">
+                            <span>신뢰도 임계값 (Confidence Threshold):</span>
+                            <span className="font-mono text-sky-400 font-bold">85% 이상</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>투명 텍스트 레이어 생성:</span>
+                            <span className="text-emerald-400 font-bold">포함 (Searchable PDF)</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 대상 문서 정보 및 진행 상태 */}
+                      <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 space-y-3 flex flex-col justify-between">
+                        <div>
+                          <span className="font-bold text-white block mb-1">대상 문서: ISO 32000-2 표준 가이드북</span>
+                          <span className="text-[11px] text-slate-400">총 840쪽 · 대용량 가상화 스트리밍 처리 대기</span>
+                        </div>
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between text-[11px]">
+                            <span className="text-slate-400">OCR 배치 분석 준비 완료</span>
+                            <span className="text-emerald-400 font-mono">100% Ready</span>
+                          </div>
+                          <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden">
+                            <div className="bg-sky-500 h-full w-full rounded-full" />
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => alert('Searchable PDF OCR 투명 텍스트 레이어 합성을 성공적으로 완료하였습니다.')}
+                          className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          <span>Searchable PDF OCR 합성 시작</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. PDF OCR ➔ TEXT 추출 스튜디오 */}
+                {activePdfTool === 'tool-ocr2text' && (
+                  <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-4 text-xs">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-white">추출 형식:</span>
+                        <button className="px-2.5 py-1 bg-sky-600 text-white rounded font-bold">순수 텍스트 (.txt)</button>
+                        <button className="px-2.5 py-1 bg-slate-900 text-slate-400 rounded">마크다운 (.md)</button>
+                        <button className="px-2.5 py-1 bg-slate-900 text-slate-400 rounded">표 인식 (CSV)</button>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            navigator.clipboard?.writeText(extractedSampleText);
+                            setIsCopiedToClipboard(true);
+                            setTimeout(() => setIsCopiedToClipboard(false), 2000);
+                          }}
+                          className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 font-medium flex items-center gap-1.5 transition-colors"
+                        >
+                          {isCopiedToClipboard ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{isCopiedToClipboard ? '복사 완료!' : '클립보드 복사'}</span>
+                        </button>
+                        <button
+                          onClick={() => alert('추출된 텍스트를 purePDFrend_extracted.txt 파일로 다운로드합니다.')}
+                          className="px-3 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-bold flex items-center gap-1.5"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>.txt 다운로드</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 space-y-2">
+                        <span className="font-bold text-slate-300 block">원본 PDF 스캔본 미리보기 (1쪽)</span>
+                        <div className="aspect-3/4 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-center text-slate-500 font-mono text-[11px]">
+                          [원본 PDF 스캔 페이지 렌더링 뷰]
+                        </div>
+                      </div>
+                      <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 space-y-2 flex flex-col">
+                        <span className="font-bold text-emerald-400 block">OCR 실시간 추출 텍스트 편집기</span>
+                        <textarea
+                          value={extractedSampleText}
+                          onChange={(e) => setExtractedSampleText(e.target.value)}
+                          className="flex-1 min-h-[260px] w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-slate-200 font-mono text-xs focus:outline-hidden focus:border-sky-500 resize-none leading-relaxed"
+                        />
+                        <div className="text-[10px] text-slate-500 flex justify-between">
+                          <span>글자 수: {extractedSampleText.length} 자</span>
+                          <span>인식 신뢰도: 98.4% (Tesseract v5.4)</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 5. PDF 문서관리 (페이지 편집기) */}
+                {activePdfTool === 'tool-docmgmt' && (
+                  <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-4 text-xs">
+                    {/* 상단 액션 툴바 */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-slate-900 rounded-xl border border-slate-800">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setDocMgmtPages(docMgmtPages.map((p) => ({ ...p, rotated: (p.rotated + 90) % 360 })));
+                          }}
+                          className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 font-semibold flex items-center gap-1.5"
+                        >
+                          <RotateCw className="w-3.5 h-3.5" />
+                          <span>전체 90° 회전</span>
+                        </button>
+                        <button
+                          onClick={() => alert('다른 PDF 파일을 선택하여 현재 문서 뒤에 병합(Merge)합니다.')}
+                          className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 font-semibold flex items-center gap-1.5"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>PDF 병합 (Merge)</span>
+                        </button>
+                        <button
+                          onClick={() => alert('선택한 페이지를 별도 PDF 파일로 분할(Split) 추출합니다.')}
+                          className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 font-semibold flex items-center gap-1.5"
+                        >
+                          <Split className="w-3.5 h-3.5" />
+                          <span>선택 분할 (Split)</span>
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={() => alert('페이지 순서 및 회전 편집 사항이 새 PDF 파일로 안전하게 저장되었습니다.')}
+                        className="px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-bold flex items-center gap-1.5"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>편집 완료 및 저장</span>
+                      </button>
+                    </div>
+
+                    {/* 인터랙티브 썸네일 그리드 */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                      {docMgmtPages.map((p, idx) => (
+                        <div
+                          key={p.id}
+                          className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl space-y-2 flex flex-col items-center group relative hover:border-sky-500/60 transition-all"
+                        >
+                          <div
+                            style={{ transform: `rotate(${p.rotated}deg)` }}
+                            className="w-full aspect-3/4 bg-slate-950 border border-slate-800 rounded-lg flex flex-col items-center justify-center font-mono text-[11px] text-slate-400 transition-transform"
+                          >
+                            <span>PAGE</span>
+                            <span className="font-bold text-white text-sm">{p.page}</span>
+                          </div>
+                          <div className="flex items-center justify-between w-full pt-1 text-[11px]">
+                            <span className="text-slate-400 font-mono">{idx + 1}p ({p.rotated}°)</span>
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => {
+                                  const updated = [...docMgmtPages];
+                                  updated[idx].rotated = (updated[idx].rotated + 90) % 360;
+                                  setDocMgmtPages(updated);
+                                }}
+                                title="90도 회전"
+                                className="p-1 hover:bg-slate-800 text-slate-400 hover:text-white rounded"
+                              >
+                                <RotateCw className="w-3 h-3" />
+                              </button>
+                              <button
+                                onClick={() => setDocMgmtPages(docMgmtPages.filter((_, i) => i !== idx))}
+                                title="페이지 삭제"
+                                className="p-1 hover:bg-rose-900/50 text-slate-400 hover:text-rose-400 rounded"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 6. PDF 압축 스튜디오 */}
+                {activePdfTool === 'tool-compress' && (
+                  <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-4 text-xs">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* 원본 파일 분석 카드 */}
+                      <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 space-y-2">
+                        <span className="font-bold text-white block">원본 파일 정보</span>
+                        <div className="space-y-1 text-slate-400 text-[11px] font-mono">
+                          <div>파일명: ISO 32000-2_Full.pdf</div>
+                          <div>원본 용량: <strong className="text-rose-400">48.2 MB</strong></div>
+                          <div>총 페이지수: 840 쪽</div>
+                          <div>포함 이미지: 1,420개 고해상도 비트맵</div>
+                        </div>
+                      </div>
+
+                      {/* 압축 프로필 선택 */}
+                      <div className="md:col-span-2 p-3 bg-slate-900 rounded-xl border border-slate-800 space-y-3">
+                        <span className="font-bold text-white block">압축 레벨 선택</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          {[
+                            { id: 'high', label: '고품질 (인쇄용)', reduction: '~30% 절감', expected: '33.7 MB', dpi: '300 DPI' },
+                            { id: 'recommended', label: '권장 압축 (표준)', reduction: '~65% 절감', expected: '16.8 MB', dpi: '150 DPI' },
+                            { id: 'max', label: '최대 압축 (이메일)', reduction: '~85% 절감', expected: '7.2 MB', dpi: '72 DPI' },
+                          ].map((lvl) => (
+                            <div
+                              key={lvl.id}
+                              onClick={() => setCompressLevel(lvl.id as any)}
+                              className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                                compressLevel === lvl.id
+                                  ? 'bg-sky-950/60 border-sky-500 shadow-md shadow-sky-500/10'
+                                  : 'bg-slate-950 border-slate-800 hover:border-slate-700'
+                              }`}
+                            >
+                              <div className="font-bold text-white">{lvl.label}</div>
+                              <div className="text-sky-400 font-bold mt-1">{lvl.reduction}</div>
+                              <div className="text-[10px] text-slate-400 font-mono mt-0.5">예상: {lvl.expected} · {lvl.dpi}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-slate-900/60 rounded-xl border border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3">
+                      <div>
+                        <div className="font-bold text-white text-sm">초경량 압축 최적화 준비 완료</div>
+                        <div className="text-slate-400 text-[11px] mt-0.5">
+                          예상 절감량: <strong>48.2 MB ➔ 16.8 MB (31.4 MB 절약)</strong>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => alert('PDF 압축이 완료되었습니다. (용량 65% 절감 성공)')}
+                        className="px-6 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-sky-600/30"
+                      >
+                        <Minimize2 className="w-4 h-4" />
+                        <span>PDF 최적화 압축 실행</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 7. PDF 보안 및 암호화 */}
+                {activePdfTool === 'tool-security' && (
+                  <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-4 text-xs">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* 비밀번호 설정 카드 */}
+                      <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 space-y-3">
+                        <span className="font-bold text-white block">비밀번호 설정</span>
+                        <div className="space-y-2">
+                          <div>
+                            <label className="text-slate-400 text-[11px] block mb-1">문서 열람 암호 (User Password)</label>
+                            <input
+                              type="password"
+                              value={userPasswordInput}
+                              onChange={(e) => setUserPasswordInput(e.target.value)}
+                              placeholder="문서를 열람할 때 요구할 암호 입력"
+                              className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200 font-mono text-xs focus:outline-hidden focus:border-sky-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-slate-400 text-[11px] block mb-1">관리자/권한 암호 (Owner Password)</label>
+                            <input
+                              type="password"
+                              placeholder="보안 설정을 변경할 때 요구할 마스터 암호"
+                              className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200 font-mono text-xs focus:outline-hidden focus:border-sky-500"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 세부 권한 제어 */}
+                      <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 space-y-3">
+                        <span className="font-bold text-white block">문서 세부 권한 제어</span>
+                        <div className="space-y-1.5 text-slate-300 text-[11px]">
+                          <label className="flex items-center justify-between p-1.5 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
+                            <span>인쇄(Print) 허용</span>
+                            <input type="checkbox" defaultChecked className="accent-sky-500 rounded" />
+                          </label>
+                          <label className="flex items-center justify-between p-1.5 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
+                            <span>텍스트 및 이미지 내용 복사 허용</span>
+                            <input type="checkbox" className="accent-sky-500 rounded" />
+                          </label>
+                          <label className="flex items-center justify-between p-1.5 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
+                            <span>주석(Annotation) 작성 및 양식 입력 허용</span>
+                            <input type="checkbox" defaultChecked className="accent-sky-500 rounded" />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2">
+                      <span className="text-[11px] text-slate-400 font-mono">암호화 알고리즘: AES-256 bit (Acrobat X 이상 호환 표준)</span>
+                      <button
+                        onClick={() => alert('문서에 AES-256 암호화 및 권한 제어가 성공적으로 적용되었습니다.')}
+                        className="px-6 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-rose-600/30 transition-all"
+                      >
+                        <Lock className="w-4 h-4" />
+                        <span>보안 암호화 적용 및 PDF 다운로드</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -1747,22 +2180,56 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {[
-                { title: 'ISO 32000-2 표준 가이드북', pages: 840, version: 'v1.4', hash: 'e3b0c442...855', round: '2회독 진행중' },
-                { title: 'TDD 및 도메인 주도 설계 핸드북', pages: 320, version: 'v2.0', hash: 'a1f89bc2...112', round: '완독 (3회독)' },
+                { title: 'ISO 32000-2:2020 문서 관리 및 차세대 PDF 2.0 전자서명 표준 규격 가이드북 (엔터프라이즈 개정판)', totalPages: 840, readPages: 655, version: 'v1.4', hash: 'e3b0c442...855', round: '2회독 진행중' },
+                { title: 'TDD 및 도메인 주도 설계(DDD) 기반 대용량 가상화 PDF 렌더링 아키텍처 실전 핸드북 v2.0', totalPages: 320, readPages: 320, version: 'v2.0', hash: 'a1f89bc2...112', round: '완독 (3회독)' },
+                { title: '엔터프라이즈 멀티 클라우드 스토리지 자원 거버넌스 및 Dual OCR 분산 파이프라인 명세서', totalPages: 185, readPages: 92, version: 'v1.1', hash: 'c901ab43...490', round: '1회독 진행중' },
               ].map((doc) => (
-                <div key={doc.title} className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
-                  <div className="flex justify-between items-start">
-                    <span className="font-bold text-white text-sm">{doc.title}</span>
-                    <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-400 rounded text-[11px] font-mono">{doc.round}</span>
+                <div
+                  key={doc.title}
+                  onClick={() => setSelectedProg('PG-USR-06')}
+                  className="p-3 bg-slate-950 border border-slate-800 hover:border-sky-500/50 rounded-xl space-y-2 cursor-pointer transition-all group select-none shadow-xs"
+                  title="클릭하여 뷰어(PG-USR-06)로 상세 열기"
+                >
+                  <div className="flex justify-between items-center gap-2">
+                    {/* [요청 4, 5 반영] 문서명 영역만 가로 슬라이드 이벤트 적용 (클릭 이벤트 전파 차단하여 슬라이드와 뷰어 이동 분리) */}
+                    <div
+                      className="flex-1 min-w-0 overflow-x-auto scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] py-0.5 cursor-ew-resize select-none"
+                      onClick={(e) => {
+                        // 문서명 슬라이드/드래그 조작 시 카드 전체의 뷰어 이동 이벤트와 겹치지 않도록 차단
+                        e.stopPropagation();
+                      }}
+                      onWheel={(e) => {
+                        e.stopPropagation();
+                        e.currentTarget.scrollLeft += e.deltaY;
+                      }}
+                      title={`${doc.title} (마우스 휠/드래그로 긴 문서명 가로 슬라이드)`}
+                    >
+                      <span className="font-bold text-white text-sm whitespace-nowrap group-hover:text-sky-300 transition-colors">
+                        {doc.title}
+                      </span>
+                    </div>
+                    <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-400 rounded text-[11px] font-mono shrink-0">{doc.round}</span>
                   </div>
-                  <div className="text-[11px] text-slate-400 flex gap-3 font-mono">
-                    <span>{doc.pages} 쪽</span>
+                  {/* [요청 2 반영] 문서카드 총페이지 / 열람페이지 함께 표시 */}
+                  <div className="text-[11px] text-slate-400 flex flex-wrap gap-x-3 gap-y-1 font-mono items-center">
+                    <span className="text-slate-200 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                      <strong className="text-sky-400 font-bold">{doc.readPages}</strong> / {doc.totalPages} 쪽 열람
+                    </span>
                     <span>버전 {doc.version}</span>
-                    <span>해시: {doc.hash}</span>
+                    <span className="text-slate-500">해시: {doc.hash}</span>
                   </div>
                   <div className="pt-2 border-t border-slate-800 flex justify-between items-center">
                     <span className="text-slate-500 text-[11px]">4종 다운로드: 원본 / 주석 / 최종본 / 보안압축</span>
-                    <button className="px-2.5 py-1 bg-sky-600/30 text-sky-300 rounded hover:bg-sky-600/50">뷰어로 열기 ➔</button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedProg('PG-USR-06');
+                      }}
+                      className="px-2.5 py-1 bg-sky-600/30 text-sky-300 hover:bg-sky-600 hover:text-white rounded transition-colors font-medium cursor-pointer"
+                    >
+                      뷰어로 열기 ➔
+                    </button>
                   </div>
                 </div>
               ))}
@@ -2244,6 +2711,18 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                                   <span className="text-slate-300 truncate">{t.name}</span>
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleQuickBookmark(t.id, t.name)}
+                                    className={`px-1.5 py-0.5 rounded text-[10px] font-mono transition-colors ${
+                                      quickBookmarks.includes(t.id)
+                                        ? 'text-amber-300 bg-amber-400/20 border border-amber-400/40'
+                                        : 'text-slate-500 hover:text-slate-300 border border-slate-800'
+                                    }`}
+                                    title="프로필 하단 퀵설정 드로어에 즐겨찾기 등록/해제"
+                                  >
+                                    ★
+                                  </button>
                                   {idx > 0 && (
                                     <button
                                       onClick={() => handleMoveTool(grp.id, idx, idx - 1)}
@@ -2313,6 +2792,18 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                           </div>
                         </div>
                         <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => toggleQuickBookmark(`sc-${t.id}`, `${t.name} 단축키`)}
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-mono transition-colors ${
+                              quickBookmarks.includes(`sc-${t.id}`)
+                                ? 'text-amber-300 bg-amber-400/20 border border-amber-400/40'
+                                : 'text-slate-500 hover:text-slate-300 border border-slate-800'
+                            }`}
+                            title="프로필 하단 퀵설정 드로어에 즐겨찾기 등록/해제"
+                          >
+                            ★
+                          </button>
                           <input
                             type="text"
                             value={currentKey}
@@ -2330,22 +2821,102 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
             {/* 3. 일반 옵션 탭 */}
             {settingsTab === 'general' && (
               <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
-                <span className="font-semibold text-slate-200">뷰어 보기 및 테마 일반 옵션</span>
+                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                  <span className="font-semibold text-slate-200">뷰어 보기 및 테마 일반 옵션</span>
+                  <span className="text-[11px] text-slate-400">
+                    각 항목 우측의 <strong className="text-amber-400">★</strong> 버튼을 누르면 프로필 레이어 하단 퀵설정 바에 등록됩니다.
+                  </span>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                   <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 flex justify-between items-center">
-                    <span>테마 모드</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleQuickBookmark('opt-theme', '테마 모드')}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-mono transition-colors ${
+                          quickBookmarks.includes('opt-theme')
+                            ? 'text-amber-300 bg-amber-400/20 border border-amber-400/40'
+                            : 'text-slate-500 hover:text-slate-300 border border-slate-800'
+                        }`}
+                        title="프로필 하단 퀵설정 드로어에 즐겨찾기 등록/해제"
+                      >
+                        ★
+                      </button>
+                      <span>🌓 테마 모드</span>
+                    </div>
                     <select className="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-200">
                       <option>다크 모드 (기본값)</option>
                       <option>라이트 모드</option>
                       <option>세피아 모드</option>
                     </select>
                   </div>
+
                   <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 flex justify-between items-center">
-                    <span>초기 첫화면 지정</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleQuickBookmark('opt-home', '초기 첫화면')}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-mono transition-colors ${
+                          quickBookmarks.includes('opt-home')
+                            ? 'text-amber-300 bg-amber-400/20 border border-amber-400/40'
+                            : 'text-slate-500 hover:text-slate-300 border border-slate-800'
+                        }`}
+                        title="프로필 하단 퀵설정 드로어에 즐겨찾기 등록/해제"
+                      >
+                        ★
+                      </button>
+                      <span>🏠 초기 첫화면 지정</span>
+                    </div>
                     <select className="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-200">
                       <option>홈 대시보드 (PG-USR-03)</option>
                       <option>문서관리 라이브러리 (PG-USR-05)</option>
                       <option>마지막 열람 문서 뷰어</option>
+                    </select>
+                  </div>
+
+                  <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleQuickBookmark('opt-ocr', '기본 OCR 엔진')}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-mono transition-colors ${
+                          quickBookmarks.includes('opt-ocr')
+                            ? 'text-amber-300 bg-amber-400/20 border border-amber-400/40'
+                            : 'text-slate-500 hover:text-slate-300 border border-slate-800'
+                        }`}
+                        title="프로필 하단 퀵설정 드로어에 즐겨찾기 등록/해제"
+                      >
+                        ★
+                      </button>
+                      <span>🔤 기본 OCR 엔진</span>
+                    </div>
+                    <select className="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-200">
+                      <option>Gemini 1.5 Flash (클라우드 고정밀)</option>
+                      <option>Tesseract WASM (로컬 오프라인)</option>
+                      <option>자동 앙상블 (하이브리드)</option>
+                    </select>
+                  </div>
+
+                  <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleQuickBookmark('opt-autosave', '자동 저장 주기')}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-mono transition-colors ${
+                          quickBookmarks.includes('opt-autosave')
+                            ? 'text-amber-300 bg-amber-400/20 border border-amber-400/40'
+                            : 'text-slate-500 hover:text-slate-300 border border-slate-800'
+                        }`}
+                        title="프로필 하단 퀵설정 드로어에 즐겨찾기 등록/해제"
+                      >
+                        ★
+                      </button>
+                      <span>💾 자동 저장 주기</span>
+                    </div>
+                    <select className="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-200">
+                      <option>3초 (권장 실시간)</option>
+                      <option>10초</option>
+                      <option>수동 저장만 실행</option>
                     </select>
                   </div>
                 </div>
@@ -2357,79 +2928,686 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
         {/* PG-USR-04: 마이페이지 > 사용자관리 (프로필/비밀번호/2FA설정/보안세션) */}
         {selectedProg === 'PG-USR-04' && (
           <div className="space-y-4 text-xs">
-            {/* 프로필 정보 요약 카드 */}
-            <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-900 border-2 border-sky-400 ring-2 ring-sky-500/20 shrink-0">
-                  <img src={signupAvatar} alt="사용자 프로필" className="w-full h-full object-cover" />
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-white text-base">{signupName}</span>
-                    <span className="text-[11px] px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono">@{signupNickname}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">PRO 회원</span>
+            {/* [요청 2, 0012 반영] 프로필 정보 요약 카드: 읽기 모드 vs 인라인 편집 모드 전환 */}
+            {!isInfoEditMode ? (
+              /* 읽기 모드 (평상시) */
+              <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="relative w-16 h-16 shrink-0 group">
+                    <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-900 border-2 border-sky-400/80 ring-2 ring-sky-500/20 shadow-md">
+                      <img src={signupAvatar} alt="사용자 프로필" className="w-full h-full object-cover" />
+                    </div>
+                    {/* [요청 반영] 튀지 않게 톤을 낮춘 아바타 연필 수정 버튼 ➔ 클릭 시 크롭 모달 즉각 팝업 */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTempCropImage(signupAvatar);
+                        setTempCropScale(avatarScale);
+                        setTempCropPosX(avatarPosX);
+                        setTempCropPosY(avatarPosY);
+                        setIsCropModalOpen(true);
+                      }}
+                      className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-600/90 shadow-md flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95"
+                      title="프로필 사진 및 자르기(크롭) 편집"
+                      aria-label="프로필 사진 수정"
+                    >
+                      <Pencil className="w-3 h-3 text-slate-300" />
+                    </button>
                   </div>
-                  <div className="text-slate-400 text-xs font-mono">{signupEmail}</div>
-                  <div className="text-[11px] text-slate-500">가입일: 2026-03-15 · 최근 로그인: 오늘 14:20</div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-white text-base">{signupName}</span>
+                      <span className="text-[11px] px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono">@{signupNickname}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">PRO 회원</span>
+                    </div>
+                    <div className="text-slate-400 text-xs font-mono flex items-center gap-2">
+                      <span>{signupEmail}</span>
+                      <span className="text-slate-600">·</span>
+                      <span>{signupPhone}</span>
+                    </div>
+                    <div className="text-[11px] text-slate-500">가입일: 2026-03-15 · 최근 로그인: 오늘 14:20</div>
+                  </div>
+                </div>
+
+                {/* 우측 계정 보안 배지 및 기본정보 수정 버튼 */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-medium hidden sm:flex items-center gap-1.5 shadow-xs">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>보안 계정 검증 완료</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditName(signupName);
+                      setEditNickname(signupNickname);
+                      setEditPhone(signupPhone);
+                      setEditEmail(signupEmail);
+                      setIsInfoEditMode(true);
+                      setInfoSaveMessage(null);
+                    }}
+                    className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-sky-400 hover:text-sky-300 border border-slate-700/80 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    <span>기본정보 수정</span>
+                  </button>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setSelectedProg('PG-USR-02')}
-                className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-lg border border-slate-700 text-xs font-medium shrink-0 flex items-center justify-center gap-1.5 transition-colors"
-              >
-                <span>✏️ 프로필/사진 변경</span>
-              </button>
-            </div>
+            ) : (
+              /* [0012 반영] 인라인 편집 모드 */
+              <div className="p-4 bg-slate-950 border border-sky-500/40 rounded-xl space-y-3.5 shadow-lg shadow-sky-500/5 animate-in fade-in duration-150">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white text-sm">✏️ 회원 기본정보 인라인 수정</span>
+                    <span className="text-[10px] text-slate-500">실명, 별명, 연락처, 이메일을 즉시 수정하고 저장합니다.</span>
+                  </div>
+                  {infoSaveMessage && (
+                    <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      {infoSaveMessage}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-col md:flex-row items-start gap-4">
+                  {/* 좌측 아바타 및 사진 수정 */}
+                  <div className="relative w-16 h-16 shrink-0 group">
+                    <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-900 border-2 border-sky-400 ring-2 ring-sky-500/20 shadow-md">
+                      <img src={signupAvatar} alt="사용자 프로필" className="w-full h-full object-cover" />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTempCropImage(signupAvatar);
+                        setTempCropScale(avatarScale);
+                        setTempCropPosX(avatarPosX);
+                        setTempCropPosY(avatarPosY);
+                        setIsCropModalOpen(true);
+                      }}
+                      className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-600/90 shadow-md flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95"
+                      title="프로필 사진 및 자르기(크롭) 편집"
+                      aria-label="프로필 사진 수정"
+                    >
+                      <Pencil className="w-3 h-3 text-slate-300" />
+                    </button>
+                  </div>
+
+                  {/* 우측 4대 정보 입력 필드 그리드 */}
+                  <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    {/* 1. 이름 */}
+                    <div>
+                      <label className="text-slate-400 text-[11px] block mb-1">
+                        실명 (이름) <span className="text-rose-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder="이름 입력"
+                        className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-hidden focus:border-sky-500"
+                      />
+                    </div>
+
+                    {/* 2. 별명 */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-slate-400 text-[11px]">
+                          서비스 별명 (닉네임) <span className="text-rose-400">*</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!editNickname.trim()) return alert('별명을 입력해주세요.');
+                            alert(`'@${editNickname.replace(/^@/, '')}' 별명은 사용 가능한 고유 닉네임입니다.`);
+                          }}
+                          className="text-[10px] text-sky-400 hover:underline font-mono"
+                        >
+                          중복확인
+                        </button>
+                      </div>
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1.5 text-slate-500 font-mono text-xs">@</span>
+                        <input
+                          type="text"
+                          value={editNickname.replace(/^@/, '')}
+                          onChange={(e) => setEditNickname(e.target.value)}
+                          placeholder="닉네임 입력"
+                          className="w-full pl-6 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-xs font-mono focus:outline-hidden focus:border-sky-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 3. 전화번호 */}
+                    <div>
+                      <label className="text-slate-400 text-[11px] block mb-1">
+                        휴대폰 번호 <span className="text-rose-400">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value)}
+                        placeholder="010-1234-5678"
+                        className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-xs font-mono focus:outline-hidden focus:border-sky-500"
+                      />
+                    </div>
+
+                    {/* 4. 이메일 및 인라인 인증 발송·6자리 검증 통합 */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-slate-400 text-[11px]">
+                          계정 이메일 (로그인 ID) <span className="text-rose-400">*</span>
+                        </label>
+                        {/* 시스템 이메일 인증 정책 안내 뱃지 */}
+                        <div className="flex items-center gap-1.5 text-[10px]">
+                          <span className={`px-1.5 py-0.2 rounded font-mono ${
+                            isEmailAuthPolicyRequired
+                              ? 'bg-rose-500/10 text-rose-300 border border-rose-500/30'
+                              : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
+                          }`}>
+                            인증정책: {isEmailAuthPolicyRequired ? '필수 🔒' : '선택(생략가능) 🔓'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setIsEmailAuthPolicyRequired(!isEmailAuthPolicyRequired)}
+                            className="text-sky-400 hover:underline"
+                            title="시스템 정책 전환"
+                          >
+                            [전환]
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <input
+                          type="email"
+                          value={editEmail}
+                          onChange={(e) => {
+                            setEditEmail(e.target.value);
+                            if (e.target.value !== signupEmail) {
+                              setIsEmailCodeVerified(false);
+                            }
+                          }}
+                          placeholder="user@example.com"
+                          className="flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-xs font-mono focus:outline-hidden focus:border-sky-500"
+                        />
+                        {/* 이메일 변경 감지 시 우측 [인증번호 발송] 버튼 인라인 직결 */}
+                        {editEmail !== signupEmail && !isEmailCodeVerified && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!editEmail.includes('@')) {
+                                alert('유효한 이메일 주소를 입력해주세요.');
+                                return;
+                              }
+                              setEmailSentTo(editEmail);
+                              setEmailInputCode('');
+                              setEmailVerifyFeedback(`[인증 발송] ${editEmail}로 6자리 보안 인증번호(482910)가 전송되었습니다.`);
+                            }}
+                            className="px-2.5 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-[11px] font-semibold cursor-pointer shrink-0 transition-all shadow-xs"
+                          >
+                            {emailSentTo === editEmail ? '재발송' : '인증번호 발송'}
+                          </button>
+                        )}
+                        {/* 인증 완료 상태 표시 */}
+                        {editEmail !== signupEmail && isEmailCodeVerified && (
+                          <span className="px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-semibold flex items-center gap-1 shrink-0">
+                            ✓ 인증완료
+                          </span>
+                        )}
+                      </div>
+
+                      {/* 이메일 변경 시 인라인 인증번호 입력 확장 서랍 */}
+                      {editEmail !== signupEmail && emailSentTo === editEmail && !isEmailCodeVerified && (
+                        <div className="mt-2 p-2.5 bg-slate-900 border border-sky-500/40 rounded-lg space-y-2 animate-in fade-in duration-150">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-sky-300 font-medium">
+                              ✉️ <strong>{emailSentTo}</strong> 주소로 전송된 6자리 번호
+                            </span>
+                            <span className="text-amber-400 font-mono font-bold">02:59 남음</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              maxLength={6}
+                              value={emailInputCode}
+                              onChange={(e) => setEmailInputCode(e.target.value)}
+                              placeholder="6자리 번호 (테스트: 482910)"
+                              className="flex-1 px-3 py-1.5 bg-slate-950 border border-slate-700 rounded text-slate-200 text-xs font-mono focus:outline-hidden focus:border-sky-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (emailInputCode === '482910' || emailInputCode.length === 6) {
+                                  setIsEmailCodeVerified(true);
+                                  setEmailVerifyFeedback('✓ 이메일 인증이 성공적으로 확인되었습니다.');
+                                } else {
+                                  alert('인증번호 6자리를 확인해주세요. (시뮬레이션 번호: 482910)');
+                                }
+                              }}
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-xs cursor-pointer shadow-xs shrink-0"
+                            >
+                              인증 확인
+                            </button>
+                          </div>
+                          {emailVerifyFeedback && (
+                            <div className="text-[10px] text-sky-400 font-mono flex items-center gap-1">
+                              <span>ℹ️</span>
+                              <span>{emailVerifyFeedback}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 하단 유효성 안내 및 저장/취소 액션 */}
+                <div className="pt-2 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px]">
+                  <span className="text-slate-500">
+                    {isEmailAuthPolicyRequired && editEmail !== signupEmail && !isEmailCodeVerified
+                      ? '* 시스템 정책(인증 필수)에 따라 새 이메일 인증을 완료해야 저장할 수 있습니다.'
+                      : '* 기본정보 변경 사항은 저장 즉시 프로필 요약 카드에 반영됩니다.'}
+                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsInfoEditMode(false);
+                        setEmailSentTo(null);
+                        setEmailInputCode('');
+                        setIsEmailCodeVerified(false);
+                        setEmailVerifyFeedback(null);
+                      }}
+                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-lg transition-colors cursor-pointer"
+                    >
+                      취소
+                    </button>
+                    <button
+                      type="button"
+                      disabled={
+                        !editName ||
+                        !editNickname ||
+                        !editPhone ||
+                        !editEmail ||
+                        (isEmailAuthPolicyRequired && editEmail !== signupEmail && !isEmailCodeVerified)
+                      }
+                      onClick={() => {
+                        if (!editName || !editNickname || !editPhone || !editEmail) {
+                          alert('모든 필수 정보를 입력해주세요.');
+                          return;
+                        }
+                        if (isEmailAuthPolicyRequired && editEmail !== signupEmail && !isEmailCodeVerified) {
+                          alert('새 이메일 인증번호 확인을 완료해주세요.');
+                          return;
+                        }
+                        setSignupName(editName);
+                        setSignupNickname(editNickname.replace(/^@/, ''));
+                        setSignupPhone(editPhone);
+                        setSignupEmail(editEmail);
+                        setInfoSaveMessage('기본정보가 안전하게 저장되었습니다.');
+                        setTimeout(() => {
+                          setIsInfoEditMode(false);
+                          setInfoSaveMessage(null);
+                          setEmailSentTo(null);
+                          setEmailInputCode('');
+                          setIsEmailCodeVerified(false);
+                          setEmailVerifyFeedback(null);
+                        }, 800);
+                      }}
+                      className={`px-4 py-1.5 font-semibold rounded-lg shadow-sm transition-all cursor-pointer flex items-center gap-1 ${
+                        isEmailAuthPolicyRequired && editEmail !== signupEmail && !isEmailCodeVerified
+                          ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                          : 'bg-sky-600 hover:bg-sky-500 text-white shadow-sky-600/30'
+                      }`}
+                    >
+                      <span>저장하기</span>
+                      <span>✓</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* 계정 보안 및 2FA 설정 그리드 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* [요청 및 0013 반영] 좌측: 2FA 정책/옵션화, 주 인증수단 선택, 소셜 연동 옵션 및 비상복구코드 */}
               <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
                 <h4 className="font-bold text-white text-sm flex items-center justify-between pb-2 border-b border-slate-800">
-                  <span>🔐 2단계 인증 (2FA) 보안 관리</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">정상 연동됨</span>
+                  <span className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span>2단계 인증 (2FA) 및 계정 보안</span>
+                  </span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-medium ${
+                    is2FaPolicyRequired
+                      ? 'bg-rose-500/10 text-rose-300 border border-rose-500/30'
+                      : (is2FaUserEnabled
+                          ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
+                          : 'bg-slate-800 text-slate-400 border border-slate-700')
+                  }`}>
+                    {is2FaPolicyRequired ? '정책: 필수 🔒' : (is2FaUserEnabled ? '2FA 활성화됨 ✓' : '2FA 미사용 (선택)')}
+                  </span>
                 </h4>
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between p-2.5 bg-slate-900 rounded-lg border border-slate-800">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                      <span className="text-slate-200">소셜 간편인증 연동 (카카오/구글)</span>
-                    </div>
-                    <span className="text-[11px] text-slate-400 font-mono">연결됨</span>
+
+                {/* 시스템 정책 옵션 툴바 (2FA 강제 vs 선택, 소셜 연동 허용 vs 차단) */}
+                <div className="p-2 bg-slate-900/90 rounded-lg border border-slate-800 flex flex-wrap items-center justify-between gap-1.5 text-[10px]">
+                  <div className="flex items-center gap-1">
+                    <span className="text-slate-400">2FA 정책:</span>
+                    <button
+                      type="button"
+                      onClick={() => setIs2FaPolicyRequired(!is2FaPolicyRequired)}
+                      className={`px-1.5 py-0.5 rounded font-mono cursor-pointer transition-colors ${
+                        is2FaPolicyRequired
+                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                          : 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700'
+                      }`}
+                      title="클릭하여 2FA 필수/선택 정책 전환"
+                    >
+                      {is2FaPolicyRequired ? '강제 필수 🔒' : '사용자 선택 🔓'}
+                    </button>
                   </div>
-                  <div className="flex items-center justify-between p-2.5 bg-slate-900 rounded-lg border border-slate-800">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                      <span className="text-slate-200">이메일 일회용 OTP 인증</span>
-                    </div>
-                    <span className="text-[11px] text-slate-400 font-mono">{signupEmail}</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-slate-400">소셜로그인 정책:</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsSocialAuthPolicyEnabled(!isSocialAuthPolicyEnabled)}
+                      className={`px-1.5 py-0.5 rounded font-mono cursor-pointer transition-colors ${
+                        isSocialAuthPolicyEnabled
+                          ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40'
+                          : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
+                      }`}
+                      title="클릭하여 소셜 연동 허용 정책 전환"
+                    >
+                      {isSocialAuthPolicyEnabled ? '연동 허용 ON' : '연동 차단 OFF'}
+                    </button>
                   </div>
-                  <button className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-lg text-xs font-medium border border-slate-800 transition-colors">
-                    2FA 인증수단 재설정
-                  </button>
                 </div>
+
+                {/* 정책이 '선택(옵션)'일 때: 사용자가 2FA 사용 여부를 직접 토글 */}
+                {!is2FaPolicyRequired && (
+                  <div className="flex items-center justify-between p-2.5 bg-slate-900 rounded-lg border border-slate-800 text-xs">
+                    <div>
+                      <span className="text-slate-200 font-medium block">2단계 로그인 인증 사용</span>
+                      <span className="text-[10px] text-slate-500">
+                        {is2FaUserEnabled ? '로그인 시 2차 본인 확인을 요구합니다.' : '아이디와 비밀번호만으로 즉시 로그인합니다.'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIs2FaUserEnabled(!is2FaUserEnabled)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        is2FaUserEnabled
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'bg-slate-800 text-slate-400 border border-slate-700'
+                      }`}
+                    >
+                      {is2FaUserEnabled ? '2FA 켜짐 (ON)' : '2FA 꺼짐 (OFF)'}
+                    </button>
+                  </div>
+                )}
+
+                {/* 2FA가 활성화된 경우 (정책 필수이거나 사용자가 켠 경우): 주 2차 인증수단 선택 */}
+                {(is2FaPolicyRequired || is2FaUserEnabled) && (
+                  <div className="space-y-1.5 pt-0.5">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-400 font-medium">로그인 시 주 2차 인증 수단 (Primary)</span>
+                      <span className="text-[10px] text-sky-400 font-mono">1클릭 지정</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {[
+                        { id: 'kakao', label: '카카오 간편인증', icon: '🟡', desc: '알림톡 원클릭 승인' },
+                        { id: 'google', label: '구글 OTP/인증', icon: '🔵', desc: 'Authenticator 앱' },
+                        { id: 'naver', label: '네이버 2차인증', icon: '🟢', desc: '네이버 앱 2FA 승인' },
+                        { id: 'email', label: '이메일 인증번호', icon: '✉️', desc: signupEmail },
+                      ].map((m) => {
+                        const isSelected = primary2FaMethod === m.id;
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => {
+                              setPrimary2FaMethod(m.id as any);
+                              alert(`로그인 주 2차 인증 수단이 [${m.label}]로 설정되었습니다.`);
+                            }}
+                            className={`p-2 rounded-lg border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                              isSelected
+                                ? 'bg-sky-950/60 border-sky-400 ring-1 ring-sky-500/40 shadow-xs'
+                                : 'bg-slate-900 border-slate-800 hover:border-slate-700 text-slate-400'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-0.5">
+                              <span className="font-semibold text-white text-[11px] flex items-center gap-1">
+                                <span>{m.icon}</span>
+                                <span>{m.label}</span>
+                              </span>
+                              {isSelected && (
+                                <span className="text-[9px] px-1 py-0.2 rounded bg-sky-500 text-white font-bold">주수단</span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-400 truncate">{m.desc}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* 소셜 간편인증 연동 영역 (소셜 정책 허용 시 노출) */}
+                {isSocialAuthPolicyEnabled ? (
+                  <div className="space-y-1.5 pt-1">
+                    <span className="text-slate-400 text-[11px] font-medium block">소셜 간편인증 연동 계정</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* Google */}
+                      <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                          </svg>
+                          <span className="font-semibold text-slate-200 text-[11px] truncate">Google</span>
+                        </div>
+                        <span className="text-[10px] text-emerald-400 font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 shrink-0">연동됨</span>
+                      </div>
+
+                      {/* Kakao */}
+                      <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <div className="w-4 h-4 rounded-sm bg-[#FEE500] flex items-center justify-center shrink-0">
+                            <svg className="w-2.5 h-2.5 fill-[#191919]" viewBox="0 0 24 24">
+                              <path d="M12 3c-5.52 0-10 3.58-10 8 0 2.83 1.86 5.32 4.67 6.72-.2.74-.75 2.76-.86 3.19-.14.54.2.53.42.38.29-.19 3.86-2.58 4.54-3.04.4.05.81.08 1.23.08 5.52 0 10-3.58 10-8s-4.48-8-10-8z"/>
+                            </svg>
+                          </div>
+                          <span className="font-semibold text-slate-200 text-[11px] truncate">Kakao</span>
+                        </div>
+                        <span className="text-[10px] text-emerald-400 font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 shrink-0">연동됨</span>
+                      </div>
+
+                      {/* Naver */}
+                      <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <div className="w-4 h-4 rounded-sm bg-[#03C75A] flex items-center justify-center text-white font-bold text-[9px] shrink-0">
+                            N
+                          </div>
+                          <span className="font-semibold text-slate-200 text-[11px] truncate">Naver</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSocialLinkStates({ ...socialLinkStates, naver: !socialLinkStates.naver })}
+                          className={`text-[10px] font-medium px-1.5 py-0.5 rounded transition-all cursor-pointer shrink-0 ${
+                            socialLinkStates.naver
+                              ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
+                              : 'text-slate-400 bg-slate-800 hover:text-white border border-slate-700'
+                          }`}
+                        >
+                          {socialLinkStates.naver ? '연동됨' : '+ 연동'}
+                        </button>
+                      </div>
+
+                      {/* GitHub */}
+                      <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <svg className="w-4 h-4 fill-white shrink-0" viewBox="0 0 24 24">
+                            <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                          </svg>
+                          <span className="font-semibold text-slate-200 text-[11px] truncate">GitHub</span>
+                        </div>
+                        <span className="text-[10px] text-emerald-400 font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 shrink-0">연동됨</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-2.5 bg-slate-900 rounded-lg border border-slate-800 text-[11px] text-slate-400">
+                    * 시스템 보안 정책에 의해 외부 소셜 간편로그인이 비활성화된 모드입니다.
+                  </div>
+                )}
+
+                {/* 비상 복구코드 10개 조회 및 관리 전용 모달 버튼 */}
+                <button
+                  type="button"
+                  onClick={() => setIsBackupCodeModalOpen(true)}
+                  className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-sky-400 hover:text-sky-300 rounded-lg text-xs font-semibold border border-slate-800 hover:border-slate-700 transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                >
+                  <span>🔐 비상 복구코드 10개 조회 및 관리</span>
+                </button>
               </div>
 
+              {/* [요청 3 반영] 우측: 비밀번호 접이식 아코디언(서랍) & 새 비밀번호 확인 필드 추가 */}
               <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
-                <h4 className="font-bold text-white text-sm flex items-center justify-between pb-2 border-b border-slate-800">
-                  <span>🔑 비밀번호 변경 및 세션</span>
-                  <span className="text-[10px] text-slate-500 font-mono">30일 전 변경</span>
-                </h4>
-                <div className="space-y-2">
-                  <input
-                    type="password"
-                    placeholder="현재 비밀번호"
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 text-xs"
-                  />
-                  <input
-                    type="password"
-                    placeholder="새 비밀번호 (8자 이상, 특수문자 포함)"
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 text-xs"
-                  />
-                  <button className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow transition-colors">
-                    비밀번호 업데이트
+                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white text-sm">🔑 비밀번호 보안 관리</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800 font-mono">
+                      마지막 변경: 30일 전
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsPasswordChangeOpen(!isPasswordChangeOpen);
+                      setPwUpdateMessage(null);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-sky-400 hover:text-sky-300 border border-slate-700/80 text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-xs"
+                  >
+                    <span>{isPasswordChangeOpen ? '닫기' : '비밀번호 변경'}</span>
+                    {isPasswordChangeOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                   </button>
                 </div>
+
+                {/* 접힌 상태 (평상시): 노골적인 입력 폼 대신 단정한 보안 수준 요약만 표시 */}
+                {!isPasswordChangeOpen && (
+                  <div className="py-2.5 text-slate-400 space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span>보안 등급:</span>
+                      <span className="font-semibold text-emerald-400">안전 (8자 이상, 특수문자 조합)</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span>계정 보호 상태:</span>
+                      <span className="text-sky-400 font-medium">정상 가동 중 (2단계 인증 연동)</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 pt-1">
+                      * 비밀번호를 변경하시려면 상단의 [비밀번호 변경] 버튼을 눌러주세요.
+                    </p>
+                  </div>
+                )}
+
+                {/* 펼쳐진 상태 (비밀번호 변경 요청 시): 현재비번 + 새비번 + 새비번 확인 3단계 폼 제공 */}
+                {isPasswordChangeOpen && (
+                  <div className="space-y-2.5 pt-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                    {pwUpdateMessage && (
+                      <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>{pwUpdateMessage}</span>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="text-slate-400 text-[11px] block mb-1">현재 비밀번호</label>
+                      <input
+                        type="password"
+                        value={currentPwInput}
+                        onChange={(e) => setCurrentPwInput(e.target.value)}
+                        placeholder="현재 사용 중인 비밀번호 입력"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-hidden focus:border-sky-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-slate-400 text-[11px] block mb-1">새 비밀번호</label>
+                      <input
+                        type="password"
+                        value={newPwInput}
+                        onChange={(e) => setNewPwInput(e.target.value)}
+                        placeholder="새 비밀번호 (8자 이상, 특수문자 포함)"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-hidden focus:border-sky-500"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-slate-400 text-[11px]">새 비밀번호 확인</label>
+                        {confirmPwInput.length > 0 && (
+                          <span className={`text-[10px] font-semibold flex items-center gap-1 ${
+                            newPwInput === confirmPwInput ? 'text-emerald-400' : 'text-rose-400'
+                          }`}>
+                            {newPwInput === confirmPwInput ? '✓ 일치합니다' : '✕ 일치하지 않습니다'}
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        type="password"
+                        value={confirmPwInput}
+                        onChange={(e) => setConfirmPwInput(e.target.value)}
+                        placeholder="새 비밀번호 확인 (동일하게 재입력)"
+                        className={`w-full px-3 py-2 bg-slate-900 border rounded-lg text-slate-200 text-xs focus:outline-hidden ${
+                          confirmPwInput.length > 0 && newPwInput !== confirmPwInput
+                            ? 'border-rose-500/80 focus:border-rose-500'
+                            : 'border-slate-700 focus:border-sky-500'
+                        }`}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsPasswordChangeOpen(false);
+                          setCurrentPwInput('');
+                          setNewPwInput('');
+                          setConfirmPwInput('');
+                          setPwUpdateMessage(null);
+                        }}
+                        className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-lg text-xs transition-colors cursor-pointer"
+                      >
+                        취소
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!currentPwInput || !newPwInput || newPwInput !== confirmPwInput}
+                        onClick={() => {
+                          if (!currentPwInput || !newPwInput || newPwInput !== confirmPwInput) {
+                            alert('새 비밀번호와 비밀번호 확인이 일치해야 합니다.');
+                            return;
+                          }
+                          setPwUpdateMessage('비밀번호가 안전하게 업데이트되었습니다.');
+                          setTimeout(() => {
+                            setIsPasswordChangeOpen(false);
+                            setCurrentPwInput('');
+                            setNewPwInput('');
+                            setConfirmPwInput('');
+                            setPwUpdateMessage(null);
+                          }, 1400);
+                        }}
+                        className={`px-4 py-1.5 rounded-lg text-xs font-semibold shadow transition-all cursor-pointer ${
+                          !currentPwInput || !newPwInput || newPwInput !== confirmPwInput
+                            ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                            : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30'
+                        }`}
+                      >
+                        비밀번호 업데이트
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -2542,6 +3720,327 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* [공통 모달 1] 더 많은 프리셋 선택 모달 (PG-USR-02 및 PG-USR-04 공통 지원) */}
+        {isPresetModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-slate-700 rounded-2xl p-5 max-w-md w-full space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <div className="flex items-center gap-2">
+                  <h5 className="font-bold text-white text-sm">프리셋 아바타 전체 선택</h5>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono">
+                    총 {AVATAR_PRESETS.length}종
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsPresetModalOpen(false)}
+                  className="text-slate-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* 카테고리 필터 탭 */}
+              <div className="flex gap-1.5 text-[11px] pb-1 border-b border-slate-800/80">
+                {[
+                  { id: 'all', label: '전체' },
+                  { id: 'person', label: '인물' },
+                  { id: '3d', label: '3D 아바타' },
+                  { id: 'character', label: '캐릭터' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setPresetCategory(tab.id as any)}
+                    className={`px-2.5 py-1 rounded-lg transition-colors ${
+                      presetCategory === tab.id
+                        ? 'bg-sky-600 text-white font-semibold'
+                        : 'text-slate-400 hover:text-slate-200 bg-slate-950'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* 프리셋 그리드 */}
+              <div className="grid grid-cols-4 gap-3 max-h-64 overflow-y-auto pr-1 no-scrollbar py-1">
+                {AVATAR_PRESETS.filter((p) => presetCategory === 'all' || p.category === presetCategory).map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setSignupAvatar(item.url);
+                      setAvatarScale(100);
+                      setAvatarPosX(0);
+                      setAvatarPosY(0);
+                      setAvatarStatus('프리셋 적용');
+                      setIsPresetModalOpen(false);
+                    }}
+                    className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all hover:scale-105 active:scale-95 ${
+                      signupAvatar === item.url
+                        ? 'bg-sky-950/60 border-sky-400 ring-2 ring-sky-500/30'
+                        : 'border-slate-800 hover:border-slate-600 bg-slate-950'
+                    }`}
+                  >
+                    <img src={item.url} alt={item.name} className="w-12 h-12 rounded-full object-cover shadow-sm ring-1 ring-slate-800" />
+                    <span className="text-[10px] text-slate-300 truncate w-full text-center">{item.name}</span>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsPresetModalOpen(false)}
+                className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* [공통 모달 2] 프로필 사진 업로드 & 자르기(Canvas Crop) 팝업 (PG-USR-02 및 PG-USR-04 공통 지원) */}
+        {isCropModalOpen && (
+          <div
+            onMouseMove={onGlobalPointerMove}
+            onMouseUp={onGlobalPointerEnd}
+            onTouchMove={onGlobalPointerMove}
+            onTouchEnd={onGlobalPointerEnd}
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 select-none"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="bg-slate-900 border border-slate-700 rounded-2xl p-5 max-w-sm w-full space-y-4 shadow-2xl animate-in zoom-in-95 duration-150"
+            >
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <div className="flex items-center gap-2">
+                  <h5 className="font-bold text-white text-sm">사진 자르기 및 위치·크기 조절</h5>
+                  <span className="text-[10px] text-sky-400 font-mono px-1.5 py-0.5 rounded bg-sky-950/50 border border-sky-500/30">
+                    드래그 / 4방향 모서리 조절
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCropModalOpen(false)}
+                  className="text-slate-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* 인터랙티브 크롭 뷰포트 (드래그 위치이동 + 4방향 모서리 핸들 크기조절) */}
+              <div className="relative w-56 h-56 mx-auto select-none">
+                {/* 원형 마스크 프레임 */}
+                <div
+                  onMouseDown={onDragStart}
+                  onTouchStart={onDragStart}
+                  className={`w-full h-full rounded-full bg-slate-950 border-2 border-sky-400 shadow-2xl overflow-hidden relative cursor-grab active:cursor-grabbing ${
+                    isAvatarDragging ? 'cursor-grabbing' : ''
+                  }`}
+                >
+                  {/* 실제 드래그 가능한 이미지 캔버스 */}
+                  <img
+                    src={tempCropImage || signupAvatar}
+                    alt="영역 조절 미리보기"
+                    style={{
+                      transform: `scale(${tempCropScale / 100}) translate(${tempCropPosX}px, ${tempCropPosY}px)`,
+                    }}
+                    className="w-full h-full object-cover pointer-events-none select-none transition-transform duration-75"
+                  />
+
+                  {/* 3x3 가이드 라인 오버레이 */}
+                  <div className="absolute inset-0 pointer-events-none opacity-20">
+                    <div className="w-full h-1/3 border-b border-sky-400" />
+                    <div className="w-full h-1/3 border-b border-sky-400" />
+                    <div className="absolute top-0 bottom-0 left-1/3 border-r border-sky-400" />
+                    <div className="absolute top-0 bottom-0 left-2/3 border-r border-sky-400" />
+                  </div>
+                </div>
+
+                {/* 4방향 모서리 크기조절 핸들 (원형 모서리 4개 핸들) */}
+                {/* 1. 좌상단 */}
+                <div
+                  onMouseDown={onCornerResizeStart}
+                  onTouchStart={onCornerResizeStart}
+                  className="absolute -top-1 -left-1 w-6 h-6 rounded-full bg-sky-500 hover:bg-sky-400 text-white flex items-center justify-center text-[10px] font-bold shadow-lg cursor-nwse-resize z-20 ring-2 ring-slate-900 active:scale-110"
+                  title="모서리를 드래그하여 크기 조절"
+                >
+                  ⤡
+                </div>
+                {/* 2. 우상단 */}
+                <div
+                  onMouseDown={onCornerResizeStart}
+                  onTouchStart={onCornerResizeStart}
+                  className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-sky-500 hover:bg-sky-400 text-white flex items-center justify-center text-[10px] font-bold shadow-lg cursor-nesw-resize z-20 ring-2 ring-slate-900 active:scale-110"
+                  title="모서리를 드래그하여 크기 조절"
+                >
+                  ⤢
+                </div>
+                {/* 3. 좌하단 */}
+                <div
+                  onMouseDown={onCornerResizeStart}
+                  onTouchStart={onCornerResizeStart}
+                  className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full bg-sky-500 hover:bg-sky-400 text-white flex items-center justify-center text-[10px] font-bold shadow-lg cursor-nesw-resize z-20 ring-2 ring-slate-900 active:scale-110"
+                  title="모서리를 드래그하여 크기 조절"
+                >
+                  ⤢
+                </div>
+                {/* 4. 우하단 */}
+                <div
+                  onMouseDown={onCornerResizeStart}
+                  onTouchStart={onCornerResizeStart}
+                  className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-sky-500 hover:bg-sky-400 text-white flex items-center justify-center text-[10px] font-bold shadow-lg cursor-nwse-resize z-20 ring-2 ring-slate-900 active:scale-110"
+                  title="모서리를 드래그하여 크기 조절"
+                >
+                  ⤡
+                </div>
+              </div>
+
+              {/* 자르기/위치 상태 요약 바 */}
+              <div className="p-2.5 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-between text-[11px] text-slate-300 font-mono">
+                <span>확대배율: <strong className="text-sky-400">{tempCropScale}%</strong></span>
+                <span>위치: <strong className="text-sky-400">X:{tempCropPosX}px, Y:{tempCropPosY}px</strong></span>
+              </div>
+
+              {/* 슬라이더 및 빠른 조작 툴바 */}
+              <div className="space-y-1.5 text-xs">
+                <div className="flex justify-between items-center text-slate-400 text-[11px]">
+                  <span>배율 및 위치 미세조절</span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTempCropScale((s) => Math.max(50, s - 10))}
+                      className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px]"
+                      title="축소"
+                    >
+                      - 줌
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTempCropScale((s) => Math.min(250, s + 10))}
+                      className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px]"
+                      title="확대"
+                    >
+                      + 줌
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTempCropScale(100);
+                        setTempCropPosX(0);
+                        setTempCropPosY(0);
+                      }}
+                      className="text-sky-400 hover:underline text-[10px]"
+                    >
+                      중앙 초기화
+                    </button>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min="50"
+                  max="250"
+                  step="5"
+                  value={tempCropScale}
+                  onChange={(e) => setTempCropScale(Number(e.target.value))}
+                  className="w-full accent-sky-500 h-1.5 bg-slate-950 rounded cursor-pointer"
+                />
+              </div>
+
+              {/* 모달 액션 버튼: [자르기 및 선택영역 저장] ➔ 실제 Canvas Crop 실행 */}
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCropModalOpen(false)}
+                  className="w-1/3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs cursor-pointer"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApplyCrop}
+                  className="w-2/3 py-2.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs shadow-md shadow-sky-600/30 flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+                >
+                  <span>자르기 및 영역 저장</span>
+                  <span>✓</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* [공통 모달 3] 2FA 비상 복구코드 10개 조회 및 관리 모달 */}
+        {isBackupCodeModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-slate-700 rounded-2xl p-5 max-w-md w-full space-y-3.5 shadow-2xl animate-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">🔐</span>
+                  <h5 className="font-bold text-white text-sm">2단계 인증 비상 복구 코드 (10개)</h5>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsBackupCodeModalOpen(false)}
+                  className="text-slate-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                휴대폰을 분실하거나 소셜/이메일 인증을 수신할 수 없을 때 계정을 안전하게 복구할 수 있는 <strong>일회용 8자리 보안 복구 코드</strong>입니다. 각 코드는 단 1회만 유효하므로 안전한 오프라인 장소나 비밀번호 관리자에 보관하세요.
+              </p>
+
+              {/* 10개 코드 2열 그리드 */}
+              <div className="grid grid-cols-2 gap-2 p-3 bg-slate-950 rounded-xl border border-slate-800 font-mono text-xs">
+                {backupCodes.map((c, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-1.5 rounded bg-slate-900/90 border border-slate-800/80">
+                    <span className="text-[10px] text-slate-500 font-mono">{idx + 1}.</span>
+                    <strong className="text-sky-300 font-mono tracking-wider">{c}</strong>
+                    <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-400">미사용</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* 액션 버튼들 */}
+              <div className="flex gap-2 pt-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(backupCodes.join('\n'));
+                    alert('📋 10개의 비상 복구 코드가 클립보드에 복사되었습니다.');
+                  }}
+                  className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-medium cursor-pointer transition-colors"
+                >
+                  📋 코드 전체 복사
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+                    const gen = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+                    const newCodes = Array.from({ length: 10 }, () => `${gen()}-${gen()}`);
+                    setBackupCodes(newCodes);
+                    alert('🔄 10개의 새로운 비상 복구 코드가 안전하게 재발급되었습니다.');
+                  }}
+                  className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-xl font-medium cursor-pointer transition-colors"
+                >
+                  🔄 새 코드 재발급
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsBackupCodeModalOpen(false)}
+                className="w-full py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl text-xs cursor-pointer shadow-md shadow-sky-600/30 transition-all"
+              >
+                확인 및 닫기
+              </button>
             </div>
           </div>
         )}
