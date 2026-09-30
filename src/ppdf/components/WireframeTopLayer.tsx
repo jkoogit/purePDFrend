@@ -10,6 +10,7 @@ import {
   Star,
   MailCheck,
   RefreshCw,
+  Plus,
 } from 'lucide-react';
 
 export interface WireframeTopLayerProps {
@@ -151,6 +152,7 @@ export function WireframeTopLayer({
   ]);
 
   // [요청 3 반영] 퀵설정 길게 누르기 드래그 & 가이드바 기준 위치 이동 상태
+  const [isQsEditMode, setIsQsEditMode] = useState(false);
   const [draggedItemIdx, setDraggedItemIdx] = useState<number | null>(null);
   const [dropTargetIdx, setDropTargetIdx] = useState<number | null>(null);
   const [isItemFloating, setIsItemFloating] = useState(false);
@@ -160,19 +162,48 @@ export function WireframeTopLayer({
   const pointerStartPosRef = useRef({ x: 0, y: 0 });
   const isPointerDownRef = useRef(false);
 
+  // 마우스 클릭 드래그 가로 슬라이드 스크롤 상태
+  const isMouseDownScrollRef = useRef(false);
+  const mouseScrollStartXRef = useRef(0);
+  const mouseScrollLeftRef = useRef(0);
+  const hasMovedSignificantlyRef = useRef(false);
+
+  const handleTrackMouseDown = (e: React.MouseEvent) => {
+    if (isItemFloating || isQsEditMode) return;
+    isMouseDownScrollRef.current = true;
+    hasMovedSignificantlyRef.current = false;
+    mouseScrollStartXRef.current = e.pageX;
+    mouseScrollLeftRef.current = quickSettingsTrackRef.current?.scrollLeft || 0;
+  };
+
+  const handleTrackMouseMove = (e: React.MouseEvent) => {
+    if (!isMouseDownScrollRef.current || !quickSettingsTrackRef.current || isItemFloating || isQsEditMode) return;
+    const walk = e.pageX - mouseScrollStartXRef.current;
+    if (Math.abs(walk) > 4) {
+      hasMovedSignificantlyRef.current = true;
+    }
+    quickSettingsTrackRef.current.scrollLeft = mouseScrollLeftRef.current - walk;
+  };
+
+  const handleTrackMouseUpOrLeave = () => {
+    isMouseDownScrollRef.current = false;
+  };
+
   const handleItemPressStart = (idx: number, e: React.PointerEvent) => {
     isPointerDownRef.current = true;
     pointerStartPosRef.current = { x: e.clientX, y: e.clientY };
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
     }
+    // 편집 모드일 때는 즉시 드래그 가능, 일반 모드일 때는 280ms 길게 누르기
+    const delay = isQsEditMode ? 50 : 280;
     longPressTimerRef.current = setTimeout(() => {
       if (isPointerDownRef.current) {
         setDraggedItemIdx(idx);
         setIsItemFloating(true);
         setDropTargetIdx(idx);
       }
-    }, 280);
+    }, delay);
   };
 
   const handleTrackPointerMove = (e: React.PointerEvent) => {
@@ -537,14 +568,14 @@ export function WireframeTopLayer({
                           </button>
                         ))}
 
-                        {/* 3. 추가 연동 버튼 */}
+                        {/* 3. 추가 연동 아이콘 버튼 (타이틀 삭제하고 아이콘만 표시) */}
                         <button
                           type="button"
                           onClick={() => alert('🔗 신규 클라우드 스토리지 (Box, WebDAV, Nextcloud) 연동 창을 엽니다.')}
-                          className="px-1.5 py-0.5 rounded text-[8px] text-slate-500 hover:text-slate-300 border border-dashed border-slate-800 hover:border-slate-700 shrink-0 cursor-pointer"
+                          className="p-1 rounded text-slate-400 hover:text-slate-200 border border-dashed border-slate-800 hover:border-slate-700 shrink-0 cursor-pointer flex items-center justify-center"
                           title="클라우드 스토리지 추가 연동"
                         >
-                          +연결
+                          <Plus className="w-2.5 h-2.5" />
                         </button>
                       </div>
 
@@ -806,8 +837,33 @@ export function WireframeTopLayer({
                     </button>
                   </div>
 
-                  {/* [요청 반영] 50:50 분할 취소 -> 고정아이콘 영역 넓이 우선 확보 + 구분자(|) 기준 좌우 넉넉한 여백 확보 */}
-                  <div className="relative p-2.5 bg-slate-950 flex items-center justify-between border-t border-slate-800/80">
+                  {/* [요청 3 반영] 퀵설정 상단 타이틀 바: '퀵설정' 명칭과 '편집'/'완료' 버튼 표시 */}
+                  <div className="flex items-center justify-between px-3 pt-2 pb-1 bg-slate-950 border-t border-slate-800/80">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-slate-300">퀵설정</span>
+                      <span className="text-[8px] text-slate-500 font-mono">클릭드래그/휠 이동</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsQsEditMode(!isQsEditMode);
+                        if (isQsEditMode) {
+                          setQsNotice('✅ 퀵설정 순서가 저장되었습니다.');
+                          setTimeout(() => setQsNotice(null), 2500);
+                        }
+                      }}
+                      className={`px-2 py-0.5 rounded text-[9px] font-bold transition-all cursor-pointer ${
+                        isQsEditMode
+                          ? 'bg-amber-500 text-slate-950 shadow-xs'
+                          : 'bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800'
+                      }`}
+                    >
+                      {isQsEditMode ? '완료' : '편집'}
+                    </button>
+                  </div>
+
+                  {/* [요청 반영] 50:50 분할 취소 -> 고정아이콘 영역 넓이 우선 확보 + 구분자(|) 기준 좌우 넉넉한 여백 확보 + 하단 맞춤(items-end) */}
+                  <div className="relative px-2.5 pb-2.5 pt-0.5 bg-slate-950 flex items-end justify-between">
                     {/* 위치 변경 피드백 뱃지 */}
                     {qsNotice && (
                       <div className="absolute -top-3 left-3 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/50 text-amber-300 text-[9px] font-mono shadow-md z-40 animate-in fade-in">
@@ -816,20 +872,24 @@ export function WireframeTopLayer({
                     )}
 
                     {/* 좌측: 유연한 가변 너비의 퀵설정 영역 (슬라이드클릭드래그휠 지원) */}
-                    <div className="flex-1 min-w-0 flex items-center overflow-hidden">
-                      {/* 퀵설정 가로 슬라이더: 버튼 없이 길게 눌러 띄우고 가이드바 기준으로 드래그 드롭 */}
+                    <div className="flex-1 min-w-0 flex items-end overflow-hidden pb-0.5">
+                      {/* 퀵설정 가로 슬라이더: 마우스 클릭 드래그 슬라이드 & 길게 눌러 드래그 드롭 */}
                       <div
                         ref={quickSettingsTrackRef}
+                        onMouseDown={handleTrackMouseDown}
+                        onMouseMove={handleTrackMouseMove}
+                        onMouseUp={handleTrackMouseUpOrLeave}
                         onPointerMove={handleTrackPointerMove}
                         onPointerUp={() => handleItemPressEnd()}
                         onPointerLeave={() => {
+                          handleTrackMouseUpOrLeave();
                           if (isItemFloating) handleItemPressEnd();
                         }}
                         onWheel={(e) => {
                           e.stopPropagation();
                           e.currentTarget.scrollLeft += e.deltaY;
                         }}
-                        className="flex items-center gap-1.5 overflow-x-auto py-1 px-0.5 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] select-none touch-none w-full"
+                        className="flex items-end gap-1.5 overflow-x-auto py-1 px-0.5 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] select-none touch-none w-full cursor-grab active:cursor-grabbing"
                       >
                         {quickSettings.map((item, idx) => {
                           const isFloating = isItemFloating && draggedItemIdx === idx;

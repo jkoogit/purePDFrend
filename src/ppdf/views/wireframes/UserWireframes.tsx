@@ -25,6 +25,7 @@ import {
 import { ViewerConfigRegistry, ViewerConfigState } from '../../domain/ViewerConfigRegistry';
 import { HorizontalSlideContainer } from '../../components/HorizontalSlideContainer';
 import { WireframeTopLayer } from '../../components/WireframeTopLayer';
+import { DocumentLibraryViewer } from '../../components/DocumentLibraryViewer';
 
 export const USER_PROGRAMS = [
   { id: 'PG-USR-01', name: '첫화면 (랜딩)', desc: '공개 문서조회 바, 롤링배너, 공지/리뷰/가이드 탭, 고객센터 푸터' },
@@ -2151,90 +2152,11 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
 
         {/* PG-USR-05: 문서관리 (라이브러리) */}
         {selectedProg === 'PG-USR-05' && (
-          <div className="space-y-4 text-xs">
-            <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
-              <span className="text-slate-400 font-semibold">🔍 8대 상세 검색 필터 바</span>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                <select className="bg-slate-900 border border-slate-700 rounded p-1.5 text-slate-200">
-                  <option>문서구분: 전체</option>
-                  <option>등록문서</option>
-                  <option>내가 공유한 문서</option>
-                  <option>공유받은 문서</option>
-                </select>
-                <input type="text" placeholder="문서명 / 등록자" className="bg-slate-900 border border-slate-700 rounded p-1.5 text-slate-200" />
-                <input type="text" placeholder="출판사 / 저자 / 역자" className="bg-slate-900 border border-slate-700 rounded p-1.5 text-slate-200" />
-                <input type="text" placeholder="ISBN 번호" className="bg-slate-900 border border-slate-700 rounded p-1.5 text-slate-200" />
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <div className="flex gap-2">
-                <button className="px-3 py-1 bg-sky-600 text-white rounded">+ PDF/이미지 신규 등록</button>
-                <button className="px-3 py-1 bg-slate-800 text-slate-300 rounded">주석 불러오기 (.json/.xfdf)</button>
-              </div>
-              <div className="flex gap-1 text-[11px] text-slate-400">
-                <button className="px-2 py-0.5 bg-slate-800 text-white rounded">카드뷰</button>
-                <button className="px-2 py-0.5 bg-slate-900 text-slate-500 rounded">테이블뷰</button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {[
-                { title: 'ISO 32000-2:2020 문서 관리 및 차세대 PDF 2.0 전자서명 표준 규격 가이드북 (엔터프라이즈 개정판)', totalPages: 840, readPages: 655, version: 'v1.4', hash: 'e3b0c442...855', round: '2회독 진행중' },
-                { title: 'TDD 및 도메인 주도 설계(DDD) 기반 대용량 가상화 PDF 렌더링 아키텍처 실전 핸드북 v2.0', totalPages: 320, readPages: 320, version: 'v2.0', hash: 'a1f89bc2...112', round: '완독 (3회독)' },
-                { title: '엔터프라이즈 멀티 클라우드 스토리지 자원 거버넌스 및 Dual OCR 분산 파이프라인 명세서', totalPages: 185, readPages: 92, version: 'v1.1', hash: 'c901ab43...490', round: '1회독 진행중' },
-              ].map((doc) => (
-                <div
-                  key={doc.title}
-                  onClick={() => setSelectedProg('PG-USR-06')}
-                  className="p-3 bg-slate-950 border border-slate-800 hover:border-sky-500/50 rounded-xl space-y-2 cursor-pointer transition-all group select-none shadow-xs"
-                  title="클릭하여 뷰어(PG-USR-06)로 상세 열기"
-                >
-                  <div className="flex justify-between items-center gap-2">
-                    {/* [요청 4, 5 반영] 문서명 영역만 가로 슬라이드 이벤트 적용 (클릭 이벤트 전파 차단하여 슬라이드와 뷰어 이동 분리) */}
-                    <div
-                      className="flex-1 min-w-0 overflow-x-auto scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] py-0.5 cursor-ew-resize select-none"
-                      onClick={(e) => {
-                        // 문서명 슬라이드/드래그 조작 시 카드 전체의 뷰어 이동 이벤트와 겹치지 않도록 차단
-                        e.stopPropagation();
-                      }}
-                      onWheel={(e) => {
-                        e.stopPropagation();
-                        e.currentTarget.scrollLeft += e.deltaY;
-                      }}
-                      title={`${doc.title} (마우스 휠/드래그로 긴 문서명 가로 슬라이드)`}
-                    >
-                      <span className="font-bold text-white text-sm whitespace-nowrap group-hover:text-sky-300 transition-colors">
-                        {doc.title}
-                      </span>
-                    </div>
-                    <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-400 rounded text-[11px] font-mono shrink-0">{doc.round}</span>
-                  </div>
-                  {/* [요청 2 반영] 문서카드 총페이지 / 열람페이지 함께 표시 */}
-                  <div className="text-[11px] text-slate-400 flex flex-wrap gap-x-3 gap-y-1 font-mono items-center">
-                    <span className="text-slate-200 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
-                      <strong className="text-sky-400 font-bold">{doc.readPages}</strong> / {doc.totalPages} 쪽 열람
-                    </span>
-                    <span>버전 {doc.version}</span>
-                    <span className="text-slate-500">해시: {doc.hash}</span>
-                  </div>
-                  <div className="pt-2 border-t border-slate-800 flex justify-between items-center">
-                    <span className="text-slate-500 text-[11px]">4종 다운로드: 원본 / 주석 / 최종본 / 보안압축</span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedProg('PG-USR-06');
-                      }}
-                      className="px-2.5 py-1 bg-sky-600/30 text-sky-300 hover:bg-sky-600 hover:text-white rounded transition-colors font-medium cursor-pointer"
-                    >
-                      뷰어로 열기 ➔
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <DocumentLibraryViewer
+            userEmail="jkok2j2m@gmail.com"
+            onOpenViewer={() => setSelectedProg('PG-USR-06')}
+            isMobileMode={isMobileMode}
+          />
         )}
 
         {/* PG-USR-06: 문서뷰어 & 주석 스튜디오 (단일줄 툴바 + 가로 슬라이더 + 순서설정 팝업) */}
