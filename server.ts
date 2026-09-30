@@ -1436,10 +1436,15 @@ app.post('/api/agent/trace/turn', async (req, res) => {
     let dbRecord: any = null;
     let dbError: string | null = null;
 
+    const safeOperator = String(operator_account || 'jkok2j2m').replace(/'/g, "''");
+    const safeAgentAccount = String(req.body.agent_account || user_email || 'jkok2j2m@gmail.com').replace(/'/g, "''");
+    const safeUserEmail = String(user_email || req.body.agent_account || 'jkok2j2m@gmail.com').replace(/'/g, "''");
+
     try {
       const sql = `
         INSERT INTO aiagent.agent_conversation_trace (
           trace_id, session_id, task_id, loop_id, step_index, agent_name, model_name,
+          operator_account, agent_account, user_email,
           user_prompt, agent_response, response_summary, prompt_tokens, completion_tokens, total_tokens, created_at
         ) VALUES (
           '${finalTraceId}',
@@ -1449,6 +1454,9 @@ app.post('/api/agent/trace/turn', async (req, res) => {
           ${Number(step_index) || 1},
           '${agent_name}',
           '${model_name}',
+          '${safeOperator}',
+          '${safeAgentAccount}',
+          '${safeUserEmail}',
           '${escapedPrompt}',
           '${escapedResponse}',
           '${escapedSummary}',
@@ -1462,6 +1470,9 @@ app.post('/api/agent/trace/turn', async (req, res) => {
           response_summary = EXCLUDED.response_summary,
           loop_id = EXCLUDED.loop_id,
           step_index = EXCLUDED.step_index,
+          operator_account = EXCLUDED.operator_account,
+          agent_account = EXCLUDED.agent_account,
+          user_email = EXCLUDED.user_email,
           prompt_tokens = EXCLUDED.prompt_tokens,
           completion_tokens = EXCLUDED.completion_tokens,
           total_tokens = EXCLUDED.total_tokens;
@@ -1642,6 +1653,25 @@ app.get('/api/agent/quota/forecast', async (req, res) => {
         warningLevel: 'NORMAL',
         statusMessage: '로컬 폴백 쿼터 모드 가동 중',
       }
+    });
+  }
+});
+
+// 4.1.2 KST 16:00 Account Daily Token Usage Telemetry API
+app.get('/api/agent/telemetry/daily-usage', async (req, res) => {
+  try {
+    const viewRes: any = await executeSql('SELECT * FROM aiagent.v_account_daily_token_usage ORDER BY current_window_start DESC;');
+    res.json({
+      success: true,
+      data: viewRes.rows || [],
+      source: 'POSTGRES_VIEW'
+    });
+  } catch (err: any) {
+    res.json({
+      success: true,
+      data: [],
+      error: err.message,
+      source: 'LOCAL_FALLBACK'
     });
   }
 });
