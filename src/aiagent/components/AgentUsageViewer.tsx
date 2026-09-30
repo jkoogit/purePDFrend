@@ -322,8 +322,8 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
           valB = b.trace_id || '';
           break;
         case 'user_email':
-          valA = a.user_email || a.operator_account || '';
-          valB = b.user_email || b.operator_account || '';
+          valA = a.agent_account || a.user_email || a.operator_account || '';
+          valB = b.agent_account || b.user_email || b.operator_account || '';
           break;
         case 'loop_id':
           valA = a.loop_id || '';
@@ -649,7 +649,7 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
                   ? trace.agent_response.split('\n')[0].substring(0, 55) + (trace.agent_response.length > 55 ? '...' : '')
                   : '(응답 없음)';
 
-                const accountDisplay = trace.user_email || trace.operator_account || 'jkoogit@gmail.com';
+                const accountDisplay = trace.agent_account || trace.user_email || trace.operator_account || 'jkok2j2m@gmail.com';
 
                 // Segment parse: TRACE-0002-06-14-01 -> parts: ["TRACE", "0002", "06", "14", "01"]
                 const parts = (trace.trace_id || '').split('-');
@@ -874,7 +874,7 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
                     })()}
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-mono">
-                    <span className="text-[10px] text-slate-400">{(trace.user_email || trace.operator_account || 'jkoogit@gmail.com').split('@')[0]}</span>
+                    <span className="text-[10px] text-slate-400">{(trace.agent_account || trace.user_email || trace.operator_account || 'jkok2j2m@gmail.com').split('@')[0]}</span>
                   </div>
                 </div>
 
@@ -953,7 +953,7 @@ export default function AgentUsageViewer({ initialFilter, dbStatus = 'CONNECTED'
                     </span>
                     <span className="px-1.5 py-0.5 rounded bg-indigo-950/70 border border-indigo-800/40 text-indigo-300 font-semibold flex items-center gap-1">
                       <User className="w-3 h-3 text-indigo-400" />
-                      사용계정: {selectedTrace.user_email || selectedTrace.operator_account || 'jkok2j2m@gmail.com'}
+                      사용계정: {selectedTrace.agent_account || selectedTrace.user_email || selectedTrace.operator_account || 'jkok2j2m@gmail.com'}
                     </span>
                   </div>
                 </div>
