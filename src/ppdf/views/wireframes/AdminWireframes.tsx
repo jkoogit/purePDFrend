@@ -84,7 +84,7 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
       </div>
 
       {/* 실제 프로덕션 대상 순수 화면 캔버스 (설명 배제, 화면 컴포넌트만 정확히 렌더링) */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-2xl space-y-6 min-h-[540px]">
+      <div className={`bg-slate-900/90 border border-slate-800 rounded-2xl ${isMobileMode ? 'p-2.5 sm:p-4' : 'p-5'} shadow-2xl space-y-6 min-h-[540px]`}>
         {/* 모든 화면 공통 상단 탑 레이어 (WireframeTopLayer): 관리자 모드 기본 로그인 상태 */}
         <WireframeTopLayer
           currentProgramId={selectedProg}
