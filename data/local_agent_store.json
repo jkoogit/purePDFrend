@@ -153,12 +153,12 @@
       "task_id": "TASK-0020-02",
       "session_id": "SESSION-0020",
       "task_name": "Xodo 스타일 팝오버 틀 및 초슬림 2단 툴바, 좌상단 플로팅 쪽수 칩(157/504) UI 뼈대 구현",
-      "status_cd": "처리중",
+      "status_cd": "완료",
       "priority": "HIGH",
       "assigned_agent": "gemini",
       "git_branch": "task/0020_01_가상스크롤뷰어연동_툴바고도화_Gemini",
       "started_at": "2026-10-01T15:33:32.000Z",
-      "ended_at": null,
+      "ended_at": "2026-10-01T15:50:00.000Z",
       "doc_payload": {
         "items": [
           "1. 상단 툴바 레이어 초슬림 2단 통폐합 (Top 1단: 뒤로가기+모드드롭다운+문서명+우측글로벌 / Top 2단: 도구슬라이더+스타일버튼+Undo/Redo+배율)",
