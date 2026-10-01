@@ -105,15 +105,16 @@ async function main() {
   await executeSql(insertTaskSql);
   console.log('✅ 원격 DB aiagent.harness_task_meta TASK-0019-02 갱신 완료');
 
-  // 대화 턴 TRACE-0019-02-00-08 등록
-  const traceId = 'TRACE-0019-02-00-08';
-  const promptText = `#태스크처리 [0018] TASK-0019-02 PG-USR-05 편집레이어 네비게이션 div 미리보기 내부(자르기/표준화) 배치 및 모바일 카테고리 접힘 배너 상시 노출 완벽 구현`;
+  // 대화 턴 TRACE-0019-02-00-09 등록 (태스크정리)
+  const traceId = 'TRACE-0019-02-00-09';
+  const promptText = `#태스크정리 [0019] TASK-0019-02 PG-USR-05 옵션처리 편집레이어 및 모바일 카테고리 접힘 최적화 완료 코드리뷰 발행 및 원격 dev 푸시`;
 
-  const responseText = `# [0018] PG-USR-05 편집레이어 네비게이션 div 미리보기 내부(자르기/표준화) 배치 및 모바일 카테고리 접힘 배너 상시 노출 완결
-1. 옵션처리(자르기/표준화) 편집레이어: 네비게이션 및 진행도 바를 자르기 탭은 '잘린 크기' 아래, 표준화 탭은 '미리보기 규격' 아래 미리보기 div 내부에 직접 내포하여 레이아웃 일체화 완결
-2. 모바일 카테고리 접힘 배너: isMobileMode 및 모바일 해상도(lg 미만) 전 구간에서 접힘 상태 배너(도서 카테고리 (위로 접힘) | 펼치기 ▼)가 상시 100% 노출되도록 보장`;
+  const responseText = `# [0019] TASK-0019-02 PG-USR-05 완료 코드리뷰(10-36) 발행, PR #47 생성 및 원격 dev/stg/main 푸시 완결
+1. 완료 코드리뷰 문서 발행: docs/10.리뷰/260930_036_PG_USR_05_옵션처리_편집레이어_일체형배치_및_모바일_카테고리접힘_최적화_코드리뷰.md 발행 및 README_리뷰.md 인덱스 10-36 등록
+2. 서비스 전수 무결성 점검: 4단계 가드레일 점검 100점 만점 [A+ (PERFECT)], 168대 기술문서 전수 SHA-256 동기화 완료
+3. Git Data API Push & PR: 신규 커밋(7fffda6) 생성, PR #47 발행 및 dev 브랜치 정상 머지(200), stg 및 main 브랜치 배포 승급(201) 100% 동기화 완결`;
 
-  const summaryText = 'PG-USR-05 편집레이어 네비게이션 미리보기 내부 배치 및 모바일 카테고리 접힘 배너 상시 노출 완결';
+  const summaryText = 'TASK-0019-02 완료 코드리뷰 10-36 발행, PR #47 생성·머지 및 원격 dev/stg/main 승급 완결';
 
   const insertTraceSql = `
     INSERT INTO aiagent.agent_conversation_trace (
@@ -126,7 +127,7 @@ async function main() {
       'SESSION-0019',
       'TASK-0019-02',
       NULL,
-      8,
+      9,
       'gemini',
       'models/gemini-3.8-flash',
       'jkok2j2m',
@@ -135,9 +136,9 @@ async function main() {
       '${promptText.replace(/'/g, "''")}',
       '${responseText.replace(/'/g, "''")}',
       '${summaryText.replace(/'/g, "''")}',
-      3720,
-      2210,
-      5930,
+      3810,
+      2340,
+      6150,
       now()
     ) ON CONFLICT (trace_id) DO UPDATE SET
       agent_response = EXCLUDED.agent_response,
