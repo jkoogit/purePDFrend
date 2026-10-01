@@ -21,11 +21,15 @@ import {
   ChevronDown,
   ChevronUp,
   ShieldCheck,
+  Search,
 } from 'lucide-react';
 import { ViewerConfigRegistry, ViewerConfigState } from '../../domain/ViewerConfigRegistry';
 import { HorizontalSlideContainer } from '../../components/HorizontalSlideContainer';
 import { WireframeTopLayer } from '../../components/WireframeTopLayer';
-import { DocumentLibraryViewer } from '../../components/DocumentLibraryViewer';
+import { DocumentLibraryViewer, DocumentItem } from '../../components/DocumentLibraryViewer';
+import { ToolStylePopover, ToolStyleState } from '../../components/ToolStylePopover';
+import { AnnotationActionPopover, AnnotationKind } from '../../components/AnnotationActionPopover';
+import { Undo2, Redo2, Sliders, List } from 'lucide-react';
 
 export const USER_PROGRAMS = [
   { id: 'PG-USR-01', name: '첫화면 (랜딩)', desc: '공개 문서조회 바, 롤링배너, 공지/리뷰/가이드 탭, 고객센터 푸터' },
@@ -288,6 +292,98 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
   const [isToolbarModalOpen, setIsToolbarModalOpen] = useState(false);
   const [activeViewerTab, setActiveViewerTab] = useState<'bookmarks' | 'toc' | 'annots'>('toc');
   const [currentTool, setCurrentTool] = useState('pen');
+
+  // PG-USR-06 Active Document & Virtual Viewer State
+  const [activeViewingDoc, setActiveViewingDoc] = useState<DocumentItem | null>({
+    id: 'doc-default-iso32000',
+    title: 'ISO 32000-2 표준 가이드북 및 엔터프라이즈 PDF 아카이빙 지침서',
+    author: '국제표준화기구 (ISO) 기술위원회',
+    publisher: '엔터프라이즈 아카이빙 출판부',
+    isbn: '978-89-1234-567-8',
+    categoryId: 'cat-dev-be',
+    categoryPath: '개발 / IT > 백엔드 / DB (PostgreSQL)',
+    lastCategory: '백엔드 / DB',
+    totalPages: 800,
+    readPages: 42,
+    progressPercent: 5,
+    lastReadAt: '10분 전',
+    rawDate: '2026-09-30',
+    status: 'OCR완료',
+    security: '대외비',
+    docType: '등록문서',
+    version: 'v2.1',
+    fileSize: '48.6 MB',
+    round: '1회독',
+    coverBg: 'from-sky-600 to-indigo-900',
+    accentColor: 'sky',
+  });
+
+  const [tabLayoutPosition, setTabLayoutPosition] = useState<'left' | 'top'>('left');
+  const [isTabDrawerCollapsed, setIsTabDrawerCollapsed] = useState(false);
+
+  // PG-USR-06 Xodo 스타일 팝오버 및 상황별 액션 팝오버 상태
+  const [isStylePopoverOpen, setIsStylePopoverOpen] = useState(false);
+  const [isModeDropdownOpen, setIsModeDropdownOpen] = useState(false);
+  const [isPageJumpPopoverOpen, setIsPageJumpPopoverOpen] = useState(false);
+  const [activeAnnotationPopover, setActiveAnnotationPopover] = useState<{
+    isOpen: boolean;
+    annId?: string;
+    text: string;
+    type: AnnotationKind;
+    color: string;
+  }>({
+    isOpen: true, // 시연 및 즉각 확인을 위해 기본 1건 열림 유지
+    annId: 'mock-annot-1',
+    text: '코드를 바로 실행해볼 수도 있습니다.',
+    type: 'underline',
+    color: '#38bdf8',
+  });
+
+  const [toolStyleState, setToolStyleState] = useState<ToolStyleState>({
+    color: '#38bdf8',
+    strokeWidth: 1.5,
+    opacity: 80,
+    presets: [
+      { id: 'p1', name: '스카이블루', color: '#38bdf8', strokeWidth: 1.5, opacity: 80 },
+      { id: 'p2', name: '에메랄드', color: '#4ade80', strokeWidth: 1.5, opacity: 80 },
+      { id: 'p3', name: '노랑', color: '#facc15', strokeWidth: 2.0, opacity: 90 },
+      { id: 'p4', name: '빨강', color: '#f87171', strokeWidth: 1.0, opacity: 100 },
+    ],
+  });
+
+  // PG-USR-06 Viewer Navigation & Reading Controls
+  const [viewerScale, setViewerScale] = useState(1.0);
+  const [viewerRotation] = useState(0); // 0, 90, 180, 270
+  const [viewerCurrentPage, setViewerCurrentPage] = useState(42);
+  const [viewerJumpInput, setViewerJumpInput] = useState('42');
+  const [viewerSearchQuery, setViewerSearchQuery] = useState('');
+  const [viewerBookmarks, setViewerBookmarks] = useState<number[]>([1, 14, 42, 120]);
+  const [viewerAnnotations, setViewerAnnotations] = useState<Array<{
+    id: string;
+    page: number;
+    type: string;
+    author: string;
+    text: string;
+    color: string;
+    date: string;
+  }>>([
+    { id: 'ann-1', page: 14, type: '형광펜', author: 'jkok2j2m', text: '하이브리드 아키텍처 설계 원칙: 60fps 가상 렌더링', color: '#fef08a', date: '오늘 09:30' },
+    { id: 'ann-2', page: 42, type: '메모', author: 'jkok2j2m', text: 'ISO 32000-2 툼스톤 주석 동기화 규격 검토 완료', color: '#38bdf8', date: '오늘 10:15' },
+    { id: 'ann-3', page: 85, type: '밑줄', author: '운영자', text: '대용량 800쪽 LRU 페이지 메모리가드 적용 범위', color: '#34d399', date: '어제 16:40' },
+  ]);
+
+  const [viewerTocItems] = useState([
+    { id: 'toc-1', title: '제1편 엔터프라이즈 PDF 제작 총괄', page: 1, level: 1 },
+    { id: 'toc-2', title: '1.1 아키텍처 원칙 및 60fps 가상화', page: 4, level: 2 },
+    { id: 'toc-3', title: '1.2 무결성 락 체계 및 동시성 제어', page: 12, level: 2 },
+    { id: 'toc-4', title: '1.3 800쪽 대용량 LRU 메모리가드', page: 28, level: 2 },
+    { id: 'toc-5', title: '제2편 PDF 주석 표준 사양 및 툼스톤', page: 42, level: 1 },
+    { id: 'toc-6', title: '2.1 하이라이트/스티키노트 XFDF 파싱', page: 65, level: 2 },
+    { id: 'toc-7', title: '2.2 투명 텍스트 레이어 Searchable PDF', page: 120, level: 2 },
+    { id: 'toc-8', title: '제3편 보안 암호화 및 DRM 전략', page: 240, level: 1 },
+    { id: 'toc-9', title: '제4편 다국어 OCR 앙상블 파이프라인', page: 480, level: 1 },
+    { id: 'toc-10', title: '부록: 표준 식별자 및 거버넌스 규약', page: 750, level: 1 },
+  ]);
 
   // PG-USR-08 Offline state
   const [isOfflineSimulated, setIsOfflineSimulated] = useState(true);
@@ -2154,175 +2250,909 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
         {selectedProg === 'PG-USR-05' && (
           <DocumentLibraryViewer
             userEmail="jkok2j2m@gmail.com"
-            onOpenViewer={() => setSelectedProg('PG-USR-06')}
+            onOpenViewer={(_docId, doc) => {
+              if (doc) {
+                setActiveViewingDoc(doc);
+                const initPage = doc.readPages && doc.readPages > 0 ? doc.readPages : 1;
+                setViewerCurrentPage(initPage);
+                setViewerJumpInput(String(initPage));
+              }
+              setSelectedProg('PG-USR-06');
+            }}
             isMobileMode={isMobileMode}
           />
         )}
 
-        {/* PG-USR-06: 문서뷰어 & 주석 스튜디오 (단일줄 툴바 + 가로 슬라이더 + 순서설정 팝업) */}
+        {/* PG-USR-06: 문서뷰어 & 주석 스튜디오 (고성능 가상 스크롤 뷰어 + 3탭 상단/좌측 배치 + 8대모드/도구속성바) */}
         {selectedProg === 'PG-USR-06' && (
-          <div className="space-y-3">
-            {/* 8대 뷰어 모드 그룹 전환 칩 바 (가로 슬라이더 적용) */}
-            <div className="bg-slate-950/80 border border-slate-800 rounded-lg p-1.5">
-              <HorizontalSlideContainer scrollStep={200} className="w-full">
-                {[
-                  { id: 'annot', name: '주석달기' },
-                  { id: 'draw', name: '그리기' },
-                  { id: 'sign', name: '작성및서명' },
-                  { id: 'view', name: '보기' },
-                  { id: 'favorite', name: '즐겨찾기' },
-                  { id: 'insert', name: '삽입' },
-                  { id: 'convert', name: '변환' },
-                  { id: 'form', name: '양식준비' },
-                ].map((grp) => {
-                  const active = grp.id === activeGroup;
-                  return (
+          <div className="space-y-2.5 animate-in fade-in duration-200">
+            {/* ========================================================================= */}
+            {/* [Xodo 벤치마킹] 초슬림 2단 통폐합 툴바 (Top 1단: 글로벌 헤더 / Top 2단: 도구 툴바) */}
+            {/* ========================================================================= */}
+            <div className="bg-slate-950 border border-slate-800 rounded-2xl shadow-xl overflow-visible relative">
+              {/* Top 1단: 뒤로가기(서재) + 모드 스위처 드롭다운 + 도서명 + 우측 글로벌 액션 */}
+              <div className="h-11 px-3 border-b border-slate-800/80 flex items-center justify-between gap-2">
+                {/* 좌측: [←] 뒤로가기 & [모드 ∨] 드롭다운 스위처 */}
+                <div className="flex items-center gap-2 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (activeViewingDoc) {
+                        const total = activeViewingDoc.totalPages || 800;
+                        const progress = Math.min(100, Math.round((viewerCurrentPage / total) * 100));
+                        setActiveViewingDoc({
+                          ...activeViewingDoc,
+                          readPages: viewerCurrentPage,
+                          progressPercent: progress,
+                          lastReadAt: '방금 전',
+                        });
+                      }
+                      setSelectedProg('PG-USR-05');
+                    }}
+                    className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                    title="서재 목록(PG-USR-05)으로 복귀"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </button>
+
+                  {/* 모드 스위처 드롭다운 버튼 (Xodo [주석 달기 ∨] 형태) */}
+                  <div className="relative">
                     <button
-                      key={grp.id}
-                      onClick={() => setActiveGroup(grp.id)}
-                      className={`shrink-0 px-3 py-1.5 min-h-[36px] rounded-md text-[11px] font-medium transition-all flex items-center gap-1.5 ${
-                        active
-                          ? 'bg-sky-600 text-white font-bold shadow-sm ring-1 ring-sky-400'
-                          : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-                      }`}
+                      type="button"
+                      onClick={() => setIsModeDropdownOpen(!isModeDropdownOpen)}
+                      className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700/70 text-xs font-bold text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                      title="도구 모드 그룹 변경"
                     >
-                      <span>{grp.name}</span>
-                      <span className="text-[10px] px-1 py-0.2 bg-black/30 rounded text-slate-300">
-                        {registry.getToolsForGroup(grp.id).length}
+                      <span className="text-sky-400">
+                        {activeGroup === 'annot' ? '주석 달기' :
+                         activeGroup === 'draw' ? '그리기' :
+                         activeGroup === 'sign' ? '작성 및 서명' :
+                         activeGroup === 'view' ? '보기' :
+                         activeGroup === 'favorite' ? '즐겨찾기' :
+                         activeGroup === 'insert' ? '삽입' : '펜'}
                       </span>
+                      <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isModeDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
-                  );
-                })}
-              </HorizontalSlideContainer>
-            </div>
 
-            {/* 단일줄 상단 툴바 + 가로 슬라이더 (ERR-04 보완) */}
-            <div className="bg-slate-950 border border-slate-800 rounded-xl p-2 flex items-center gap-2 overflow-hidden shadow-inner">
-              <button className="h-9 w-9 min-w-[36px] bg-slate-900 hover:bg-slate-800 rounded-lg text-slate-400 shrink-0 flex items-center justify-center text-xs" title="뒤로가기">
-                ◀
-              </button>
-              <div className="font-bold text-slate-200 text-xs shrink-0 max-w-[120px] truncate" title="ISO 32000-2 표준 가이드북">
-                ISO 32000-2...
-              </div>
+                    {/* 모드 드롭다운 메뉴 */}
+                    {isModeDropdownOpen && (
+                      <div className="absolute top-9 left-0 z-50 w-44 rounded-xl bg-slate-900/95 backdrop-blur-xl border border-slate-700 shadow-2xl p-1 space-y-0.5 animate-in fade-in zoom-in-95 duration-100">
+                        {[
+                          { id: 'annot', name: '주석 달기', icon: '✏️' },
+                          { id: 'draw', name: '그리기', icon: '🎨' },
+                          { id: 'sign', name: '작성 및 서명', icon: '✍️' },
+                          { id: 'view', name: '보기 (읽기 전용)', icon: '👁️' },
+                          { id: 'favorite', name: '즐겨찾기', icon: '⭐' },
+                          { id: 'insert', name: '삽입', icon: '📎' },
+                        ].map((grp) => (
+                          <button
+                            key={grp.id}
+                            type="button"
+                            onClick={() => {
+                              setActiveGroup(grp.id);
+                              setIsModeDropdownOpen(false);
+                            }}
+                            className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium text-left flex items-center justify-between cursor-pointer transition-colors ${
+                              activeGroup === grp.id
+                                ? 'bg-sky-600 text-white font-bold'
+                                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                            }`}
+                          >
+                            <span className="flex items-center gap-1.5">
+                              <span>{grp.icon}</span>
+                              <span>{grp.name}</span>
+                            </span>
+                            {activeGroup === grp.id && <Check className="w-3 h-3 text-white" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
-              {/* 가로 스크롤 스냅 슬라이더 (아이콘 전용, 텍스트 생략, 사용자 설정 및 중복 도구 인메모리 반영) */}
-              <div className="flex-1 min-w-0 overflow-hidden">
-                <HorizontalSlideContainer scrollStep={180} className="w-full">
-                  {activeTools.map((item, idx) => (
-                    <button
-                      key={`${item.id}-${idx}`}
-                      onClick={() => setCurrentTool(item.id)}
-                      title={`${item.name} (${viewerConfig.shortcuts[item.id] || item.defaultKey})`}
-                      className={`shrink-0 h-9 w-9 min-w-[36px] rounded-lg flex items-center justify-center text-base transition-all relative ${
-                        currentTool === item.id
-                          ? 'bg-sky-600 text-white shadow-md shadow-sky-600/50 ring-2 ring-sky-400/50'
-                          : 'bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white'
-                      }`}
-                    >
-                      <span>{item.icon}</span>
-                    </button>
-                  ))}
-                </HorizontalSlideContainer>
-              </div>
+                  {/* 문서명 */}
+                  <div className="hidden sm:flex items-center gap-1.5 min-w-0 max-w-[240px] md:max-w-[340px]">
+                    <span className="text-slate-600">|</span>
+                    <span className="text-xs font-bold text-slate-300 truncate" title={activeViewingDoc?.title || 'ISO 32000-2 표준 가이드북'}>
+                      {activeViewingDoc?.title || 'ISO 32000-2 표준 가이드북'}
+                    </span>
+                  </div>
+                </div>
 
-              {/* 툴바 순서 설정 팝업 버튼 (⚙) */}
-              <button
-                onClick={() => setIsToolbarModalOpen(true)}
-                className="h-9 px-2.5 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 rounded-lg text-xs shrink-0 flex items-center gap-1.5"
-                title="툴바 순서 및 그룹 설정 팝업"
-              >
-                <span>⚙</span>
-                <span className="hidden sm:inline text-[11px] font-medium">순서설정</span>
-              </button>
+                {/* 우측: 글로벌 퀵 액션 (검색, 3탭 목차/북마크 열기, 3탭 배치전환, 설정) */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {/* 검색창 인라인 토글 */}
+                  <div className="relative hidden md:block">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="본문 검색..."
+                      value={viewerSearchQuery}
+                      onChange={(e) => setViewerSearchQuery(e.target.value)}
+                      className="w-32 lg:w-44 pl-7 pr-6 py-1 bg-slate-900 border border-slate-700/80 rounded-lg text-[11px] text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
+                    />
+                    {viewerSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setViewerSearchQuery('')}
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
 
-              <button className="h-9 w-9 min-w-[36px] bg-slate-900 hover:bg-slate-800 rounded-lg text-slate-400 shrink-0 text-xs flex items-center justify-center" title="더보기">
-                ⋮
-              </button>
-            </div>
-
-            {/* 뷰어 메인 워크스페이스: 좌측 드로어 + 중앙 캔버스 */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 h-[380px]">
-              {/* 좌측 패널 (북마크 / 목차 / 주석) */}
-              <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-col text-xs">
-                <div className="flex border-b border-slate-800 pb-2 mb-2 gap-2 text-slate-400">
+                  {/* 3탭(목차/북마크/주석) 사이드패널 토글 */}
                   <button
-                    onClick={() => setActiveViewerTab('bookmarks')}
-                    className={`pb-1 ${activeViewerTab === 'bookmarks' ? 'text-sky-400 border-b-2 border-sky-400 font-bold' : ''}`}
+                    type="button"
+                    onClick={() => setIsTabDrawerCollapsed(!isTabDrawerCollapsed)}
+                    className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                      !isTabDrawerCollapsed
+                        ? 'bg-sky-600/30 text-sky-300 border-sky-500/40'
+                        : 'bg-slate-900 text-slate-400 hover:text-white border-slate-800'
+                    }`}
+                    title={isTabDrawerCollapsed ? '목차/북마크/주석 패널 펼치기' : '목차/북마크/주석 패널 접기'}
                   >
-                    북마크
+                    <List className="w-4 h-4" />
                   </button>
+
+                  {/* 3탭 상단/좌측 배치 토글 */}
                   <button
-                    onClick={() => setActiveViewerTab('toc')}
-                    className={`pb-1 ${activeViewerTab === 'toc' ? 'text-sky-400 border-b-2 border-sky-400 font-bold' : ''}`}
+                    type="button"
+                    onClick={() => setTabLayoutPosition(tabLayoutPosition === 'left' ? 'top' : 'left')}
+                    className="p-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-white border border-slate-800 text-[11px] font-bold cursor-pointer"
+                    title={`현재 ${tabLayoutPosition === 'left' ? '좌측' : '상단'} 배치 (클릭 시 전환)`}
                   >
-                    목차(TOC)
+                    {tabLayoutPosition === 'left' ? '◫' : '⬒'}
                   </button>
+
+                  {/* 순서설정 */}
                   <button
-                    onClick={() => setActiveViewerTab('annots')}
-                    className={`pb-1 ${activeViewerTab === 'annots' ? 'text-sky-400 border-b-2 border-sky-400 font-bold' : ''}`}
+                    type="button"
+                    onClick={() => setIsToolbarModalOpen(true)}
+                    className="p-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-white border border-slate-800 transition-colors cursor-pointer"
+                    title="도구 순서 및 사용자 설정"
                   >
-                    주석(42)
+                    <Sliders className="w-4 h-4" />
                   </button>
                 </div>
-                <div className="flex-1 overflow-y-auto space-y-1.5 text-slate-300 font-mono text-[11px]">
+              </div>
+
+              {/* Top 2단: 선택된 그룹의 도구 아이콘 슬라이더 + [스타일 🎛️ 팔레트 버튼] + [↶/↷ Undo/Redo] + 배율 */}
+              <div className="h-11 px-3 flex items-center justify-between gap-2 overflow-visible relative">
+                {/* 좌측: 활성 도구 아이콘 슬라이더 */}
+                <div className="flex-1 min-w-0 overflow-hidden">
+                  <HorizontalSlideContainer scrollStep={180} className="w-full">
+                    {activeTools.map((item, idx) => (
+                      <button
+                        key={`${item.id}-${idx}`}
+                        onClick={() => {
+                          setCurrentTool(item.id);
+                          // 도구 선택 시 팝오버를 열거나 속성 연계
+                        }}
+                        title={`${item.name} (${viewerConfig.shortcuts[item.id] || item.defaultKey})`}
+                        className={`shrink-0 h-8 w-8 min-w-[32px] rounded-lg flex items-center justify-center text-sm transition-all relative cursor-pointer ${
+                          currentTool === item.id
+                            ? 'bg-sky-600 text-white shadow-md shadow-sky-600/50 ring-2 ring-sky-400/50'
+                            : 'bg-slate-900/80 text-slate-300 hover:bg-slate-800 hover:text-white'
+                        }`}
+                      >
+                        <span>{item.icon}</span>
+                      </button>
+                    ))}
+                  </HorizontalSlideContainer>
+                </div>
+
+                {/* 중앙/우측 분기: [스타일 팝오버 트리거 버튼 🎛️] + [Undo/Redo] + 배율 */}
+                <div className="flex items-center gap-1.5 shrink-0 relative">
+                  {/* [핵심 벤치마킹] Xodo 스타일(도구 상세속성) 팝오버 트리거 버튼 */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsStylePopoverOpen(!isStylePopoverOpen)}
+                      className={`h-8 px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                        isStylePopoverOpen
+                          ? 'bg-sky-600 text-white border-sky-400 shadow-md ring-2 ring-sky-500/50'
+                          : 'bg-slate-900 hover:bg-slate-800 text-slate-200 border-slate-700/80'
+                      }`}
+                      title="도구 상세속성(스타일, 획, 불투명도, 프리셋) 팔레트 열기"
+                    >
+                      {/* 현재 선택 색상 미니 원형 칩 */}
+                      <span
+                        className="w-3.5 h-3.5 rounded-full border border-white/50 shadow-xs"
+                        style={{ backgroundColor: toolStyleState.color }}
+                      />
+                      <span className="hidden sm:inline text-[11px]">스타일</span>
+                    </button>
+
+                    {/* Xodo 스타일 팝오버 틀 컴포넌트 마운트 */}
+                    <ToolStylePopover
+                      isOpen={isStylePopoverOpen}
+                      onClose={() => setIsStylePopoverOpen(false)}
+                      toolName={registry.getAllTools().find((t) => t.id === currentTool)?.name || currentTool}
+                      styleState={toolStyleState}
+                      onChangeStyle={(updated) => setToolStyleState((prev) => ({ ...prev, ...updated }))}
+                    />
+                  </div>
+
+                  <div className="w-px h-4 bg-slate-800 mx-0.5" />
+
+                  {/* 실행취소 (Undo) */}
+                  <button
+                    type="button"
+                    onClick={() => alert('이전 작업이 취소되었습니다 (Undo).')}
+                    className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                    title="실행취소 (Ctrl + Z)"
+                  >
+                    <Undo2 className="w-4 h-4" />
+                  </button>
+
+                  {/* 다시실행 (Redo) */}
+                  <button
+                    type="button"
+                    onClick={() => alert('작업이 다시 실행되었습니다 (Redo).')}
+                    className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                    title="다시실행 (Ctrl + Y)"
+                  >
+                    <Redo2 className="w-4 h-4" />
+                  </button>
+
+                  <div className="w-px h-4 bg-slate-800 mx-0.5" />
+
+                  {/* 배율 조절 드롭다운 (100% ∨) */}
+                  <div className="flex items-center rounded-lg bg-slate-900 border border-slate-800 p-0.5 text-xs font-mono">
+                    <button
+                      type="button"
+                      onClick={() => setViewerScale((s) => Math.max(0.5, parseFloat((s - 0.1).toFixed(1))))}
+                      className="px-1.5 py-0.5 text-slate-400 hover:text-white cursor-pointer"
+                      title="축소"
+                    >
+                      -
+                    </button>
+                    <span className="px-1 font-bold text-sky-400">{Math.round(viewerScale * 100)}%</span>
+                    <button
+                      type="button"
+                      onClick={() => setViewerScale((s) => Math.min(3.0, parseFloat((s + 0.1).toFixed(1))))}
+                      className="px-1.5 py-0.5 text-slate-400 hover:text-white cursor-pointer"
+                      title="확대"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 5. [피드백 반영] 상단배치 모드(top)일 때 3탭 드로어 렌더링 */}
+            {tabLayoutPosition === 'top' && !isTabDrawerCollapsed && (
+              <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2 animate-in slide-in-from-top-2 duration-150 shadow-md">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveViewerTab('bookmarks')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        activeViewerTab === 'bookmarks'
+                          ? 'bg-sky-600 text-white shadow-xs'
+                          : 'bg-slate-900 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      🔖 북마크 ({viewerBookmarks.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveViewerTab('toc')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        activeViewerTab === 'toc'
+                          ? 'bg-sky-600 text-white shadow-xs'
+                          : 'bg-slate-900 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      📖 목차(TOC) ({viewerTocItems.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveViewerTab('annots')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        activeViewerTab === 'annots'
+                          ? 'bg-sky-600 text-white shadow-xs'
+                          : 'bg-slate-900 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      ✏️ 주석 ({viewerAnnotations.length})
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {activeViewerTab === 'bookmarks' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!viewerBookmarks.includes(viewerCurrentPage)) {
+                            setViewerBookmarks([...viewerBookmarks, viewerCurrentPage].sort((a, b) => a - b));
+                          }
+                        }}
+                        className="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold cursor-pointer"
+                      >
+                        + 현재 {viewerCurrentPage}쪽 북마크
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setIsTabDrawerCollapsed(true)}
+                      className="text-slate-400 hover:text-white text-xs px-2 py-0.5 rounded bg-slate-900"
+                      title="상단 드로어 접기"
+                    >
+                      ▲ 접기
+                    </button>
+                  </div>
+                </div>
+
+                {/* 상단 배치 시 가로 스크롤 카드 행 렌더링 */}
+                <div className="max-h-36 overflow-y-auto pr-1">
                   {activeViewerTab === 'toc' && (
-                    <>
-                      <div className="p-1.5 bg-slate-900 rounded text-sky-300">1. 개요 및 스코프 (p.1)</div>
-                      <div className="pl-3 p-1.5 hover:bg-slate-900/50 rounded">1.1 아키텍처 원칙 (p.4)</div>
-                      <div className="pl-3 p-1.5 hover:bg-slate-900/50 rounded">1.2 무결성 락 체계 (p.12)</div>
-                      <div className="p-1.5 hover:bg-slate-900/50 rounded">2. PDF 주석 표준 사양 (p.45)</div>
-                    </>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {viewerTocItems.map((item) => (
+                        <div
+                          key={item.id}
+                          onClick={() => {
+                            setViewerCurrentPage(item.page);
+                            setViewerJumpInput(String(item.page));
+                          }}
+                          className={`p-2 rounded-lg border text-xs cursor-pointer flex items-center justify-between transition-colors ${
+                            viewerCurrentPage === item.page
+                              ? 'bg-sky-950/70 border-sky-500 text-white font-bold'
+                              : 'bg-slate-900/60 hover:bg-slate-900 border-slate-800 text-slate-300'
+                          }`}
+                        >
+                          <span className="truncate">{item.title}</span>
+                          <span className="text-[10px] font-mono text-sky-400 shrink-0 ml-1.5">
+                            p.{item.page}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   )}
+
+                  {activeViewerTab === 'bookmarks' && (
+                    <div className="flex flex-wrap gap-2">
+                      {viewerBookmarks.map((page) => (
+                        <div
+                          key={page}
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-xs"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setViewerCurrentPage(page);
+                              setViewerJumpInput(String(page));
+                            }}
+                            className="font-mono text-sky-300 font-bold hover:underline cursor-pointer"
+                          >
+                            🔖 {page} 쪽
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setViewerBookmarks(viewerBookmarks.filter((b) => b !== page))}
+                            className="text-slate-500 hover:text-rose-400 text-xs ml-1"
+                            title="북마크 해제"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {activeViewerTab === 'annots' && (
-                    <div className="space-y-1">
-                      <div className="p-1.5 bg-slate-900 rounded border-l-2 border-sky-400">
-                        <span className="text-[10px] text-slate-500">p.14 | 형광펜 (jkok2j2m)</span>
-                        <div className="text-slate-200">"하이브리드 아키텍처 설계 원칙"</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {viewerAnnotations.map((ann) => (
+                        <div
+                          key={ann.id}
+                          onClick={() => {
+                            setViewerCurrentPage(ann.page);
+                            setViewerJumpInput(String(ann.page));
+                          }}
+                          className="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-sky-500/50 text-xs cursor-pointer space-y-1 transition-colors"
+                        >
+                          <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono">
+                            <span className="text-sky-400 font-bold">{ann.page}쪽 | {ann.type}</span>
+                            <span>{ann.author}</span>
+                          </div>
+                          <div className="text-slate-200 truncate" style={{ color: ann.color }}>
+                            "{ann.text}"
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 상단배치 모드에서 접혔을 때 펼치기 배너 */}
+            {tabLayoutPosition === 'top' && isTabDrawerCollapsed && (
+              <div className="flex items-center justify-between p-1.5 px-3 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-400">
+                <span className="font-medium text-slate-300">
+                  📖 목차(TOC) 및 북마크 드로어가 접혀 있습니다.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsTabDrawerCollapsed(false)}
+                  className="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-sky-400 font-bold text-[11px] cursor-pointer"
+                >
+                  ▼ 펼치기
+                </button>
+              </div>
+            )}
+
+            {/* 6. 메인 워크스페이스: [좌측배치 모드일 때 좌측 패널] + [고성능 대용량 가상 캔버스 뷰포트] */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 min-h-[480px]">
+              {/* [피드백 반영] 좌측배치 모드(left)일 때 좌측 세로 패널 */}
+              {tabLayoutPosition === 'left' && !isTabDrawerCollapsed && (
+                <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-col text-xs shadow-sm">
+                  {/* 패널 상단: 3탭 전환 바 + 접기 버튼 */}
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setActiveViewerTab('bookmarks')}
+                        className={`pb-1 transition-all cursor-pointer ${
+                          activeViewerTab === 'bookmarks'
+                            ? 'text-sky-400 border-b-2 border-sky-400 font-bold'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        북마크({viewerBookmarks.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveViewerTab('toc')}
+                        className={`pb-1 transition-all cursor-pointer ${
+                          activeViewerTab === 'toc'
+                            ? 'text-sky-400 border-b-2 border-sky-400 font-bold'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        목차(TOC)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveViewerTab('annots')}
+                        className={`pb-1 transition-all cursor-pointer ${
+                          activeViewerTab === 'annots'
+                            ? 'text-sky-400 border-b-2 border-sky-400 font-bold'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        주석({viewerAnnotations.length})
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsTabDrawerCollapsed(true)}
+                      className="text-slate-500 hover:text-slate-300 text-xs"
+                      title="좌측 패널 접기"
+                    >
+                      ◀
+                    </button>
+                  </div>
+
+                  {/* 좌측 패널 본문 목록 */}
+                  <div className="flex-1 overflow-y-auto space-y-1.5 text-slate-300 font-mono text-[11px] pr-1">
+                    {activeViewerTab === 'toc' && (
+                      <div className="space-y-1">
+                        {viewerTocItems.map((item) => (
+                          <div
+                            key={item.id}
+                            onClick={() => {
+                              setViewerCurrentPage(item.page);
+                              setViewerJumpInput(String(item.page));
+                            }}
+                            className={`p-1.5 rounded cursor-pointer transition-colors flex items-center justify-between ${
+                              viewerCurrentPage === item.page
+                                ? 'bg-sky-950/70 border border-sky-500/50 text-sky-300 font-bold'
+                                : 'hover:bg-slate-900 text-slate-300'
+                            } ${item.level === 2 ? 'pl-4 text-[10px]' : ''}`}
+                          >
+                            <span className="truncate">{item.title}</span>
+                            <span className="text-[10px] text-slate-500 shrink-0 ml-1">p.{item.page}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {activeViewerTab === 'bookmarks' && (
+                      <div className="space-y-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!viewerBookmarks.includes(viewerCurrentPage)) {
+                              setViewerBookmarks([...viewerBookmarks, viewerCurrentPage].sort((a, b) => a - b));
+                            }
+                          }}
+                          className="w-full py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                        >
+                          + 현재 {viewerCurrentPage}쪽 북마크 추가
+                        </button>
+                        <div className="space-y-1">
+                          {viewerBookmarks.map((page) => (
+                            <div
+                              key={page}
+                              className="p-1.5 rounded bg-slate-900 border border-slate-800 flex items-center justify-between text-xs"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setViewerCurrentPage(page);
+                                  setViewerJumpInput(String(page));
+                                }}
+                                className="font-mono text-sky-300 font-bold hover:underline cursor-pointer"
+                              >
+                                🔖 {page} 쪽
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setViewerBookmarks(viewerBookmarks.filter((b) => b !== page))}
+                                className="text-slate-500 hover:text-rose-400 text-xs"
+                                title="북마크 삭제"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {activeViewerTab === 'annots' && (
+                      <div className="space-y-1.5">
+                        {viewerAnnotations.map((ann) => (
+                          <div
+                            key={ann.id}
+                            onClick={() => {
+                              setViewerCurrentPage(ann.page);
+                              setViewerJumpInput(String(ann.page));
+                            }}
+                            className="p-2 rounded bg-slate-900 border border-slate-800 hover:border-sky-500/40 cursor-pointer space-y-1 transition-colors"
+                          >
+                            <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono">
+                              <span className="text-sky-400 font-bold">{ann.page}쪽 | {ann.type}</span>
+                              <span>{ann.author}</span>
+                            </div>
+                            <div className="text-slate-200 text-xs" style={{ color: ann.color }}>
+                              "{ann.text}"
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 좌측 패널 접혔을 때 펼치기 사이드 바 */}
+              {tabLayoutPosition === 'left' && isTabDrawerCollapsed && (
+                <div
+                  onClick={() => setIsTabDrawerCollapsed(false)}
+                  className="bg-slate-950 border border-slate-800 rounded-xl p-2 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-900 transition-colors w-10 text-slate-400 hover:text-white"
+                  title="목차 및 북마크 패널 펼치기"
+                >
+                  <span className="text-xs font-bold">▶</span>
+                  <span className="text-[10px] [writing-mode:vertical-rl] mt-3 font-medium">목차 · 북마크</span>
+                </div>
+              )}
+
+              {/* 중앙 대용량 가상 뷰포트 캔버스 영역 (60fps 가상 스크롤러 & LRU 메모리가드 연동) */}
+              <div
+                className={`${
+                  tabLayoutPosition === 'left' && !isTabDrawerCollapsed
+                    ? 'md:col-span-3'
+                    : tabLayoutPosition === 'left' && isTabDrawerCollapsed
+                    ? 'col-span-1 md:col-span-4'
+                    : 'col-span-1 md:col-span-4'
+                } bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-col justify-between relative overflow-hidden shadow-inner`}
+              >
+                {/* 캔버스 상단 가상화 뷰어 상태 배너 & OCR 선택 툴팁 */}
+                <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-slate-900/90 border border-slate-800 rounded-lg text-xs mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-emerald-400 font-bold flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      60fps 가상 렌더러
+                    </span>
+                    <span className="text-slate-500 font-mono text-[10px]">
+                      | LRU 캐시: {viewerCurrentPage}/{activeViewingDoc?.totalPages || 800}P (메모리 2.1MB 절약)
+                    </span>
+                  </div>
+
+                  {/* OCR 텍스트 퀵 액션 */}
+                  <div className="flex items-center gap-1 text-[11px]">
+                    <span className="text-slate-400 text-[10px] hidden sm:inline">텍스트 선택:</span>
+                    <button
+                      type="button"
+                      onClick={() => alert(`제 ${viewerCurrentPage}쪽 본문 텍스트가 클립보드에 복사되었습니다.`)}
+                      className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] cursor-pointer"
+                    >
+                      전체복사
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newAnn = {
+                          id: `ann-${Date.now()}`,
+                          page: viewerCurrentPage,
+                          type: '형광펜',
+                          author: 'jkok2j2m',
+                          text: `제 ${viewerCurrentPage}쪽 핵심 문구 강조`,
+                          color: toolStyleState.color,
+                          date: '방금 전',
+                        };
+                        setViewerAnnotations([newAnn, ...viewerAnnotations]);
+                        alert(`제 ${viewerCurrentPage}쪽에 형광펜 주석이 등록되었습니다.`);
+                      }}
+                      className="px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 text-[10px] font-bold cursor-pointer"
+                    >
+                      형광펜
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newAnn = {
+                          id: `ann-${Date.now()}`,
+                          page: viewerCurrentPage,
+                          type: '메모',
+                          author: 'jkok2j2m',
+                          text: `제 ${viewerCurrentPage}쪽 독서 메모`,
+                          color: '#38bdf8',
+                          date: '방금 전',
+                        };
+                        setViewerAnnotations([newAnn, ...viewerAnnotations]);
+                        alert(`제 ${viewerCurrentPage}쪽에 새 메모가 등록되었습니다.`);
+                      }}
+                      className="px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 hover:bg-sky-500/30 text-[10px] font-bold cursor-pointer"
+                    >
+                      메모
+                    </button>
+                  </div>
+                </div>
+
+                {/* 실제 도서 본문 렌더링 캔버스 (확대/회전/Searchable PDF 하이라이트 반영) */}
+                <div className="flex-1 bg-slate-900/60 rounded-xl p-4 overflow-auto flex items-center justify-center min-h-[380px] relative">
+                  {/* ========================================================================= */}
+                  {/* [Xodo 캡처 핵심 벤치마킹] 좌상단 플로팅 쪽수 칩 [ 157 / 504 ] */}
+                  {/* 터치 시 직관적인 쪽수 점프 슬라이더 팝오버 표시 */}
+                  {/* ========================================================================= */}
+                  <div className="absolute top-3 left-3 z-30">
+                    <button
+                      type="button"
+                      onClick={() => setIsPageJumpPopoverOpen(!isPageJumpPopoverOpen)}
+                      className="px-3 py-1.5 rounded-full bg-black/75 hover:bg-black/90 backdrop-blur-md text-white text-xs font-mono font-bold tracking-wider border border-white/20 shadow-xl flex items-center gap-1.5 transition-all cursor-pointer hover:scale-105"
+                      title="클릭하여 원하는 페이지로 바로 점프"
+                    >
+                      <span>{viewerCurrentPage}</span>
+                      <span className="text-slate-400 font-normal">/</span>
+                      <span className="text-slate-300">{activeViewingDoc?.totalPages || 800}</span>
+                    </button>
+
+                    {/* 쪽수 점프 팝오버 */}
+                    {isPageJumpPopoverOpen && (
+                      <div className="absolute top-10 left-0 z-40 w-64 p-3 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-slate-700 shadow-2xl space-y-2.5 animate-in fade-in zoom-in-95 duration-100 text-xs">
+                        <div className="flex justify-between items-center text-slate-300">
+                          <span className="font-bold">페이지 이동</span>
+                          <span className="font-mono text-sky-400 font-bold">{viewerCurrentPage} 쪽</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={1}
+                          max={activeViewingDoc?.totalPages || 800}
+                          value={viewerCurrentPage}
+                          onChange={(e) => {
+                            const p = Number(e.target.value);
+                            setViewerCurrentPage(p);
+                            setViewerJumpInput(String(p));
+                          }}
+                          className="w-full accent-sky-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                        />
+                        <div className="flex items-center gap-2 pt-1 border-t border-slate-800">
+                          <input
+                            type="number"
+                            min={1}
+                            max={activeViewingDoc?.totalPages || 800}
+                            value={viewerJumpInput}
+                            onChange={(e) => setViewerJumpInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                const p = parseInt(viewerJumpInput, 10);
+                                if (!isNaN(p) && p >= 1 && p <= (activeViewingDoc?.totalPages || 800)) {
+                                  setViewerCurrentPage(p);
+                                  setIsPageJumpPopoverOpen(false);
+                                }
+                              }
+                            }}
+                            className="w-16 px-2 py-1 bg-slate-800 border border-slate-700 rounded text-center text-white font-mono"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const p = parseInt(viewerJumpInput, 10);
+                              if (!isNaN(p) && p >= 1 && p <= (activeViewingDoc?.totalPages || 800)) {
+                                setViewerCurrentPage(p);
+                                setIsPageJumpPopoverOpen(false);
+                              }
+                            }}
+                            className="flex-1 py-1 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded cursor-pointer"
+                          >
+                            이동하기
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div
+                    style={{
+                      transform: `scale(${viewerScale}) rotate(${viewerRotation}deg)`,
+                      transformOrigin: 'center center',
+                      transition: 'transform 0.15s ease-out',
+                    }}
+                    className="w-full max-w-xl bg-white text-slate-900 rounded-lg p-6 sm:p-8 shadow-2xl space-y-4 select-text relative border border-slate-300"
+                  >
+                    {/* 상단 헤더 쪽수 표시 */}
+                    <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono border-b border-slate-200 pb-2">
+                      <span className="font-bold text-slate-700 truncate max-w-[280px]">
+                        {activeViewingDoc?.title || 'ISO 32000-2 표준 가이드북'}
+                      </span>
+                      <span>Page {viewerCurrentPage} of {activeViewingDoc?.totalPages || 800}</span>
+                    </div>
+
+                    {/* 문서 본문 내용 (가상 페이지 내용 동적 시뮬레이션) */}
+                    <div className="space-y-3 font-serif leading-relaxed text-sm">
+                      <h4 className="font-bold text-base text-slate-900 font-sans">
+                        제 {Math.floor(viewerCurrentPage / 10) + 1}장. 대용량 전자책 아카이빙 및 가상 렌더링
+                      </h4>
+                      <p className="text-slate-700 text-xs">
+                        본 문서는 purePDFrend 엔진을 통하여 <strong>{activeViewingDoc?.totalPages || 800}쪽 이상의 대용량 스캔 도서</strong>를 브라우저 메모리 고갈 없이 60fps로 탐색할 수 있는 가상 윈도잉 아키텍처를 정의한다.
+                      </p>
+                      
+                      {/* Searchable PDF 일치 하이라이트 시뮬레이션 */}
+                      <div
+                        className={`p-2.5 rounded text-xs transition-colors ${
+                          viewerSearchQuery
+                            ? 'bg-yellow-200/90 border border-yellow-400 text-slate-900 font-medium'
+                            : 'bg-slate-50 border border-slate-200 text-slate-800'
+                        }`}
+                      >
+                        {viewerSearchQuery ? (
+                          <span>
+                            🔍 검색어 [<strong>{viewerSearchQuery}</strong>] 매칭: "네트워크 단절 시에도 뷰어와 로컬 주석 이벤트 큐는 비동기 캐시를 통해 영속화된다."
+                          </span>
+                        ) : (
+                          <span>
+                            * "투명 텍스트 레이어(Searchable PDF)가 스캔 이미지 하단에 정확히 정렬되어 단어 검색과 텍스트 복사를 완벽히 지원한다."
+                          </span>
+                        )}
+                      </div>
+
+                      {/* ========================================================================= */}
+                      {/* [Xodo 캡처 핵심 벤치마킹] 밑줄/주석 클릭 시 상황별 팝오버 및 3번째 형태전환 */}
+                      {/* ========================================================================= */}
+                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs leading-relaxed text-slate-700 relative">
+                        <span>ChatGPT나 클로드에선 </span>
+                        {/* 클릭 가능한 밑줄 주석 텍스트 스팬 */}
+                        <span className="relative inline-block mx-1">
+                          <span
+                            onClick={() =>
+                              setActiveAnnotationPopover({
+                                isOpen: true,
+                                annId: 'ann-demo-1',
+                                text: '코드를 바로 실행해볼 수도 있습니다.',
+                                type: activeAnnotationPopover.type || 'underline',
+                                color: activeAnnotationPopover.color || '#38bdf8',
+                              })
+                            }
+                            className={`cursor-pointer px-1 py-0.5 rounded transition-all font-medium ${
+                              activeAnnotationPopover.type === 'highlight'
+                                ? 'bg-yellow-300/80 text-black font-semibold'
+                                : activeAnnotationPopover.type === 'strike'
+                                ? 'line-through text-rose-500 font-semibold'
+                                : activeAnnotationPopover.type === 'squiggly'
+                                ? 'underline decoration-wavy decoration-sky-500 font-semibold'
+                                : 'underline decoration-2 decoration-sky-500 font-semibold'
+                            }`}
+                            style={{
+                              borderColor: activeAnnotationPopover.color,
+                            }}
+                            title="클릭하여 밑줄 주석 관리 팝오버 열기"
+                          >
+                            코드를 바로 실행해볼 수도 있습니다.
+                          </span>
+
+                          {/* 터치 핸들러 시각적 점프 표시기 (블루 핸들러 ● --- ●) */}
+                          {activeAnnotationPopover.isOpen && (
+                            <>
+                              <span className="absolute -left-1 -bottom-1 w-2.5 h-2.5 rounded-full bg-sky-500 border border-white shadow-xs pointer-events-none" />
+                              <span className="absolute -right-1 -bottom-1 w-2.5 h-2.5 rounded-full bg-sky-500 border border-white shadow-xs pointer-events-none" />
+                            </>
+                          )}
+
+                          {/* [핵심] AnnotationActionPopover 마운트 */}
+                          <AnnotationActionPopover
+                            isOpen={activeAnnotationPopover.isOpen}
+                            onClose={() => setActiveAnnotationPopover({ ...activeAnnotationPopover, isOpen: false })}
+                            selectedText={activeAnnotationPopover.text}
+                            currentType={activeAnnotationPopover.type}
+                            currentColor={activeAnnotationPopover.color}
+                            onUpdateType={(newType) => {
+                              setActiveAnnotationPopover((prev) => ({ ...prev, type: newType }));
+                            }}
+                            onUpdateColor={(col) => {
+                              setActiveAnnotationPopover((prev) => ({ ...prev, color: col }));
+                            }}
+                            onAddComment={(comment) => {
+                              alert(`주석에 메모가 추가되었습니다: "${comment}"`);
+                            }}
+                            onDelete={() => {
+                              alert('밑줄 주석이 성공적으로 삭제되었습니다.');
+                              setActiveAnnotationPopover({ ...activeAnnotationPopover, isOpen: false });
+                            }}
+                            onCopy={() => {
+                              alert(`"${activeAnnotationPopover.text}" 클립보드에 복사 완료!`);
+                            }}
+                          />
+                        </span>
+                        <span> ChatGPT는 코드 인터프리터, 클로드는 아티팩트, 구글 제미나이는 캔버스를 지원합니다.</span>
+                      </div>
+
+                      <p className="text-slate-600 text-xs">
+                        {viewerCurrentPage}쪽에 포함된 OCR 바운딩 박스는 실시간 양방향 포커스를 지원하며, 선택 도구인 <strong>[{registry.getAllTools().find((t) => t.id === currentTool)?.name || currentTool}]</strong>을 통해 화면 위에서 즉시 주석을 작성하고 저장할 수 있다.
+                      </p>
+
+                      <div className="p-3 bg-sky-50 border-l-4 border-sky-500 rounded text-xs text-sky-950 font-sans">
+                        <strong>📌 독서 진행 메모:</strong> 현재 {viewerCurrentPage}쪽을 열람 중이며, 상단의 [← 서재 목록으로] 버튼을 누르면 서재 카드의 독서 진행률이 실시간 갱신됩니다.
                       </div>
                     </div>
-                  )}
-                  {activeViewerTab === 'bookmarks' && (
-                    <div className="text-slate-500 text-center py-4">등록된 북마크 0건</div>
-                  )}
-                </div>
-              </div>
 
-              {/* 중앙 PDF 페이지 캔버스 & 3단계 인터랙션 메뉴 프리뷰 */}
-              <div className="md:col-span-3 bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col justify-between relative overflow-hidden">
-                {/* 3단계 인터랙션 플로팅 툴팁 (시각적 프리뷰) */}
-                <div className="p-2 bg-slate-900/95 border border-sky-500/40 rounded-lg shadow-xl flex items-center gap-2 text-xs mb-2">
-                  <span className="text-sky-400 font-semibold">1단계: OCR 텍스트 선택 툴팁 ➔</span>
-                  <div className="flex gap-1">
-                    <button className="px-2 py-0.5 bg-yellow-500/20 text-yellow-300 rounded text-[11px]">강조</button>
-                    <button className="px-2 py-0.5 bg-sky-500/20 text-sky-300 rounded text-[11px]">밑줄</button>
-                    <button className="px-2 py-0.5 bg-slate-800 text-slate-300 rounded text-[11px]">복사</button>
-                    <button className="px-2 py-0.5 bg-slate-800 text-slate-300 rounded text-[11px]">번역</button>
-                  </div>
-                </div>
-
-                {/* 본문 캔버스 영역 */}
-                <div className="flex-1 bg-white text-slate-900 p-6 rounded-lg shadow-inner flex flex-col justify-between">
-                  <div className="space-y-2">
-                    <div className="h-4 bg-slate-200 rounded w-1/3" />
-                    <div className="h-3 bg-slate-100 rounded w-full" />
-                    <div className="h-3 bg-yellow-200/80 rounded w-4/5 text-[11px] text-slate-800 px-1 font-serif">
-                      * 선택된 텍스트: "네트워크 단절 시에도 뷰어와 로컬 주석 이벤트 큐는 연속 실행된다."
+                    {/* 하단 푸터 쪽수 */}
+                    <div className="text-center text-[10px] text-slate-400 font-mono pt-3 border-t border-slate-200">
+                      - {viewerCurrentPage} -
                     </div>
-                    <div className="h-3 bg-slate-100 rounded w-full" />
-                    <div className="h-3 bg-slate-100 rounded w-2/3" />
-                  </div>
-                  <div className="text-center text-slate-400 text-[11px] font-mono">
-                    - Page 14 of 482 -
                   </div>
                 </div>
 
-                {/* 하단 스크롤 앵커 및 페이지 네비게이터 */}
-                <div className="mt-2 pt-2 border-t border-slate-800 flex justify-between items-center text-xs text-slate-400">
-                  <span>스크롤 앵커 가이드라인 활성</span>
+                {/* 캔버스 하단 플로팅 컨트롤 (빠른 페이지 넘김) */}
+                <div className="mt-2 pt-2 border-t border-slate-800 flex flex-wrap justify-between items-center text-xs text-slate-400 gap-2">
                   <div className="flex items-center gap-2">
-                    <button className="px-2 py-0.5 bg-slate-900 rounded">이전</button>
-                    <span className="font-mono text-white">14 / 482</span>
-                    <button className="px-2 py-0.5 bg-slate-900 rounded">다음</button>
+                    <span className="font-mono text-slate-300">
+                      열람 쪽수: <strong className="text-sky-400">{viewerCurrentPage}</strong> / {activeViewingDoc?.totalPages || 800} 쪽
+                    </span>
+                    <span className="text-slate-600">|</span>
+                    <span className="text-slate-400 text-[11px]">배율: {Math.round(viewerScale * 100)}%</span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = Math.max(1, viewerCurrentPage - 1);
+                        setViewerCurrentPage(next);
+                        setViewerJumpInput(String(next));
+                      }}
+                      className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-medium cursor-pointer"
+                    >
+                      ◀ 이전 쪽
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const total = activeViewingDoc?.totalPages || 800;
+                        const next = Math.min(total, viewerCurrentPage + 1);
+                        setViewerCurrentPage(next);
+                        setViewerJumpInput(String(next));
+                      }}
+                      className="px-2.5 py-1 rounded bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold cursor-pointer"
+                    >
+                      다음 쪽 ▶
+                    </button>
                   </div>
                 </div>
               </div>
@@ -2331,31 +3161,43 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
             {/* 툴바 순서 설정 팝업 (모달) */}
             {isToolbarModalOpen && (
               <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+                <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
                   <div className="flex justify-between items-center pb-3 border-b border-slate-800">
                     <h3 className="font-bold text-white text-sm flex items-center gap-2">
                       <span>⚙ 뷰어 툴바 순서 및 사용자 설정</span>
-                      <span className="text-xs px-2 py-0.5 bg-sky-500/20 text-sky-400 rounded">User Custom</span>
+                      <span className="text-xs px-2 py-0.5 bg-sky-500/20 text-sky-400 rounded font-mono">User Custom</span>
                     </h3>
-                    <button onClick={() => setIsToolbarModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+                    <button
+                      type="button"
+                      onClick={() => setIsToolbarModalOpen(false)}
+                      className="text-slate-400 hover:text-white"
+                    >
+                      ✕
+                    </button>
                   </div>
                   <p className="text-xs text-slate-400">
                     툴바 아이콘의 공식 명칭과 단축키를 확인하고, 그룹 내 순서를 변경하거나 자주 쓰지 않는 도구를 숨길 수 있습니다.
                   </p>
                   <div className="space-y-2 max-h-60 overflow-y-auto text-xs pr-1">
                     {activeTools.map((item, idx) => (
-                      <div key={`${item.id}-${idx}`} className="p-2 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-between">
+                      <div
+                        key={`${item.id}-${idx}`}
+                        className="p-2 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-between"
+                      >
                         <div className="flex items-center gap-2.5 truncate">
                           <span className="text-slate-500 font-mono text-[11px] w-4">{idx + 1}</span>
                           <span className="text-base">{item.icon}</span>
                           <div className="truncate">
                             <div className="text-slate-200 font-medium truncate">{item.name}</div>
-                            <div className="text-[10px] text-amber-300/80 font-mono">단축키: {viewerConfig.shortcuts[item.id] || item.defaultKey}</div>
+                            <div className="text-[10px] text-amber-300/80 font-mono">
+                              단축키: {viewerConfig.shortcuts[item.id] || item.defaultKey}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
                           {idx > 0 && (
                             <button
+                              type="button"
                               onClick={() => handleMoveTool(activeGroup, idx, idx - 1)}
                               className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[11px]"
                               title="위로 이동"
@@ -2365,6 +3207,7 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                           )}
                           {idx < activeTools.length - 1 && (
                             <button
+                              type="button"
                               onClick={() => handleMoveTool(activeGroup, idx, idx + 1)}
                               className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[11px]"
                               title="아래로 이동"
@@ -2373,6 +3216,7 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                             </button>
                           )}
                           <button
+                            type="button"
                             onClick={() => handleRemoveToolFromGroup(activeGroup, idx)}
                             className="px-1.5 py-0.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded text-[11px]"
                             title="툴바에서 숨기기"
@@ -2385,6 +3229,7 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                   </div>
                   <div className="flex justify-between items-center pt-2 border-t border-slate-800 text-xs">
                     <button
+                      type="button"
                       onClick={() => {
                         setIsToolbarModalOpen(false);
                         setSelectedProg('PG-USR-09');
@@ -2395,10 +3240,18 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                       + 다른 그룹 도구 중복추가 (설정창 열기) ➔
                     </button>
                     <div className="flex gap-2">
-                      <button onClick={handleResetConfig} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[11px]">
+                      <button
+                        type="button"
+                        onClick={handleResetConfig}
+                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[11px]"
+                      >
                         초기화 (Reset)
                       </button>
-                      <button onClick={() => setIsToolbarModalOpen(false)} className="px-4 py-1.5 bg-sky-600 text-white rounded font-medium text-[11px]">
+                      <button
+                        type="button"
+                        onClick={() => setIsToolbarModalOpen(false)}
+                        className="px-4 py-1.5 bg-sky-600 text-white rounded font-medium text-[11px]"
+                      >
                         완료
                       </button>
                     </div>

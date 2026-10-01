@@ -74,7 +74,7 @@ export interface DocumentItem {
 
 interface DocumentLibraryViewerProps {
   userEmail?: string;
-  onOpenViewer?: (docId: string) => void;
+  onOpenViewer?: (docId: string, doc?: DocumentItem) => void;
   isMobileMode?: boolean;
   className?: string;
 }
@@ -1792,7 +1792,7 @@ export function DocumentLibraryViewer({
                 <div
                   key={doc.id}
                   onClick={() => {
-                    if (onOpenViewer) onOpenViewer(doc.id);
+                    if (onOpenViewer) onOpenViewer(doc.id, doc);
                   }}
                   className="p-3.5 bg-slate-950 border border-slate-800 hover:border-sky-500/60 rounded-2xl space-y-3 cursor-pointer transition-all group select-none shadow-sm flex flex-col justify-between"
                   title="클릭하여 뷰어로 열기"
@@ -1878,7 +1878,7 @@ export function DocumentLibraryViewer({
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (onOpenViewer) onOpenViewer(doc.id);
+                        if (onOpenViewer) onOpenViewer(doc.id, doc);
                       }}
                       className="px-2.5 py-1 rounded-lg bg-sky-600/20 hover:bg-sky-600 text-sky-300 hover:text-white border border-sky-500/40 text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
                     >
@@ -1908,7 +1908,7 @@ export function DocumentLibraryViewer({
                       <tr
                         key={doc.id}
                         onClick={() => {
-                          if (onOpenViewer) onOpenViewer(doc.id);
+                          if (onOpenViewer) onOpenViewer(doc.id, doc);
                         }}
                         className="hover:bg-slate-900/50 cursor-pointer transition-colors group"
                       >
