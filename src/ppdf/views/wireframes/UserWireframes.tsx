@@ -27,9 +27,9 @@ import { ViewerConfigRegistry, ViewerConfigState } from '../../domain/ViewerConf
 import { HorizontalSlideContainer } from '../../components/HorizontalSlideContainer';
 import { WireframeTopLayer } from '../../components/WireframeTopLayer';
 import { DocumentLibraryViewer, DocumentItem } from '../../components/DocumentLibraryViewer';
-import { ToolStylePopover, ToolStyleState } from '../../components/ToolStylePopover';
+import { ToolStylePopover, ToolStyleState, ToolKind } from '../../components/ToolStylePopover';
 import { AnnotationActionPopover, AnnotationKind } from '../../components/AnnotationActionPopover';
-import { Undo2, Redo2, Sliders, List } from 'lucide-react';
+import { Undo2, Redo2, Sliders, Pin, PinOff, Eye, EyeOff } from 'lucide-react';
 
 export const USER_PROGRAMS = [
   { id: 'PG-USR-01', name: '첫화면 (랜딩)', desc: '공개 문서조회 바, 롤링배너, 공지/리뷰/가이드 탭, 고객센터 푸터' },
@@ -288,9 +288,9 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
     'X9Y3-5Z1A', 'B4C7-2D8E', 'F1G6-3H9J', 'J7K2-4L8M', 'N3P9-5Q1R'
   ]);
 
-  // PG-USR-06 Viewer Toolbar state
+  // PG-USR-06 Viewer Toolbar state (3탭: 북마크, 목차, 주석 - 목차 탭 복구 및 'toc' 문자 제거)
   const [isToolbarModalOpen, setIsToolbarModalOpen] = useState(false);
-  const [activeViewerTab, setActiveViewerTab] = useState<'bookmarks' | 'toc' | 'annots'>('toc');
+  const [activeViewerTab, setActiveViewerTab] = useState<'bookmarks' | 'toc' | 'annots'>('bookmarks');
   const [currentTool, setCurrentTool] = useState('pen');
 
   // PG-USR-06 Active Document & Virtual Viewer State
@@ -318,8 +318,242 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
     accentColor: 'sky',
   });
 
-  const [tabLayoutPosition, setTabLayoutPosition] = useState<'left' | 'top'>('left');
-  const [isTabDrawerCollapsed, setIsTabDrawerCollapsed] = useState(false);
+  // 3탭(목차, 북마크, 주석) 그룹 인터랙션 & 레이아웃 상태
+  // - tabOrientation: 'vertical'(세로=좌측 패널, 고정핀 On) | 'horizontal'(가로=상단 위아래 배치, 고정핀 Off)
+  // - isTabDrawerVisible: 표시/숨김 여부 (헤더의 표시/숨김 눈 아이콘과 연동)
+  // - topDrawerHeightMode: 가로 모드 표시 높이 ('narrow': 3~4줄 / 'default': 7~9줄 / 'fit': 컨텐츠 맞춤)
+  const [tabOrientation, setTabOrientation] = useState<'vertical' | 'horizontal'>('vertical');
+  const [isTabDrawerVisible, setIsTabDrawerVisible] = useState(true);
+  const [topDrawerHeightMode, setTopDrawerHeightMode] = useState<'narrow' | 'default' | 'fit'>('default');
+
+  // OCR 바운딩 박스 선택 및 Searchable PDF 양방향 매핑 상태
+  const [selectedOcrBoxId, setSelectedOcrBoxId] = useState<string | null>(null);
+
+  // PG-USR-06 Xodo 도구 분류 헬퍼
+  const mapToolIdToKind = (toolId: string): ToolKind => {
+    const id = toolId.toLowerCase();
+    if (id.includes('eraser') || id.includes('지우개')) return 'eraser';
+    if (id.includes('rect') || id.includes('shape') || id.includes('circle') || id.includes('arrow') || id.includes('도형')) return 'shape';
+    if (id.includes('text') || id.includes('텍스트') || id.includes('note') || id.includes('callout') || id.includes('memo')) return 'text';
+    if (id.includes('highlight') || id.includes('형광펜')) return 'highlighter';
+    if (id.includes('underline') || id.includes('밑줄')) return 'underline';
+    if (id.includes('strike') || id.includes('취소선')) return 'strike';
+    if (id.includes('squiggly') || id.includes('물결')) return 'squiggly';
+    return 'pen';
+  };
+
+  // PG-USR-06 벡터 주석 인터페이스 (자유펜, 도형, 텍스트 상자, 마크업 등 단일 원장 통합 및 확장 메타데이터)
+  interface CanvasVectorAnnotation {
+    id: string;
+    page: number;
+    toolKind: ToolKind;
+    name: string;
+    color: string;
+    strokeWidth: number;
+    opacity: number;
+    fillColor?: string;
+    fillOpacity?: number;
+    fontSize?: number;
+    textAlign?: 'left' | 'center' | 'right';
+    text?: string;
+    pathData?: string;
+    author?: string;
+    date?: string;
+    // 향후 OCR / AI 요약 / 다중 바운딩 박스 확장을 위한 선제적 메타데이터 필드
+    rect?: { x: number; y: number; width: number; height: number };
+    tags?: string[];
+    isAiGenerated?: boolean;
+    confidence?: number;
+    memo?: string;
+    ocrUpdated?: boolean; // OCR 엔진 갱신으로 텍스트 변경/불일치 감지 상태
+    originalOcrText?: string;
+    latestOcrText?: string;
+  }
+
+  // 캔버스 내 실시간 양방향 벡터 주석 목록 (단일 진실 공급원 - Single Source of Truth)
+  const [vectorAnnotations, setVectorAnnotations] = useState<CanvasVectorAnnotation[]>([
+    {
+      id: 'ann-14-1',
+      page: 14,
+      toolKind: 'highlighter',
+      name: '형광펜 강조',
+      color: '#facc15',
+      strokeWidth: 4,
+      opacity: 85,
+      text: '하이브리드 아키텍처 설계 원칙: 60fps 가상 렌더링',
+      author: 'jkok2j2m',
+      date: '오늘 09:30',
+      tags: ['아키텍처', '성능'],
+      ocrUpdated: true,
+      originalOcrText: '하이브리드 아키텍처 설계 원칙: 60fps 가상 렌더링',
+      latestOcrText: '하이브리드 엔진 설계 원칙: 60fps 초고속 가상 렌더링 파이프라인',
+    },
+    {
+      id: 'vec-rect-1',
+      page: 42,
+      toolKind: 'shape',
+      name: '핵심 개념 강조 박스',
+      color: '#38bdf8',
+      strokeWidth: 2,
+      opacity: 90,
+      fillColor: '#0284c7',
+      fillOpacity: 15,
+      text: 'ISO 32000-2 아카이빙 표준에 따른 무손실 보존',
+      author: 'jkok2j2m',
+      date: '오늘 10:15',
+      tags: ['표준사양'],
+    },
+    {
+      id: 'vec-pen-1',
+      page: 42,
+      toolKind: 'pen',
+      name: '자유펜 강조 곡선',
+      color: '#ef4444',
+      strokeWidth: 3,
+      opacity: 85,
+      pathData: 'M 10 30 Q 70 5 130 35 T 240 20',
+      author: 'jkok2j2m',
+      date: '오늘 10:20',
+      tags: ['필기'],
+    },
+    {
+      id: 'vec-text-1',
+      page: 42,
+      toolKind: 'text',
+      name: '여백 메모 스티커',
+      color: '#f59e0b',
+      text: '📌 800페이지 대용량 가상 윈도잉 60fps 필수 준수!',
+      fontSize: 11,
+      fillColor: '#fef3c7',
+      textAlign: 'left',
+      strokeWidth: 1,
+      opacity: 95,
+      author: 'jkok2j2m',
+      date: '오늘 10:25',
+      tags: ['메모', '중요'],
+    },
+    {
+      id: 'ann-demo-1',
+      page: 42,
+      toolKind: 'underline',
+      name: '본문 밑줄 주석',
+      color: '#38bdf8',
+      strokeWidth: 2,
+      opacity: 90,
+      text: '코드를 바로 실행해볼 수도 있습니다.',
+      author: 'jkok2j2m',
+      date: '오늘 10:30',
+      tags: ['본문참조'],
+      ocrUpdated: true,
+      originalOcrText: '코드를 바로 실행해볼 수도 있습니다.',
+      latestOcrText: '코드를 브라우저에서 바로 실시간 실행해볼 수 있습니다.',
+    },
+    {
+      id: 'ann-85-1',
+      page: 85,
+      toolKind: 'underline',
+      name: '메모리가드 밑줄',
+      color: '#34d399',
+      strokeWidth: 2,
+      opacity: 90,
+      text: '대용량 800페이지 LRU 페이지 메모리가드 적용 범위',
+      author: '운영자',
+      date: '어제 16:40',
+      tags: ['메모리가드'],
+      ocrUpdated: true,
+      originalOcrText: '대용량 800페이지 LRU 페이지 메모리가드 적용 범위',
+      latestOcrText: '대용량 800페이지 LRU 가상화 메모리가드 하이퍼 아키텍처',
+    },
+  ]);
+
+  const [selectedVectorId, setSelectedVectorId] = useState<string | null>('vec-rect-1');
+  const [pulseAnnotationId, setPulseAnnotationId] = useState<string | null>(null);
+
+  // PG-USR-06 비차단 세련된 인앱 토스트 상태 (window.alert 배제 규정 준수)
+  const [viewerToast, setViewerToast] = useState<{ message: string; type?: 'info' | 'success' | 'warn' } | null>(null);
+  const showToast = (message: string, type: 'info' | 'success' | 'warn' = 'info') => {
+    setViewerToast({ message, type });
+    setTimeout(() => {
+      setViewerToast((prev) => (prev?.message === message ? null : prev));
+    }, 2800);
+  };
+
+  // PG-USR-06 주석 실행취소/다시실행 (Undo/Redo) 불변 히스토리 스택
+  const [undoStack, setUndoStack] = useState<CanvasVectorAnnotation[][]>([]);
+  const [redoStack, setRedoStack] = useState<CanvasVectorAnnotation[][]>([]);
+
+  // 안전한 히스토리 푸시 헬퍼
+  const pushAnnotationHistory = (newAnnotations: CanvasVectorAnnotation[]) => {
+    setUndoStack((prev) => [...prev.slice(-25), vectorAnnotations]);
+    setRedoStack([]);
+    setVectorAnnotations(newAnnotations);
+  };
+
+  const handleUndoAnnotation = () => {
+    if (undoStack.length === 0) return;
+    const previous = undoStack[undoStack.length - 1];
+    setUndoStack((prev) => prev.slice(0, -1));
+    setRedoStack((prev) => [...prev, vectorAnnotations]);
+    setVectorAnnotations(previous);
+    if (selectedVectorId && !previous.some((a) => a.id === selectedVectorId)) {
+      setSelectedVectorId(null);
+    }
+    showToast('↶ 주석 작업 실행취소(Undo) 완료', 'info');
+  };
+
+  const handleRedoAnnotation = () => {
+    if (redoStack.length === 0) return;
+    const next = redoStack[redoStack.length - 1];
+    setRedoStack((prev) => prev.slice(0, -1));
+    setUndoStack((prev) => [...prev, vectorAnnotations]);
+    setVectorAnnotations(next);
+    showToast('↷ 주석 작업 다시실행(Redo) 완료', 'info');
+  };
+
+  const importFileRef = useRef<HTMLInputElement>(null);
+
+  // Ctrl+Z / Ctrl+Y 전역 단축키 연동
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'z' && !e.shiftKey) {
+          e.preventDefault();
+          handleUndoAnnotation();
+        } else if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) {
+          e.preventDefault();
+          handleRedoAnnotation();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undoStack, redoStack, vectorAnnotations]);
+
+  // PG-USR-06 주석 패널 필터 및 범위 상태 (유형 다중선택 체크박스 지원)
+  const [annotFilterTypes, setAnnotFilterTypes] = useState<Set<'pen' | 'shape' | 'text' | 'markup'>>(
+    new Set(['pen', 'shape', 'text', 'markup'])
+  );
+  const [isTypeFilterDropdownOpen, setIsTypeFilterDropdownOpen] = useState(false); // [피드백 5 반영] 주석 유형 선택목록 드롭다운 펼침 상태
+  const [currentOcrFocusIdx, setCurrentOcrFocusIdx] = useState(0); // [피드백 7 반영] OCR 변경건 위/아래 순차 탐색 포커스 인덱스
+  const [isAutoSyncOnNavigate, setIsAutoSyncOnNavigate] = useState(false); // [피드백 7 반영] 위/아래 탐색 시 선택건 즉시 현행화 자동 옵션
+  const [annotScope, setAnnotScope] = useState<'all' | 'current' | 'single'>('all');
+  const [annotSinglePage, setAnnotSinglePage] = useState<number>(42);
+  const [annotViewMode, setAnnotViewMode] = useState<'sequential' | 'by_page' | 'count_only'>('sequential');
+  const [annotSortDirection, setAnnotSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [annotSortOrder, setAnnotSortOrder] = useState<'page' | 'latest'>('page');
+  const [annotSearchKeyword, setAnnotSearchKeyword] = useState('');
+  const [isClearAllConfirmOpen, setIsClearAllConfirmOpen] = useState(false); // 주석 전체삭제 2중 확인 가드레일 모달
+
+  // PG-USR-06 목차 전용 필터 및 뷰 상태 (깊이 무제한 동적 계층 필터, 'TOC' 문자 완전 배제)
+  const [tocViewMode, setTocViewMode] = useState<'tree' | 'standard'>('tree');
+  const [tocMaxLevelFilter, setTocMaxLevelFilter] = useState<'all' | '1' | '2' | '3' | '4' | '5' | 'deep'>('all');
+  const [tocSearchKeyword, setTocSearchKeyword] = useState('');
+
+  // PG-USR-06 북마크 전용 정렬 및 검색 상태
+  const [bookmarkSortBy, setBookmarkSortBy] = useState<'created' | 'page'>('page');
+  const [bookmarkSortDirection, setBookmarkSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [bookmarkSearchKeyword, setBookmarkSearchKeyword] = useState('');
 
   // PG-USR-06 Xodo 스타일 팝오버 및 상황별 액션 팝오버 상태
   const [isStylePopoverOpen, setIsStylePopoverOpen] = useState(false);
@@ -333,16 +567,23 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
     color: string;
   }>({
     isOpen: true, // 시연 및 즉각 확인을 위해 기본 1건 열림 유지
-    annId: 'mock-annot-1',
+    annId: 'ann-demo-1',
     text: '코드를 바로 실행해볼 수도 있습니다.',
     type: 'underline',
     color: '#38bdf8',
   });
 
   const [toolStyleState, setToolStyleState] = useState<ToolStyleState>({
+    toolKind: 'shape',
     color: '#38bdf8',
-    strokeWidth: 1.5,
-    opacity: 80,
+    strokeWidth: 2,
+    opacity: 90,
+    fillColor: '#0284c7',
+    fillOpacity: 15,
+    fontSize: 14,
+    textAlign: 'left',
+    eraserSize: 20,
+    eraserMode: 'stroke',
     presets: [
       { id: 'p1', name: '스카이블루', color: '#38bdf8', strokeWidth: 1.5, opacity: 80 },
       { id: 'p2', name: '에메랄드', color: '#4ade80', strokeWidth: 1.5, opacity: 80 },
@@ -351,6 +592,36 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
     ],
   });
 
+  // 양방향 실시간 동기화 핸들러 (도구 팔레트 변경 시 선택된 주석 즉각 반영 및 실행취소 스택 보존)
+  const handleUpdateToolStyle = (updated: Partial<ToolStyleState>) => {
+    setToolStyleState((prev) => {
+      const next = { ...prev, ...updated };
+      if (selectedVectorId) {
+        setVectorAnnotations((currList) => {
+          const nextList = currList.map((ann) => {
+            if (ann.id === selectedVectorId) {
+              return {
+                ...ann,
+                color: next.color,
+                strokeWidth: next.strokeWidth,
+                opacity: next.opacity,
+                fillColor: next.fillColor,
+                fillOpacity: next.fillOpacity,
+                fontSize: next.fontSize,
+                textAlign: next.textAlign,
+              };
+            }
+            return ann;
+          });
+          setUndoStack((prevUndo) => [...prevUndo.slice(-25), currList]);
+          setRedoStack([]);
+          return nextList;
+        });
+      }
+      return next;
+    });
+  };
+
   // PG-USR-06 Viewer Navigation & Reading Controls
   const [viewerScale, setViewerScale] = useState(1.0);
   const [viewerRotation] = useState(0); // 0, 90, 180, 270
@@ -358,31 +629,29 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
   const [viewerJumpInput, setViewerJumpInput] = useState('42');
   const [viewerSearchQuery, setViewerSearchQuery] = useState('');
   const [viewerBookmarks, setViewerBookmarks] = useState<number[]>([1, 14, 42, 120]);
-  const [viewerAnnotations, setViewerAnnotations] = useState<Array<{
-    id: string;
-    page: number;
-    type: string;
-    author: string;
-    text: string;
-    color: string;
-    date: string;
-  }>>([
-    { id: 'ann-1', page: 14, type: '형광펜', author: 'jkok2j2m', text: '하이브리드 아키텍처 설계 원칙: 60fps 가상 렌더링', color: '#fef08a', date: '오늘 09:30' },
-    { id: 'ann-2', page: 42, type: '메모', author: 'jkok2j2m', text: 'ISO 32000-2 툼스톤 주석 동기화 규격 검토 완료', color: '#38bdf8', date: '오늘 10:15' },
-    { id: 'ann-3', page: 85, type: '밑줄', author: '운영자', text: '대용량 800쪽 LRU 페이지 메모리가드 적용 범위', color: '#34d399', date: '어제 16:40' },
-  ]);
 
+  // 목차 데이터 (깊이 1~7 무제한 계층 구조 지원, 'TOC' 문자 완전 배제)
   const [viewerTocItems] = useState([
     { id: 'toc-1', title: '제1편 엔터프라이즈 PDF 제작 총괄', page: 1, level: 1 },
     { id: 'toc-2', title: '1.1 아키텍처 원칙 및 60fps 가상화', page: 4, level: 2 },
-    { id: 'toc-3', title: '1.2 무결성 락 체계 및 동시성 제어', page: 12, level: 2 },
-    { id: 'toc-4', title: '1.3 800쪽 대용량 LRU 메모리가드', page: 28, level: 2 },
-    { id: 'toc-5', title: '제2편 PDF 주석 표준 사양 및 툼스톤', page: 42, level: 1 },
-    { id: 'toc-6', title: '2.1 하이라이트/스티키노트 XFDF 파싱', page: 65, level: 2 },
-    { id: 'toc-7', title: '2.2 투명 텍스트 레이어 Searchable PDF', page: 120, level: 2 },
-    { id: 'toc-8', title: '제3편 보안 암호화 및 DRM 전략', page: 240, level: 1 },
-    { id: 'toc-9', title: '제4편 다국어 OCR 앙상블 파이프라인', page: 480, level: 1 },
-    { id: 'toc-10', title: '부록: 표준 식별자 및 거버넌스 규약', page: 750, level: 1 },
+    { id: 'toc-3', title: '1.1.1 렌더링 파이프라인 및 버퍼링', page: 8, level: 3 },
+    { id: 'toc-4', title: '1.1.1.a 텍스처 아틀라스 생성 규약', page: 10, level: 4 },
+    { id: 'toc-5', title: '1.1.1.a.1 GPU 메모리 오버플로우 방어', page: 11, level: 5 },
+    { id: 'toc-5-1', title: '1.1.1.a.1.1 셰이더 버퍼 스와핑 알고리즘', page: 11, level: 6 },
+    { id: 'toc-5-2', title: '1.1.1.a.1.1.a 텍셀 캐시 라인 정렬 규약', page: 12, level: 7 },
+    { id: 'toc-6', title: '1.2 무결성 락 체계 및 동시성 제어', page: 12, level: 2 },
+    { id: 'toc-7', title: '1.2.1 분산 락 타임아웃 처리', page: 20, level: 3 },
+    { id: 'toc-8', title: '1.3 800페이지 대용량 LRU 메모리가드', page: 28, level: 2 },
+    { id: 'toc-9', title: '제2편 PDF 주석 표준 사양 및 툼스톤', page: 42, level: 1 },
+    { id: 'toc-10', title: '2.1 하이라이트/스티키노트 XFDF 파싱', page: 65, level: 2 },
+    { id: 'toc-11', title: '2.1.1 XFDF 네임스페이스 스키마', page: 90, level: 3 },
+    { id: 'toc-12', title: '2.2 투명 텍스트 레이어 Searchable PDF', page: 120, level: 2 },
+    { id: 'toc-13', title: '2.2.1 OCR 바운딩 박스 매핑 기술', page: 150, level: 3 },
+    { id: 'toc-14', title: '2.2.1.a HOCR 좌표 변환 계수', page: 180, level: 4 },
+    { id: 'toc-15', title: '2.2.1.a.1 아핀 변환 행렬 정밀도', page: 200, level: 5 },
+    { id: 'toc-16', title: '제3편 보안 암호화 및 DRM 전략', page: 240, level: 1 },
+    { id: 'toc-17', title: '제4편 다국어 OCR 앙상블 파이프라인', page: 480, level: 1 },
+    { id: 'toc-18', title: '부록: 표준 식별자 및 거버넌스 규약', page: 750, level: 1 },
   ]);
 
   // PG-USR-08 Offline state
@@ -531,6 +800,1236 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
   const onGlobalPointerEnd = () => {
     setIsAvatarDragging(false);
     setIsCornerResizing(false);
+  };
+
+  // PG-USR-06 주석 패널 통합 렌더러 (상단배치 / 좌측배치 100% 동일 로직 공유 및 단일 진실 공급원)
+  const renderAnnotationPanelContent = (isTopLayout: boolean = false) => {
+    // 1. 다차원 필터링 (다중선택 체크박스 Set 지원)
+    const baseFiltered = vectorAnnotations.filter((ann) => {
+      // 페이지 범위 필터
+      if (annotScope === 'current' && ann.page !== viewerCurrentPage) return false;
+      if (annotScope === 'single' && ann.page !== annotSinglePage) return false;
+
+      // 유형 필터 (다중선택 체크박스)
+      const isPen = ann.toolKind === 'pen';
+      const isShape = ann.toolKind === 'shape';
+      const isText = ann.toolKind === 'text';
+      const isMarkup = ['underline', 'strike', 'squiggly', 'highlighter'].includes(ann.toolKind);
+
+      const typeMatched =
+        (isPen && annotFilterTypes.has('pen')) ||
+        (isShape && annotFilterTypes.has('shape')) ||
+        (isText && annotFilterTypes.has('text')) ||
+        (isMarkup && annotFilterTypes.has('markup'));
+
+      if (!typeMatched) return false;
+
+      // 검색어 필터 (이름, 텍스트, 작성자, 태그)
+      if (annotSearchKeyword.trim()) {
+        const q = annotSearchKeyword.trim().toLowerCase();
+        const matchName = ann.name.toLowerCase().includes(q);
+        const matchText = (ann.text || '').toLowerCase().includes(q);
+        const matchAuthor = (ann.author || '').toLowerCase().includes(q);
+        const matchTags = (ann.tags || []).some((t) => t.toLowerCase().includes(q));
+        if (!matchName && !matchText && !matchAuthor && !matchTags) return false;
+      }
+      return true;
+    });
+
+    // 2. 오름차순/내림차순 정렬 (Secondary Sort)
+    const sortedAnnots = [...baseFiltered].sort((a, b) => {
+      const dir = annotSortDirection === 'asc' ? 1 : -1;
+      if (annotSortOrder === 'page') {
+        const pDiff = a.page - b.page;
+        if (pDiff !== 0) return pDiff * dir;
+        return a.id.localeCompare(b.id) * dir;
+      }
+      return b.id.localeCompare(a.id) * dir;
+    });
+
+    // 3. 페이지별 그룹화 맵 (페이지단위 보기 및 건수만 보기 모드용)
+    const pageGroupMap = sortedAnnots.reduce((acc, ann) => {
+      acc[ann.page] = acc[ann.page] || [];
+      acc[ann.page].push(ann);
+      return acc;
+    }, {} as Record<number, CanvasVectorAnnotation[]>);
+
+    const sortedPages = Object.keys(pageGroupMap)
+      .map(Number)
+      .sort((a, b) => (annotSortDirection === 'asc' ? a - b : b - a));
+
+    const penCount = vectorAnnotations.filter((a) => a.toolKind === 'pen').length;
+    const shapeCount = vectorAnnotations.filter((a) => a.toolKind === 'shape').length;
+    const textCount = vectorAnnotations.filter((a) => a.toolKind === 'text').length;
+    const markupCount = vectorAnnotations.filter((a) =>
+      ['underline', 'strike', 'squiggly', 'highlighter'].includes(a.toolKind)
+    ).length;
+
+    // OCR 변경 감지된 주석 목록 및 건수
+    const ocrUpdatedAnnots = vectorAnnotations.filter((a) => a.ocrUpdated);
+    const ocrUpdatedCount = ocrUpdatedAnnots.length;
+
+    // [피드백 5 반영] 주석 유형 목록 키 및 전체 선택 여부
+    const allTypeKeys: ('pen' | 'shape' | 'text' | 'markup')[] = ['pen', 'shape', 'text', 'markup'];
+    const isAllTypesSelected = annotFilterTypes.size === allTypeKeys.length;
+
+    // [피드백 5 규칙 완벽 준수] '전체' 항목 선택 시:
+    // 아래 항목들 중 하나라도 선택되어 있으면 모두 해제, 모두 해제된 상태면 한번 더 선택 시 모두 선택
+    const handleToggleSelectAllTypes = () => {
+      if (annotFilterTypes.size > 0) {
+        setAnnotFilterTypes(new Set()); // 아래항목들 체크박스는 모두 해제
+        showToast('선택 항목 체크가 모두 해제되었습니다.', 'info');
+      } else {
+        setAnnotFilterTypes(new Set(allTypeKeys)); // 한번더 선택하면 모두선택
+        showToast('선택 항목이 모두 선택되었습니다.', 'info');
+      }
+    };
+
+    // 개별 유형 체크박스 토글 핸들러
+    const toggleFilterType = (type: 'pen' | 'shape' | 'text' | 'markup') => {
+      setAnnotFilterTypes((prev) => {
+        const next = new Set(prev);
+        if (next.has(type)) {
+          next.delete(type);
+        } else {
+          next.add(type);
+        }
+        return next;
+      });
+    };
+
+    // [피드백 7 반영] 특정 단건 주석을 뷰포트 및 목록에서 포커스 이동
+    const focusAnnotationById = (targetAnn: CanvasVectorAnnotation) => {
+      setViewerCurrentPage(targetAnn.page);
+      setViewerJumpInput(String(targetAnn.page));
+      setSelectedVectorId(targetAnn.id);
+      setPulseAnnotationId(targetAnn.id);
+      setTimeout(() => setPulseAnnotationId(null), 1800);
+      const el = document.getElementById(`annot-canvas-${targetAnn.id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      const rowEl = document.getElementById(`annot-row-${targetAnn.id}`);
+      if (rowEl) {
+        rowEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    };
+
+    // [피드백 7 반영] OCR 변경건 위/아래 순차 탐색 네비게이션 (▲/▼ 버튼) 및 선택건 즉시 현행화
+    const handleNavigateOcr = (direction: 'prev' | 'next') => {
+      if (ocrUpdatedAnnots.length === 0) return;
+      const newIdx =
+        direction === 'prev'
+          ? (currentOcrFocusIdx - 1 + ocrUpdatedAnnots.length) % ocrUpdatedAnnots.length
+          : (currentOcrFocusIdx + 1) % ocrUpdatedAnnots.length;
+      setCurrentOcrFocusIdx(newIdx);
+      const target = ocrUpdatedAnnots[newIdx];
+      if (target) {
+        focusAnnotationById(target);
+        if (isAutoSyncOnNavigate) {
+          handleSyncSingleAnnotationOcr(target.id);
+        } else {
+          showToast(`제 ${target.page}페이지 OCR 변경 주석 (${newIdx + 1}/${ocrUpdatedAnnots.length})으로 탐색했습니다.`, 'info');
+        }
+      }
+    };
+
+    // [피드백 7 반영] 선택건 단건 즉시 현행화 핸들러 (원터치 최신 OCR 텍스트 갱신)
+    const handleSyncSingleAnnotationOcr = (targetId: string) => {
+      const targetAnn = vectorAnnotations.find((a) => a.id === targetId);
+      if (!targetAnn || !targetAnn.latestOcrText) return;
+      const updated = vectorAnnotations.map((ann) => {
+        if (ann.id === targetId) {
+          return {
+            ...ann,
+            text: ann.latestOcrText,
+            ocrUpdated: false,
+          };
+        }
+        return ann;
+      });
+      pushAnnotationHistory(updated);
+      showToast(`"${targetAnn.name}" 주석이 최신 OCR 텍스트로 즉시 현행화되었습니다.`, 'success');
+    };
+
+    // OCR 일괄 현행화 핸들러 (전체 일괄 갱신)
+    const handleSyncAllOcrAnnotations = () => {
+      if (ocrUpdatedCount === 0) {
+        showToast('OCR 갱신이 필요한 주석이 없습니다.', 'info');
+        return;
+      }
+      const updated = vectorAnnotations.map((ann) => {
+        if (ann.ocrUpdated && ann.latestOcrText) {
+          return {
+            ...ann,
+            text: ann.latestOcrText,
+            ocrUpdated: false,
+          };
+        }
+        return ann;
+      });
+      pushAnnotationHistory(updated);
+      showToast(`OCR 변경 주석 ${ocrUpdatedCount}건이 최신 텍스트로 일괄 현행화되었습니다.`, 'success');
+    };
+
+    // 주석 전체 삭제 핸들러 (Undo 스택 보존 2중 안전 가드레일)
+    const handleClearAllAnnotations = () => {
+      if (vectorAnnotations.length === 0) return;
+      pushAnnotationHistory([]);
+      setSelectedVectorId(null);
+      setIsClearAllConfirmOpen(false);
+      showToast(
+        `주석 전체(${vectorAnnotations.length}건)가 삭제되었습니다. (실행취소 Ctrl+Z 가능)`,
+        'warn'
+      );
+    };
+
+    // 단일행 아이템 렌더러 헬퍼 (인라인 임의수정 배제, 원문 보존 및 조회/복사/삭제/OCR갱신배지)
+    const renderAnnotationRowItem = (ann: CanvasVectorAnnotation) => {
+      const isSelected = selectedVectorId === ann.id;
+      const isCurrentPage = ann.page === viewerCurrentPage;
+
+      const typeIcon =
+        ann.toolKind === 'pen'
+          ? '🖊️'
+          : ann.toolKind === 'shape'
+          ? '■'
+          : ann.toolKind === 'text'
+          ? 'T'
+          : ann.toolKind === 'highlighter'
+          ? '🖍️'
+          : '〰️';
+
+      const typeLabel =
+        ann.toolKind === 'pen'
+          ? '자유펜'
+          : ann.toolKind === 'shape'
+          ? '도형'
+          : ann.toolKind === 'text'
+          ? '텍스트'
+          : ann.toolKind === 'highlighter'
+          ? '형광펜'
+          : '밑줄';
+
+      return (
+        <div
+          key={ann.id}
+          id={`annot-row-${ann.id}`}
+          onClick={() => {
+            setViewerCurrentPage(ann.page);
+            setViewerJumpInput(String(ann.page));
+            setSelectedVectorId(ann.id);
+            setPulseAnnotationId(ann.id);
+            setTimeout(() => setPulseAnnotationId(null), 1800);
+
+            const el = document.getElementById(`annot-canvas-${ann.id}`);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            setToolStyleState((prev) => ({
+              ...prev,
+              toolKind: ann.toolKind,
+              color: ann.color,
+              strokeWidth: ann.strokeWidth,
+              opacity: ann.opacity,
+              fillColor: ann.fillColor || 'transparent',
+              fillOpacity: ann.fillOpacity ?? 20,
+              fontSize: ann.fontSize || 14,
+              textAlign: ann.textAlign || 'left',
+            }));
+
+            if (['underline', 'highlighter', 'strike', 'squiggly'].includes(ann.toolKind)) {
+              setActiveAnnotationPopover({
+                isOpen: true,
+                annId: ann.id,
+                text: ann.text || ann.name,
+                type: (ann.toolKind === 'highlighter' ? 'highlight' : ann.toolKind) as any,
+                color: ann.color,
+              });
+            }
+          }}
+          className={`px-2.5 py-1.5 rounded-lg border transition-all cursor-pointer flex items-center justify-between gap-2 text-xs relative group ${
+            isSelected
+              ? 'bg-sky-950/80 border-sky-400 ring-1 ring-sky-500/50 shadow-sm'
+              : isCurrentPage
+              ? 'bg-slate-900 border-slate-700/80 hover:border-slate-600'
+              : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 opacity-90'
+          }`}
+        >
+          {/* 좌측: 페이지번호 + 색상인디케이터 + 유형 + 원문 텍스트 (수정 불가 원본 보존) + OCR갱신 뱃지 */}
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span
+              className={`px-1.5 py-0.5 rounded font-bold font-mono text-[10px] shrink-0 ${
+                isCurrentPage
+                  ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+                  : 'bg-slate-800 text-slate-400'
+              }`}
+            >
+              p.{ann.page}
+            </span>
+            <span
+              className="w-2 h-2 rounded-full shrink-0 shadow-xs"
+              style={{ backgroundColor: ann.color }}
+            />
+            <span className="text-[10px] text-slate-400 shrink-0 font-medium hidden sm:inline">
+              [{typeIcon} {typeLabel}]
+            </span>
+
+            {/* 원문 텍스트 (임의 문구 수정 배제) */}
+            <span className="truncate text-slate-200 text-xs font-sans">
+              {ann.text ? `"${ann.text}"` : ann.name}
+            </span>
+
+            {/* [피드백 6, 7 반영] OCR 변경 감지 뱃지 및 단건 즉시 현행화 버튼 */}
+            {ann.ocrUpdated && (
+              <div className="flex items-center gap-1 shrink-0">
+                <span
+                  className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-sans font-bold flex items-center gap-0.5"
+                  title={`OCR 최신인식: "${ann.latestOcrText}"`}
+                >
+                  ⚠️ OCR 갱신됨
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSyncSingleAnnotationOcr(ann.id);
+                  }}
+                  className="px-1.5 py-0.2 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[9px] transition-colors cursor-pointer shadow-2xs"
+                  title="이 주석만 최신 OCR 텍스트로 즉시 현행화"
+                >
+                  ⚡ 즉시 현행화
+                </button>
+              </div>
+            )}
+
+            {ann.tags && ann.tags.length > 0 && (
+              <span className="text-[9px] px-1 py-0.2 rounded bg-slate-800 text-slate-400 shrink-0 hidden md:inline font-mono">
+                #{ann.tags[0]}
+              </span>
+            )}
+          </div>
+
+          {/* 우측: 작성자 + 퀵 복사 / 단건 삭제 버튼 */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[10px] text-slate-500 font-mono hidden lg:inline">
+              {ann.author || 'jkok2j2m'}
+            </span>
+            <div className="flex items-center gap-0.5 opacity-80 group-hover:opacity-100">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigator.clipboard?.writeText?.(ann.text || ann.name);
+                  showToast(`"${ann.name}" 내용이 클립보드에 복사되었습니다.`, 'info');
+                }}
+                className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer text-xs"
+                title="복사"
+              >
+                📋
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  pushAnnotationHistory(vectorAnnotations.filter((a) => a.id !== ann.id));
+                  if (selectedVectorId === ann.id) setSelectedVectorId(null);
+                  if (activeAnnotationPopover.annId === ann.id) {
+                    setActiveAnnotationPopover((prev) => ({ ...prev, isOpen: false }));
+                  }
+                  showToast(`"${ann.name}" 주석이 삭제되었습니다.`, 'info');
+                }}
+                className="p-1 rounded hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer text-xs"
+                title="삭제"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    return (
+      <div className="space-y-2 pb-2">
+        {/* 1) 상단 고정 헤더: 실시간 검색창 + 체크박스 멀티유형필터 + 범위(현재 페이지) + 정렬(오름차순/내림차순) */}
+        <div className="sticky top-0 z-10 bg-slate-950 pb-1.5 border-b border-slate-800/80 mb-1.5 space-y-1.5">
+          <div className="flex flex-wrap items-center justify-between gap-1.5 p-1.5 bg-slate-900/90 border border-slate-800 rounded-lg text-xs">
+            {/* 주석 실시간 검색창 */}
+            <div className="relative flex-1 min-w-[140px] max-w-xs">
+              <Search className="w-3 h-3 text-slate-500 absolute left-2 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="주석/텍스트/태그 검색..."
+                value={annotSearchKeyword}
+                onChange={(e) => setAnnotSearchKeyword(e.target.value)}
+                className="w-full pl-6 pr-5 py-1 bg-slate-950 border border-slate-700/80 rounded-lg text-[10px] text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
+              />
+              {annotSearchKeyword && (
+                <button
+                  type="button"
+                  onClick={() => setAnnotSearchKeyword('')}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs cursor-pointer"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* 우측 도구 그룹: 선택목록 레이어 팝업 + 범위 + 모드 + 정렬 + Undo/Redo (오른쪽 정렬) */}
+            <div className="flex items-center gap-1.5 ml-auto flex-wrap justify-end">
+              {/* [피드백 5 반영] 주석 선택목록 레이어 팝업 (펼쳤을 때 체크박스 목록 표시 & '전체' 토글) */}
+              <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsTypeFilterDropdownOpen(!isTypeFilterDropdownOpen)}
+                className={`px-2.5 py-0.5 rounded-lg text-[10px] border flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs ${
+                  isTypeFilterDropdownOpen
+                    ? 'bg-sky-950 border-sky-400 text-sky-300 font-bold ring-2 ring-sky-500/40'
+                    : 'bg-slate-950 border-slate-700/80 text-slate-200 hover:border-slate-600'
+                }`}
+                title="주석 선택목록(필터) 레이어 팝업 열기"
+              >
+                <span>
+                  {isAllTypesSelected
+                    ? '선택목록: 전체'
+                    : annotFilterTypes.size === 0
+                    ? '선택목록: 전체해제'
+                    : `선택목록: ${annotFilterTypes.size}개`}
+                </span>
+                <span className={`text-[8px] text-slate-400 transition-transform duration-150 ${isTypeFilterDropdownOpen ? 'rotate-180 text-sky-400' : ''}`}>▼</span>
+              </button>
+
+              {/* 펼쳐진 선택목록 레이어 팝업 및 투명 백드롭 */}
+              {isTypeFilterDropdownOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-20 cursor-default"
+                    onClick={() => setIsTypeFilterDropdownOpen(false)}
+                  />
+                  <div
+                    className="absolute right-0 top-full mt-1.5 z-30 w-52 bg-slate-900 border border-slate-700 rounded-xl p-2 shadow-2xl space-y-1 animate-in fade-in zoom-in-95 duration-100"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="text-[10px] text-slate-400 font-bold px-1.5 pb-1 border-b border-slate-800 flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        <span>주석 선택목록</span>
+                        <span className="text-[9px] text-sky-400 font-mono">
+                          ({annotFilterTypes.size}/{allTypeKeys.length}개)
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsTypeFilterDropdownOpen(false)}
+                        className="text-slate-400 hover:text-white cursor-pointer text-xs p-0.5"
+                        title="닫기"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    {/* [피드백 5 규칙 완벽 준수] '전체' 항목: 선택하면 아래항목들 체크박스는 모두 해제, 한번더 선택하면 모두선택 */}
+                    <label
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleToggleSelectAllTypes();
+                      }}
+                      className={`flex items-center justify-between px-2 py-1.5 rounded-lg cursor-pointer transition-colors text-xs font-semibold ${
+                        annotFilterTypes.size > 0
+                          ? 'bg-sky-950/70 border border-sky-500/40 text-sky-300'
+                          : 'bg-slate-950/60 border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={isAllTypesSelected}
+                          readOnly
+                          className="w-3.5 h-3.5 rounded accent-sky-500 cursor-pointer pointer-events-none"
+                        />
+                        <span>전체</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        ({vectorAnnotations.length})
+                      </span>
+                    </label>
+
+                    <div className="w-full h-px bg-slate-800 my-0.5" />
+
+                    {/* 개별 하위 항목 체크박스 목록 */}
+                    {[
+                      { id: 'pen' as const, label: '자유펜 필기', icon: '🖊️', count: penCount },
+                      { id: 'shape' as const, label: '도형 강조', icon: '■', count: shapeCount },
+                      { id: 'text' as const, label: '텍스트 메모', icon: 'T', count: textCount },
+                      { id: 'markup' as const, label: '마크업(밑줄/형광펜)', icon: '🖍️', count: markupCount },
+                    ].map((t) => {
+                      const checked = annotFilterTypes.has(t.id);
+                      return (
+                        <label
+                          key={t.id}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            toggleFilterType(t.id);
+                          }}
+                          className={`flex items-center justify-between px-2 py-1 rounded-lg cursor-pointer transition-colors text-xs ${
+                            checked
+                              ? 'bg-sky-600/20 text-sky-300 font-bold border border-sky-500/30'
+                              : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-transparent'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              readOnly
+                              className="w-3.5 h-3.5 rounded accent-sky-500 cursor-pointer pointer-events-none"
+                            />
+                            <span>{t.icon} {t.label}</span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            ({t.count})
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* [피드백 6 반영] 범위 선택 드롭다운: 쪽수표현 제거 ➔ '현재 페이지' 표기 */}
+            <div className="flex items-center gap-1 text-[10px]">
+              <span className="text-slate-400 hidden sm:inline">범위:</span>
+              <select
+                value={annotScope}
+                onChange={(e) => setAnnotScope(e.target.value as any)}
+                className="bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-slate-200 font-medium cursor-pointer"
+              >
+                <option value="all">전체 문서</option>
+                <option value="current">현재 페이지</option>
+                <option value="single">지정 페이지만</option>
+              </select>
+              {annotScope === 'single' && (
+                <input
+                  type="number"
+                  min={1}
+                  max={activeViewingDoc?.totalPages || 800}
+                  value={annotSinglePage}
+                  onChange={(e) => setAnnotSinglePage(parseInt(e.target.value, 10) || 1)}
+                  className="w-12 px-1 py-0.5 bg-slate-950 border border-slate-700 rounded text-center text-sky-400 font-mono"
+                />
+              )}
+            </div>
+
+            {/* 보기 모드: 순서대로보기 / 페이지단위 / 건수만보기 */}
+            <div className="flex items-center gap-1 text-[10px]">
+              <span className="text-slate-400 hidden sm:inline">모드:</span>
+              <select
+                value={annotViewMode}
+                onChange={(e) => setAnnotViewMode(e.target.value as any)}
+                className="bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-slate-200 font-medium cursor-pointer"
+              >
+                <option value="sequential">순서대로 보기</option>
+                <option value="by_page">페이지단위 보기</option>
+                <option value="count_only">건수만 보기</option>
+              </select>
+            </div>
+
+            {/* [피드백 8 반영] 정렬 기준 및 오름차순 / 내림차순 문구 개선 */}
+            <div className="flex items-center gap-1 text-[10px]">
+              <select
+                value={annotSortOrder}
+                onChange={(e) => setAnnotSortOrder(e.target.value as any)}
+                className="bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-slate-200 font-medium cursor-pointer"
+              >
+                <option value="page">페이지순</option>
+                <option value="latest">최신등록순</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => setAnnotSortDirection(annotSortDirection === 'asc' ? 'desc' : 'asc')}
+                className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-sky-300 font-mono cursor-pointer border border-slate-700"
+                title="오름차순 / 내림차순 토글"
+              >
+                {annotSortDirection === 'asc' ? '⬇️ 오름차순' : '⬆️ 내림차순'}
+              </button>
+            </div>
+
+            {/* 퀵 Undo / Redo */}
+            <div className="flex items-center gap-0.5 bg-slate-950 border border-slate-800 rounded p-0.5">
+              <button
+                type="button"
+                disabled={undoStack.length === 0}
+                onClick={handleUndoAnnotation}
+                className={`p-1 rounded text-[10px] ${
+                  undoStack.length > 0 ? 'text-sky-300 hover:bg-slate-800 cursor-pointer' : 'text-slate-600 cursor-not-allowed'
+                }`}
+                title="실행취소 (Ctrl+Z)"
+              >
+                <Undo2 className="w-3 h-3" />
+              </button>
+              <button
+                type="button"
+                disabled={redoStack.length === 0}
+                onClick={handleRedoAnnotation}
+                className={`p-1 rounded text-[10px] ${
+                  redoStack.length > 0 ? 'text-sky-300 hover:bg-slate-800 cursor-pointer' : 'text-slate-600 cursor-not-allowed'
+                }`}
+                title="다시실행 (Ctrl+Y)"
+              >
+                <Redo2 className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+          {/* [피드백 6, 7 반영] OCR 변경건 위/아래(▲/▼) 순차 탐색 및 선택건 즉시 현행화 배너 */}
+          {ocrUpdatedCount > 0 && (
+            <div className="p-2 rounded-xl bg-amber-950/40 border border-amber-500/40 flex flex-wrap items-center justify-between gap-2 text-xs animate-in fade-in duration-200">
+              <div className="flex flex-wrap items-center gap-2 text-amber-300">
+                <span className="text-sm">⚠️</span>
+                <span className="font-semibold text-[11px]">
+                  OCR 갱신 대상: <strong className="text-white font-mono">{Math.min(currentOcrFocusIdx + 1, ocrUpdatedCount)}</strong> / {ocrUpdatedCount}건
+                </span>
+
+                {/* [피드백 7 반영] 위/아래(▲/▼) 순차 탐색 버튼 */}
+                <div className="flex items-center gap-1 bg-slate-900 border border-amber-500/50 rounded-lg px-2 py-0.5 shadow-xs">
+                  <button
+                    type="button"
+                    onClick={() => handleNavigateOcr('prev')}
+                    className="px-1.5 py-0.5 hover:bg-slate-800 text-amber-300 hover:text-white rounded cursor-pointer text-[11px] font-bold flex items-center gap-0.5 transition-colors"
+                    title="이전 (위) OCR 변경 주석으로 탐색"
+                  >
+                    <span>▲</span>
+                    <span>위</span>
+                  </button>
+                  <span className="text-slate-600 text-xs">|</span>
+                  <button
+                    type="button"
+                    onClick={() => handleNavigateOcr('next')}
+                    className="px-1.5 py-0.5 hover:bg-slate-800 text-amber-300 hover:text-white rounded cursor-pointer text-[11px] font-bold flex items-center gap-0.5 transition-colors"
+                    title="다음 (아래) OCR 변경 주석으로 탐색"
+                  >
+                    <span>▼</span>
+                    <span>아래</span>
+                  </button>
+                </div>
+
+                {/* [피드백 7 반영] 탐색 시 즉시 현행화 자동 옵션 */}
+                <label className="flex items-center gap-1 text-[10px] text-amber-200/90 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={isAutoSyncOnNavigate}
+                    onChange={(e) => setIsAutoSyncOnNavigate(e.target.checked)}
+                    className="w-3 h-3 rounded accent-amber-500 cursor-pointer"
+                  />
+                  <span>탐색 시 자동 현행화</span>
+                </label>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                {/* [피드백 7 반영] 선택건 즉시 현행화 버튼 */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = ocrUpdatedAnnots[currentOcrFocusIdx] || ocrUpdatedAnnots[0];
+                    if (target) handleSyncSingleAnnotationOcr(target.id);
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-colors cursor-pointer shadow-xs flex items-center gap-1"
+                  title="현재 포커스/선택된 OCR 변경 주석을 즉시 현행화"
+                >
+                  <span>⚡</span>
+                  <span>선택건 즉시 현행화</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSyncAllOcrAnnotations}
+                  className="px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-amber-300 border border-amber-500/40 font-bold text-[10px] transition-colors cursor-pointer"
+                  title="모든 OCR 변경 주석을 일괄 현행화"
+                >
+                  🔄 전체 일괄
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* [피드백 3 반영] 모드별 주석 목록 렌더링: 타이틀 고정, 목록영역만 스크롤 적용 */}
+        <div
+          className={`space-y-1 overflow-y-auto pr-1 transition-all duration-200 ${
+            isTopLayout
+              ? topDrawerHeightMode === 'narrow'
+                ? 'max-h-28'
+                : topDrawerHeightMode === 'default'
+                ? 'max-h-60'
+                : 'max-h-none'
+              : ''
+          }`}
+        >
+        {sortedAnnots.length > 0 ? (
+          <div className="space-y-1">
+            {/* 2-1) 모드 A: 순서대로 보기 (Sequential List - 한 줄에 하나) */}
+            {annotViewMode === 'sequential' && (
+              <div className="space-y-1">
+                {sortedAnnots.map((ann) => renderAnnotationRowItem(ann))}
+              </div>
+            )}
+
+            {/* 2-2) 모드 B: 페이지단위로 보기 (Grouped by Page) */}
+            {annotViewMode === 'by_page' && (
+              <div className="space-y-2">
+                {sortedPages.map((pageNo) => {
+                  const items = pageGroupMap[pageNo] || [];
+                  const isCur = pageNo === viewerCurrentPage;
+                  return (
+                    <div
+                      key={pageNo}
+                      className="rounded-lg border border-slate-800 bg-slate-950/70 overflow-hidden"
+                    >
+                      <div
+                        onClick={() => {
+                          setViewerCurrentPage(pageNo);
+                          setViewerJumpInput(String(pageNo));
+                        }}
+                        className={`px-3 py-1 text-xs font-bold font-mono flex items-center justify-between cursor-pointer transition-colors ${
+                          isCur
+                            ? 'bg-sky-950/80 text-sky-300 border-b border-sky-500/30'
+                            : 'bg-slate-900/80 text-slate-300 hover:bg-slate-900 border-b border-slate-800'
+                        }`}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span>📄 제 {pageNo} 페이지</span>
+                          {isCur && <span className="text-[10px] text-sky-400 font-sans">(현재 페이지)</span>}
+                        </span>
+                        <span className="text-[10px] text-slate-400">{items.length}건의 주석</span>
+                      </div>
+                      <div className="p-1 space-y-1">
+                        {items.map((ann) => renderAnnotationRowItem(ann))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* 2-3) 모드 C: 페이지기준으로 건수만 보기 (Count Only Overview) */}
+            {annotViewMode === 'count_only' && (
+              <div className="space-y-1 font-mono text-xs">
+                {sortedPages.map((pageNo) => {
+                  const items = pageGroupMap[pageNo] || [];
+                  const isCur = pageNo === viewerCurrentPage;
+                  return (
+                    <div
+                      key={pageNo}
+                      onClick={() => {
+                        setViewerCurrentPage(pageNo);
+                        setViewerJumpInput(String(pageNo));
+                        showToast(`제 ${pageNo} 페이지로 이동했습니다.`, 'info');
+                      }}
+                      className={`px-3 py-1.5 rounded-lg border flex items-center justify-between transition-colors cursor-pointer ${
+                        isCur
+                          ? 'bg-sky-950/80 border-sky-500 text-sky-300 font-bold'
+                          : 'bg-slate-900/60 hover:bg-slate-900 border-slate-800 text-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold">제 {pageNo} 페이지</span>
+                        {isCur && <span className="text-[10px] text-sky-400 font-sans">[현재 페이지]</span>}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1 text-[10px] text-slate-400">
+                          {items.some((i) => i.toolKind === 'highlighter') && <span>🖍️</span>}
+                          {items.some((i) => ['underline', 'strike', 'squiggly'].includes(i.toolKind)) && <span>〰️</span>}
+                          {items.some((i) => i.toolKind === 'text') && <span>T</span>}
+                          {items.some((i) => i.toolKind === 'shape') && <span>■</span>}
+                        </div>
+                        <span className="px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-bold text-xs border border-sky-500/30">
+                          {items.length} 건
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Empty State 친절한 안내 */
+          <div className="p-4 rounded-xl bg-slate-900/50 border border-dashed border-slate-800 text-center space-y-2 my-2">
+            <p className="text-slate-400 text-xs font-sans">
+              조건에 일치하는 주석이 없습니다.
+            </p>
+            <div className="flex justify-center gap-1.5 pt-1">
+              {(annotFilterTypes.size < 4 || annotScope !== 'all' || annotSearchKeyword) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAnnotFilterTypes(new Set(['pen', 'shape', 'text', 'markup']));
+                    setAnnotScope('all');
+                    setAnnotSearchKeyword('');
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold transition-colors cursor-pointer"
+                >
+                  필터 초기화
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        </div>
+
+        {/* 3) 하단 주석 백업 / 내보내기 / 전체삭제 퀵 액션 바 */}
+        <input
+          type="file"
+          ref={importFileRef}
+          accept=".json"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              try {
+                const parsed = JSON.parse(event.target?.result as string);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  pushAnnotationHistory(parsed);
+                  showToast(`주석 ${parsed.length}건을 성공적으로 불러왔습니다.`, 'success');
+                }
+              } catch (err) {
+                showToast('주석 파일 파싱에 실패했습니다.', 'warn');
+              }
+            };
+            reader.readAsText(file);
+          }}
+          className="hidden"
+        />
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-slate-800/80 text-[11px] text-slate-400">
+          <div className="flex items-center gap-1.5">
+            <span>주석 동기화/백업:</span>
+            <button
+              type="button"
+              onClick={() => importFileRef.current?.click()}
+              className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] cursor-pointer"
+            >
+              불러오기 (.json)
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const blob = new Blob([JSON.stringify(vectorAnnotations, null, 2)], {
+                  type: 'application/json',
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `purepdf_annotations_p${viewerCurrentPage}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('주석 JSON 파일 다운로드가 완료되었습니다.', 'success');
+              }}
+              className="px-2 py-0.5 rounded bg-sky-600 hover:bg-sky-500 text-white text-[10px] font-bold cursor-pointer"
+            >
+              내보내기 (.json)
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                showToast('ISO 32000-2 표준 XFDF 주석 스트림이 생성되어 클립보드에 내보내졌습니다.', 'success');
+              }}
+              className="px-2 py-0.5 rounded bg-sky-950/70 hover:bg-sky-900/80 border border-sky-600/40 text-sky-300 font-mono text-[10px] cursor-pointer"
+              title="ISO XFDF 표준 내보내기"
+            >
+              XFDF
+            </button>
+          </div>
+
+          {/* [피드백 10 반영] 주석 전체삭제 버튼 (안전한 접근성 격리 및 2중 확인 가드레일) */}
+          <div className="flex items-center gap-1.5">
+            {vectorAnnotations.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsClearAllConfirmOpen(true)}
+                className="px-2 py-0.5 rounded bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 border border-rose-800/50 text-[10px] font-medium transition-colors cursor-pointer"
+                title="모든 주석 일괄 삭제 (확인 팝업 후 진행)"
+              >
+                🗑️ 주석 전체 삭제
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* [피드백 10 반영] 주석 전체삭제 2중 확인 가드레일 모달 */}
+        {isClearAllConfirmOpen && (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-100">
+            <div className="bg-slate-900 border border-rose-500/50 rounded-xl p-4 max-w-sm w-full space-y-3 shadow-2xl">
+              <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
+                <span>⚠️</span>
+                <span>주석 전체 삭제 확인</span>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                현재 문서에 작성된 <strong className="text-rose-400">{vectorAnnotations.length}건</strong>의 모든 주석을 삭제하시겠습니까?
+              </p>
+              <p className="text-[11px] text-slate-400 bg-slate-950 p-2 rounded border border-slate-800">
+                💡 삭제 직후 <strong className="text-sky-300 font-mono">Ctrl + Z</strong> (실행취소) 키를 누르시면 언제든 삭제 전 상태로 100% 안전하게 복구할 수 있습니다.
+              </p>
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsClearAllConfirmOpen(false)}
+                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearAllAnnotations}
+                  className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-md shadow-rose-600/30 cursor-pointer"
+                >
+                  전체 삭제 실행
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // PG-USR-06 목차 전용 1열 단일행 목록 렌더러 (깊이 무제한 동적 계층, 검색어, 계층필터 지원, 'toc' 문자 배제)
+  const renderTocPanelContent = (isTopLayout: boolean = false) => {
+    const filteredToc = viewerTocItems.filter((item) => {
+      // 계층 필터 (깊이 무제한 지원)
+      if (tocMaxLevelFilter !== 'all') {
+        if (tocMaxLevelFilter === 'deep') {
+          if (item.level < 6) return false;
+        } else {
+          const maxL = parseInt(tocMaxLevelFilter, 10);
+          if (item.level > maxL) return false;
+        }
+      }
+      // 검색어 필터
+      if (tocSearchKeyword.trim()) {
+        const q = tocSearchKeyword.trim().toLowerCase();
+        const matchTitle = item.title.toLowerCase().includes(q);
+        const matchPage =
+          `p.${item.page}`.includes(q) ||
+          `${item.page}페이지`.includes(q) ||
+          `${item.page}쪽`.includes(q) ||
+          String(item.page).includes(q);
+        if (!matchTitle && !matchPage) return false;
+      }
+      return true;
+    });
+
+    return (
+      <div className="space-y-2 pb-2">
+        {/* 상단 고정 툴바: 검색창 + 계층필터(깊이 무제한) + 뷰모드(계층보기/표준보기) */}
+        <div className="sticky top-0 z-10 bg-slate-950 pb-1.5 border-b border-slate-800/80 mb-1.5">
+          <div className="flex flex-wrap items-center justify-between gap-1.5 p-1.5 bg-slate-900/90 border border-slate-800 rounded-lg text-xs">
+            {/* 목차 검색창 */}
+            <div className="relative flex-1 min-w-[140px] max-w-xs">
+              <Search className="w-3 h-3 text-slate-500 absolute left-2 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="목차 제목/페이지 검색..."
+                value={tocSearchKeyword}
+                onChange={(e) => setTocSearchKeyword(e.target.value)}
+                className="w-full pl-6 pr-5 py-1 bg-slate-950 border border-slate-700/80 rounded-lg text-[10px] text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
+              />
+              {tocSearchKeyword && (
+                <button
+                  type="button"
+                  onClick={() => setTocSearchKeyword('')}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs cursor-pointer"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* 우측 도구 그룹: 계층필터 + 뷰모드 + 항목 수 (오른쪽 정렬) */}
+            <div className="flex items-center gap-1.5 ml-auto flex-wrap justify-end">
+              {/* 계층선택 필터: 깊이 제한 없는 동적 계층 선택 */}
+              <div className="flex items-center gap-1 text-[10px]">
+                <span className="text-slate-400 hidden sm:inline">계층필터:</span>
+                <select
+                  value={tocMaxLevelFilter}
+                  onChange={(e) => setTocMaxLevelFilter(e.target.value as any)}
+                  className="bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-slate-200 font-medium cursor-pointer"
+                >
+                  <option value="all">전체 깊이 (제한 없음)</option>
+                  <option value="1">1계층만 (대단원)</option>
+                  <option value="2">2계층까지 (대절)</option>
+                  <option value="3">3계층까지 (중절)</option>
+                  <option value="4">4계층까지 (소절)</option>
+                  <option value="5">5계층까지 (세부항목)</option>
+                  <option value="deep">심층 계층 (6계층 이상)</option>
+                </select>
+              </div>
+
+              {/* 뷰 모드: 계층보기(들여쓰기 트리) vs 표준보기(플랫 정렬) */}
+              <div className="flex items-center gap-1 text-[10px]">
+                <span className="text-slate-400 hidden sm:inline">보기:</span>
+                <select
+                  value={tocViewMode}
+                  onChange={(e) => setTocViewMode(e.target.value as any)}
+                  className="bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-slate-200 font-medium cursor-pointer"
+                >
+                  <option value="tree">계층보기 (트리)</option>
+                  <option value="standard">표준보기 (플랫)</option>
+                </select>
+              </div>
+
+              <span className="text-[10px] text-slate-400 font-mono px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800">
+                {filteredToc.length}개 항목
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 목차 단일행 목록: 타이틀 고정, 목록영역만 스크롤 & 깊이 무제한 동적 들여쓰기 */}
+        {filteredToc.length > 0 ? (
+          <div
+            className={`space-y-1 font-mono text-xs overflow-y-auto pr-1 transition-all duration-200 ${
+              isTopLayout
+                ? topDrawerHeightMode === 'narrow'
+                  ? 'max-h-28'
+                  : topDrawerHeightMode === 'default'
+                  ? 'max-h-60'
+                  : 'max-h-none'
+                : ''
+            }`}
+          >
+            {filteredToc.map((item) => {
+              const isCur = viewerCurrentPage === item.page;
+              const indentRem =
+                tocViewMode === 'tree' ? Math.max(0.625, (item.level - 1) * 0.85 + 0.625) : 0.625;
+
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => {
+                    setViewerCurrentPage(item.page);
+                    setViewerJumpInput(String(item.page));
+                    showToast(`목차 [${item.title}] (제 ${item.page}페이지)로 이동했습니다.`, 'info');
+                  }}
+                  style={{ paddingLeft: `${indentRem}rem` }}
+                  className={`py-1.5 pr-2.5 rounded-lg border flex items-center justify-between transition-colors cursor-pointer group ${
+                    isCur
+                      ? 'bg-sky-950/80 border-sky-500 text-sky-300 font-bold shadow-xs'
+                      : 'bg-slate-900/60 hover:bg-slate-900 border-slate-800 hover:border-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <span className="text-[10px] text-slate-500 shrink-0 font-sans">
+                      L{item.level}
+                    </span>
+                    <span className="truncate font-sans font-medium text-slate-200">{item.title}</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    <span className="text-[10px] font-mono text-sky-400">
+                      p.{item.page}
+                    </span>
+                    {isCur && (
+                      <span className="text-[9px] px-1 py-0.2 rounded bg-sky-500/20 text-sky-300 font-sans font-bold">
+                        현재 페이지
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="p-4 rounded-xl bg-slate-900/50 border border-dashed border-slate-800 text-center space-y-2 my-2">
+            <p className="text-slate-400 text-xs font-sans">검색 조건에 일치하는 목차 항목이 없습니다.</p>
+            {(tocSearchKeyword || tocMaxLevelFilter !== 'all') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setTocSearchKeyword('');
+                  setTocMaxLevelFilter('all');
+                }}
+                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold cursor-pointer"
+              >
+                필터 초기화
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // PG-USR-06 북마크 전용 1열 단일행 목록 렌더러 (한 줄에 하나, 생성기준/페이지기준, 오름차순/내림차순, 검색 지원)
+  const renderBookmarkPanelContent = (isTopLayout: boolean = false) => {
+    // 1. 검색어 필터링
+    const filteredPages = viewerBookmarks.filter((p) => {
+      if (!bookmarkSearchKeyword.trim()) return true;
+      const q = bookmarkSearchKeyword.trim();
+      return String(p).includes(q) || `${p}페이지`.includes(q) || `${p}쪽`.includes(q);
+    });
+
+    // 2. 정렬 (생성기준 vs 페이지기준, 오름차순 vs 내림차순)
+    const sortedBookmarkPages = [...filteredPages].sort((a, b) => {
+      const dir = bookmarkSortDirection === 'asc' ? 1 : -1;
+      if (bookmarkSortBy === 'page') {
+        return (a - b) * dir;
+      }
+      // 생성기준 (배열 인덱스 순서 유지)
+      const idxA = viewerBookmarks.indexOf(a);
+      const idxB = viewerBookmarks.indexOf(b);
+      return (idxA - idxB) * dir;
+    });
+
+    return (
+      <div className="space-y-2 pb-2">
+        {/* 상단 고정 툴바: 검색창 + 정렬기준(페이지/생성) + 오름차순/내림차순 + 현재 페이지 북마크 추가 */}
+        <div className="sticky top-0 z-10 bg-slate-950 pb-1.5 border-b border-slate-800/80 mb-1.5">
+          <div className="flex flex-wrap items-center justify-between gap-1.5 p-1.5 bg-slate-900/90 border border-slate-800 rounded-lg text-xs">
+            {/* 북마크 검색창 */}
+            <div className="relative flex-1 min-w-[130px] max-w-xs">
+              <Search className="w-3 h-3 text-slate-500 absolute left-2 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="북마크 페이지 검색..."
+                value={bookmarkSearchKeyword}
+                onChange={(e) => setBookmarkSearchKeyword(e.target.value)}
+                className="w-full pl-6 pr-5 py-1 bg-slate-950 border border-slate-700/80 rounded-lg text-[10px] text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
+              />
+              {bookmarkSearchKeyword && (
+                <button
+                  type="button"
+                  onClick={() => setBookmarkSearchKeyword('')}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs cursor-pointer"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* 우측 정렬 도구 그룹: 정렬 기준 + 오름/내림차순 토글 + 현재 페이지 북마크 추가 (오른쪽 정렬) */}
+            <div className="flex items-center gap-1.5 ml-auto flex-wrap justify-end">
+              {/* 정렬 기준: 페이지순 vs 생성순 */}
+              <div className="flex items-center gap-1 text-[10px]">
+                <span className="text-slate-400 hidden sm:inline">정렬:</span>
+                <select
+                  value={bookmarkSortBy}
+                  onChange={(e) => setBookmarkSortBy(e.target.value as any)}
+                  className="bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-slate-200 font-medium cursor-pointer"
+                >
+                  <option value="page">페이지순</option>
+                  <option value="created">생성순</option>
+                </select>
+              </div>
+
+              {/* [피드백 8 반영] 오름차순 / 내림차순 토글 */}
+              <button
+                type="button"
+                onClick={() => setBookmarkSortDirection(bookmarkSortDirection === 'asc' ? 'desc' : 'asc')}
+                className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-sky-300 font-mono text-[10px] cursor-pointer border border-slate-700"
+                title="오름차순 / 내림차순 토글"
+              >
+                {bookmarkSortDirection === 'asc' ? '⬇️ 오름차순' : '⬆️ 내림차순'}
+              </button>
+
+              {/* [피드백 9 반영] 현재 페이지 북마크 추가 (용어 통일: 쪽 -> 페이지) */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!viewerBookmarks.includes(viewerCurrentPage)) {
+                    setViewerBookmarks([...viewerBookmarks, viewerCurrentPage]);
+                    showToast(`제 ${viewerCurrentPage}페이지가 북마크에 추가되었습니다.`, 'success');
+                  } else {
+                    showToast(`제 ${viewerCurrentPage}페이지는 이미 북마크되어 있습니다.`, 'info');
+                  }
+                }}
+                className="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold cursor-pointer"
+              >
+                + 현재 {viewerCurrentPage}페이지 추가
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* [피드백 3 반영] 북마크 단일행 목록: 타이틀 고정, 목록영역만 스크롤 */}
+        {sortedBookmarkPages.length > 0 ? (
+          <div
+            className={`space-y-1 font-mono text-xs overflow-y-auto pr-1 transition-all duration-200 ${
+              isTopLayout
+                ? topDrawerHeightMode === 'narrow'
+                  ? 'max-h-28'
+                  : topDrawerHeightMode === 'default'
+                  ? 'max-h-60'
+                  : 'max-h-none'
+                : ''
+            }`}
+          >
+            {sortedBookmarkPages.map((page) => {
+              const isCur = viewerCurrentPage === page;
+              return (
+                <div
+                  key={page}
+                  className={`px-3 py-1.5 rounded-lg border flex items-center justify-between transition-colors group ${
+                    isCur
+                      ? 'bg-sky-950/80 border-sky-500 text-sky-300 font-bold shadow-xs'
+                      : 'bg-slate-900/60 hover:bg-slate-900 border-slate-800 text-slate-300'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setViewerCurrentPage(page);
+                      setViewerJumpInput(String(page));
+                      showToast(`제 ${page}페이지로 이동했습니다.`, 'info');
+                    }}
+                    className="flex items-center gap-2 cursor-pointer hover:underline text-left flex-1"
+                  >
+                    <span>🔖</span>
+                    <span className="font-bold text-sky-300">제 {page} 페이지 북마크</span>
+                    {isCur && (
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-400 font-sans">
+                        현재 페이지
+                      </span>
+                    )}
+                  </button>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">
+                      {activeViewingDoc?.title ? `${activeViewingDoc.title.slice(0, 15)}...` : '표준문서'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setViewerBookmarks(viewerBookmarks.filter((b) => b !== page));
+                        showToast(`제 ${page}페이지 북마크가 해제되었습니다.`, 'info');
+                      }}
+                      className="text-slate-500 hover:text-rose-400 text-xs px-1.5 py-0.5 rounded hover:bg-rose-950/40 transition-colors cursor-pointer"
+                      title="북마크 해제"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="p-4 rounded-xl bg-slate-900/50 border border-dashed border-slate-800 text-center space-y-2 my-2">
+            <p className="text-slate-400 text-xs font-sans">등록된 북마크가 없거나 검색 조건과 일치하지 않습니다.</p>
+            {bookmarkSearchKeyword && (
+              <button
+                type="button"
+                onClick={() => setBookmarkSearchKeyword('')}
+                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold cursor-pointer"
+              >
+                검색어 초기화
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const activeTools = registry.getToolsForGroup(activeGroup);
@@ -2381,28 +3880,18 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                     )}
                   </div>
 
-                  {/* 3탭(목차/북마크/주석) 사이드패널 토글 */}
+                  {/* [피드백 A 반영] 목록 3그룹(북마크/목차/주석) 표시/숨김 기능 및 아이콘 교체 */}
                   <button
                     type="button"
-                    onClick={() => setIsTabDrawerCollapsed(!isTabDrawerCollapsed)}
-                    className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
-                      !isTabDrawerCollapsed
-                        ? 'bg-sky-600/30 text-sky-300 border-sky-500/40'
+                    onClick={() => setIsTabDrawerVisible(!isTabDrawerVisible)}
+                    className={`p-1.5 rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
+                      isTabDrawerVisible
+                        ? 'bg-sky-600/30 text-sky-300 border-sky-500/50 shadow-xs'
                         : 'bg-slate-900 text-slate-400 hover:text-white border-slate-800'
                     }`}
-                    title={isTabDrawerCollapsed ? '목차/북마크/주석 패널 펼치기' : '목차/북마크/주석 패널 접기'}
+                    title={isTabDrawerVisible ? '목차/북마크/주석 패널 숨기기' : '목차/북마크/주석 패널 표시'}
                   >
-                    <List className="w-4 h-4" />
-                  </button>
-
-                  {/* 3탭 상단/좌측 배치 토글 */}
-                  <button
-                    type="button"
-                    onClick={() => setTabLayoutPosition(tabLayoutPosition === 'left' ? 'top' : 'left')}
-                    className="p-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-white border border-slate-800 text-[11px] font-bold cursor-pointer"
-                    title={`현재 ${tabLayoutPosition === 'left' ? '좌측' : '상단'} 배치 (클릭 시 전환)`}
-                  >
-                    {tabLayoutPosition === 'left' ? '◫' : '⬒'}
+                    {isTabDrawerVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                   </button>
 
                   {/* 순서설정 */}
@@ -2427,7 +3916,11 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                         key={`${item.id}-${idx}`}
                         onClick={() => {
                           setCurrentTool(item.id);
-                          // 도구 선택 시 팝오버를 열거나 속성 연계
+                          const kind = mapToolIdToKind(item.id);
+                          setToolStyleState((prev) => ({
+                            ...prev,
+                            toolKind: kind,
+                          }));
                         }}
                         title={`${item.name} (${viewerConfig.shortcuts[item.id] || item.defaultKey})`}
                         className={`shrink-0 h-8 w-8 min-w-[32px] rounded-lg flex items-center justify-center text-sm transition-all relative cursor-pointer ${
@@ -2470,7 +3963,7 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                       onClose={() => setIsStylePopoverOpen(false)}
                       toolName={registry.getAllTools().find((t) => t.id === currentTool)?.name || currentTool}
                       styleState={toolStyleState}
-                      onChangeStyle={(updated) => setToolStyleState((prev) => ({ ...prev, ...updated }))}
+                      onChangeStyle={handleUpdateToolStyle}
                     />
                   </div>
 
@@ -2479,9 +3972,14 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                   {/* 실행취소 (Undo) */}
                   <button
                     type="button"
-                    onClick={() => alert('이전 작업이 취소되었습니다 (Undo).')}
-                    className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
-                    title="실행취소 (Ctrl + Z)"
+                    onClick={handleUndoAnnotation}
+                    disabled={undoStack.length === 0}
+                    className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                      undoStack.length > 0
+                        ? 'bg-slate-900 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:text-white'
+                        : 'bg-slate-950 text-slate-600 border-slate-800/60 cursor-not-allowed opacity-50'
+                    }`}
+                    title={`실행취소 (Ctrl + Z)${undoStack.length > 0 ? ` [${undoStack.length}단계 가능]` : ' (취소할 작업 없음)'}`}
                   >
                     <Undo2 className="w-4 h-4" />
                   </button>
@@ -2489,9 +3987,14 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                   {/* 다시실행 (Redo) */}
                   <button
                     type="button"
-                    onClick={() => alert('작업이 다시 실행되었습니다 (Redo).')}
-                    className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
-                    title="다시실행 (Ctrl + Y)"
+                    onClick={handleRedoAnnotation}
+                    disabled={redoStack.length === 0}
+                    className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                      redoStack.length > 0
+                        ? 'bg-slate-900 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:text-white'
+                        : 'bg-slate-950 text-slate-600 border-slate-800/60 cursor-not-allowed'
+                    }`}
+                    title={`다시실행 (Ctrl + Y)${redoStack.length > 0 ? ` [${redoStack.length}단계 가능]` : ' (다시 실행할 작업 없음)'}`}
                   >
                     <Redo2 className="w-4 h-4" />
                   </button>
@@ -2522,47 +4025,68 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
               </div>
             </div>
 
-            {/* 5. [피드백 반영] 상단배치 모드(top)일 때 3탭 드로어 렌더링 */}
-            {tabLayoutPosition === 'top' && !isTabDrawerCollapsed && (
+            {/* PG-USR-06 주석 패널 통합 렌더러 (상단배치 / 좌측배치 100% 동일 로직 공유 및 단일 진실 공급원) */}
+            {(() => null)()}
+            {/* 5. [피드백 1, 2, 3 반영] 가로 모드(horizontal)일 때 상단 위아래 배치 드로어 */}
+            {tabOrientation === 'horizontal' && isTabDrawerVisible && (
               <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2 animate-in slide-in-from-top-2 duration-150 shadow-md">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                  <div className="flex items-center gap-2">
+                  {/* [피드백 2 반영] 고정핀 여부와 무관하게 심플한 고정상태(하단 언더라인 탭) 디자인 및 여백 100% 통일 (북마크, 목차, 주석 3탭 - 'toc' 영문 배제) */}
+                  <div className="flex items-center gap-3">
                     <button
                       type="button"
                       onClick={() => setActiveViewerTab('bookmarks')}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      className={`pb-1.5 text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
                         activeViewerTab === 'bookmarks'
-                          ? 'bg-sky-600 text-white shadow-xs'
-                          : 'bg-slate-900 text-slate-400 hover:text-white'
+                          ? 'text-sky-400 border-b-2 border-sky-400 font-bold'
+                          : 'text-slate-400 hover:text-slate-200 border-b-2 border-transparent'
                       }`}
                     >
-                      🔖 북마크 ({viewerBookmarks.length})
+                      <span>🔖</span>
+                      <span>북마크 ({viewerBookmarks.length})</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setActiveViewerTab('toc')}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      className={`pb-1.5 text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
                         activeViewerTab === 'toc'
-                          ? 'bg-sky-600 text-white shadow-xs'
-                          : 'bg-slate-900 text-slate-400 hover:text-white'
+                          ? 'text-sky-400 border-b-2 border-sky-400 font-bold'
+                          : 'text-slate-400 hover:text-slate-200 border-b-2 border-transparent'
                       }`}
                     >
-                      📖 목차(TOC) ({viewerTocItems.length})
+                      <span>📖</span>
+                      <span>목차 ({viewerTocItems.length})</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setActiveViewerTab('annots')}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      className={`pb-1.5 text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
                         activeViewerTab === 'annots'
-                          ? 'bg-sky-600 text-white shadow-xs'
-                          : 'bg-slate-900 text-slate-400 hover:text-white'
+                          ? 'text-sky-400 border-b-2 border-sky-400 font-bold'
+                          : 'text-slate-400 hover:text-slate-200 border-b-2 border-transparent'
                       }`}
                     >
-                      ✏️ 주석 ({viewerAnnotations.length})
+                      <span>✏️</span>
+                      <span>주석 ({vectorAnnotations.length})</span>
                     </button>
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {/* [피드백 1 반영] 3그룹 표시높이 설정 버튼열거 공간차지 해소: 컴팩트 선택목록(드롭다운)으로 변경 */}
+                    <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-800 text-[10px]">
+                      <span className="text-slate-400 font-medium hidden sm:inline">표시높이:</span>
+                      <select
+                        value={topDrawerHeightMode}
+                        onChange={(e) => setTopDrawerHeightMode(e.target.value as any)}
+                        className="bg-slate-950 border border-slate-700/80 rounded px-1.5 py-0.5 text-slate-200 font-medium cursor-pointer"
+                        title="3그룹 컨텐츠 목록 표시 높이 선택"
+                      >
+                        <option value="narrow">좁게 (3~4줄)</option>
+                        <option value="default">기본 (7~9줄)</option>
+                        <option value="fit">맞춤 (자동확장)</option>
+                      </select>
+                    </div>
+
                     {activeViewerTab === 'bookmarks' && (
                       <button
                         type="button"
@@ -2573,284 +4097,125 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                         }}
                         className="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold cursor-pointer"
                       >
-                        + 현재 {viewerCurrentPage}쪽 북마크
+                        + 현재 {viewerCurrentPage}페이지 북마크
                       </button>
                     )}
+
+                    {/* [피드백 C 반영] 고정핀 아이콘: 클릭 시 세로 모드(좌측 패널)로 고정 전환 */}
                     <button
                       type="button"
-                      onClick={() => setIsTabDrawerCollapsed(true)}
-                      className="text-slate-400 hover:text-white text-xs px-2 py-0.5 rounded bg-slate-900"
-                      title="상단 드로어 접기"
+                      onClick={() => setTabOrientation('vertical')}
+                      className="p-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-sky-300 border border-slate-800 text-xs transition-colors cursor-pointer flex items-center gap-1"
+                      title="고정핀: 세로(좌측 패널) 방향으로 고정"
                     >
-                      ▲ 접기
+                      <PinOff className="w-3.5 h-3.5" />
+                      <span className="text-[10px] hidden md:inline">가로(해제됨)</span>
+                    </button>
+
+                    {/* 닫기(숨김) 버튼 */}
+                    <button
+                      type="button"
+                      onClick={() => setIsTabDrawerVisible(false)}
+                      className="text-slate-400 hover:text-white text-xs px-2 py-0.5 rounded bg-slate-900 border border-slate-800 cursor-pointer"
+                      title="패널 숨기기"
+                    >
+                      ✕
                     </button>
                   </div>
                 </div>
 
-                {/* 상단 배치 시 가로 스크롤 카드 행 렌더링 */}
-                <div className="max-h-36 overflow-y-auto pr-1">
-                  {activeViewerTab === 'toc' && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                      {viewerTocItems.map((item) => (
-                        <div
-                          key={item.id}
-                          onClick={() => {
-                            setViewerCurrentPage(item.page);
-                            setViewerJumpInput(String(item.page));
-                          }}
-                          className={`p-2 rounded-lg border text-xs cursor-pointer flex items-center justify-between transition-colors ${
-                            viewerCurrentPage === item.page
-                              ? 'bg-sky-950/70 border-sky-500 text-white font-bold'
-                              : 'bg-slate-900/60 hover:bg-slate-900 border-slate-800 text-slate-300'
-                          }`}
-                        >
-                          <span className="truncate">{item.title}</span>
-                          <span className="text-[10px] font-mono text-sky-400 shrink-0 ml-1.5">
-                            p.{item.page}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {activeViewerTab === 'bookmarks' && (
-                    <div className="flex flex-wrap gap-2">
-                      {viewerBookmarks.map((page) => (
-                        <div
-                          key={page}
-                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-xs"
-                        >
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setViewerCurrentPage(page);
-                              setViewerJumpInput(String(page));
-                            }}
-                            className="font-mono text-sky-300 font-bold hover:underline cursor-pointer"
-                          >
-                            🔖 {page} 쪽
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setViewerBookmarks(viewerBookmarks.filter((b) => b !== page))}
-                            className="text-slate-500 hover:text-rose-400 text-xs ml-1"
-                            title="북마크 해제"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {activeViewerTab === 'annots' && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                      {viewerAnnotations.map((ann) => (
-                        <div
-                          key={ann.id}
-                          onClick={() => {
-                            setViewerCurrentPage(ann.page);
-                            setViewerJumpInput(String(ann.page));
-                          }}
-                          className="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-sky-500/50 text-xs cursor-pointer space-y-1 transition-colors"
-                        >
-                          <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono">
-                            <span className="text-sky-400 font-bold">{ann.page}쪽 | {ann.type}</span>
-                            <span>{ann.author}</span>
-                          </div>
-                          <div className="text-slate-200 truncate" style={{ color: ann.color }}>
-                            "{ann.text}"
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                {/* [피드백 3 반영] 타이틀/필터바는 고정되고, 각 탭의 목록영역만 스크롤 적용 */}
+                <div>
+                  {activeViewerTab === 'bookmarks' && renderBookmarkPanelContent(true)}
+                  {activeViewerTab === 'toc' && renderTocPanelContent(true)}
+                  {activeViewerTab === 'annots' && renderAnnotationPanelContent(true)}
                 </div>
               </div>
             )}
 
-            {/* 상단배치 모드에서 접혔을 때 펼치기 배너 */}
-            {tabLayoutPosition === 'top' && isTabDrawerCollapsed && (
-              <div className="flex items-center justify-between p-1.5 px-3 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-400">
-                <span className="font-medium text-slate-300">
-                  📖 목차(TOC) 및 북마크 드로어가 접혀 있습니다.
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setIsTabDrawerCollapsed(false)}
-                  className="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-sky-400 font-bold text-[11px] cursor-pointer"
-                >
-                  ▼ 펼치기
-                </button>
-              </div>
-            )}
-
-            {/* 6. 메인 워크스페이스: [좌측배치 모드일 때 좌측 패널] + [고성능 대용량 가상 캔버스 뷰포트] */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 min-h-[480px]">
-              {/* [피드백 반영] 좌측배치 모드(left)일 때 좌측 세로 패널 */}
-              {tabLayoutPosition === 'left' && !isTabDrawerCollapsed && (
-                <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-col text-xs shadow-sm">
-                  {/* 패널 상단: 3탭 전환 바 + 접기 버튼 */}
+            {/* 6. 메인 워크스페이스: [세로 모드일 때 좌측 패널 + 고성능 가상 캔버스 뷰포트] */}
+            <div className={`grid grid-cols-1 ${tabOrientation === 'vertical' && isTabDrawerVisible ? 'md:grid-cols-4' : 'grid-cols-1'} gap-3 min-h-[480px]`}>
+              {/* [피드백 C, D 반영] 세로 모드(vertical)일 때 문서영역 좌측에 나란히 배치되는 세로 사이드 패널 */}
+              {tabOrientation === 'vertical' && isTabDrawerVisible && (
+                <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-col text-xs shadow-sm col-span-1">
+                  {/* 패널 상단: 3탭 전환 바(북마크, 목차, 주석 - 'toc' 영문 배제) + [고정핀 아이콘 (세로 On)] + 닫기 버튼 */}
                   <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-3">
                       <button
                         type="button"
                         onClick={() => setActiveViewerTab('bookmarks')}
-                        className={`pb-1 transition-all cursor-pointer ${
+                        className={`pb-1.5 text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
                           activeViewerTab === 'bookmarks'
                             ? 'text-sky-400 border-b-2 border-sky-400 font-bold'
-                            : 'text-slate-400 hover:text-slate-200'
+                            : 'text-slate-400 hover:text-slate-200 border-b-2 border-transparent'
                         }`}
                       >
-                        북마크({viewerBookmarks.length})
+                        <span>🔖</span>
+                        <span>북마크 ({viewerBookmarks.length})</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => setActiveViewerTab('toc')}
-                        className={`pb-1 transition-all cursor-pointer ${
+                        className={`pb-1.5 text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
                           activeViewerTab === 'toc'
                             ? 'text-sky-400 border-b-2 border-sky-400 font-bold'
-                            : 'text-slate-400 hover:text-slate-200'
+                            : 'text-slate-400 hover:text-slate-200 border-b-2 border-transparent'
                         }`}
                       >
-                        목차(TOC)
+                        <span>📖</span>
+                        <span>목차 ({viewerTocItems.length})</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => setActiveViewerTab('annots')}
-                        className={`pb-1 transition-all cursor-pointer ${
+                        className={`pb-1.5 text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
                           activeViewerTab === 'annots'
                             ? 'text-sky-400 border-b-2 border-sky-400 font-bold'
-                            : 'text-slate-400 hover:text-slate-200'
+                            : 'text-slate-400 hover:text-slate-200 border-b-2 border-transparent'
                         }`}
                       >
-                        주석({viewerAnnotations.length})
+                        <span>✏️</span>
+                        <span>주석 ({vectorAnnotations.length})</span>
                       </button>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setIsTabDrawerCollapsed(true)}
-                      className="text-slate-500 hover:text-slate-300 text-xs"
-                      title="좌측 패널 접기"
-                    >
-                      ◀
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      {/* [피드백 C 반영] 고정핀 아이콘: 클릭 시 가로 모드(상단 위아래 배치)로 전환 */}
+                      <button
+                        type="button"
+                        onClick={() => setTabOrientation('horizontal')}
+                        className="p-1 rounded bg-sky-950/70 hover:bg-sky-900 text-sky-400 border border-sky-500/50 cursor-pointer transition-colors"
+                        title="고정핀: 세로(좌측) 고정됨 (클릭 시 가로 상단 모드로 전환)"
+                      >
+                        <Pin className="w-3.5 h-3.5 fill-sky-400 text-sky-400" />
+                      </button>
+                      {/* [피드백 B 반영] 접기 아이콘 대신 깔끔한 닫기(숨김) 버튼 */}
+                      <button
+                        type="button"
+                        onClick={() => setIsTabDrawerVisible(false)}
+                        className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                        title="패널 숨기기"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
 
-                  {/* 좌측 패널 본문 목록 */}
+                  {/* 좌측 패널 본문 목록 (동일한 1열 단일행 컴포넌트 렌더러 직결, 세로는 높이 무제한) */}
                   <div className="flex-1 overflow-y-auto space-y-1.5 text-slate-300 font-mono text-[11px] pr-1">
-                    {activeViewerTab === 'toc' && (
-                      <div className="space-y-1">
-                        {viewerTocItems.map((item) => (
-                          <div
-                            key={item.id}
-                            onClick={() => {
-                              setViewerCurrentPage(item.page);
-                              setViewerJumpInput(String(item.page));
-                            }}
-                            className={`p-1.5 rounded cursor-pointer transition-colors flex items-center justify-between ${
-                              viewerCurrentPage === item.page
-                                ? 'bg-sky-950/70 border border-sky-500/50 text-sky-300 font-bold'
-                                : 'hover:bg-slate-900 text-slate-300'
-                            } ${item.level === 2 ? 'pl-4 text-[10px]' : ''}`}
-                          >
-                            <span className="truncate">{item.title}</span>
-                            <span className="text-[10px] text-slate-500 shrink-0 ml-1">p.{item.page}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {activeViewerTab === 'bookmarks' && (
-                      <div className="space-y-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!viewerBookmarks.includes(viewerCurrentPage)) {
-                              setViewerBookmarks([...viewerBookmarks, viewerCurrentPage].sort((a, b) => a - b));
-                            }
-                          }}
-                          className="w-full py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-bold transition-colors cursor-pointer"
-                        >
-                          + 현재 {viewerCurrentPage}쪽 북마크 추가
-                        </button>
-                        <div className="space-y-1">
-                          {viewerBookmarks.map((page) => (
-                            <div
-                              key={page}
-                              className="p-1.5 rounded bg-slate-900 border border-slate-800 flex items-center justify-between text-xs"
-                            >
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setViewerCurrentPage(page);
-                                  setViewerJumpInput(String(page));
-                                }}
-                                className="font-mono text-sky-300 font-bold hover:underline cursor-pointer"
-                              >
-                                🔖 {page} 쪽
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setViewerBookmarks(viewerBookmarks.filter((b) => b !== page))}
-                                className="text-slate-500 hover:text-rose-400 text-xs"
-                                title="북마크 삭제"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {activeViewerTab === 'annots' && (
-                      <div className="space-y-1.5">
-                        {viewerAnnotations.map((ann) => (
-                          <div
-                            key={ann.id}
-                            onClick={() => {
-                              setViewerCurrentPage(ann.page);
-                              setViewerJumpInput(String(ann.page));
-                            }}
-                            className="p-2 rounded bg-slate-900 border border-slate-800 hover:border-sky-500/40 cursor-pointer space-y-1 transition-colors"
-                          >
-                            <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono">
-                              <span className="text-sky-400 font-bold">{ann.page}쪽 | {ann.type}</span>
-                              <span>{ann.author}</span>
-                            </div>
-                            <div className="text-slate-200 text-xs" style={{ color: ann.color }}>
-                              "{ann.text}"
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    {activeViewerTab === 'bookmarks' && renderBookmarkPanelContent(false)}
+                    {activeViewerTab === 'toc' && renderTocPanelContent(false)}
+                    {activeViewerTab === 'annots' && renderAnnotationPanelContent(false)}
                   </div>
-                </div>
-              )}
-
-              {/* 좌측 패널 접혔을 때 펼치기 사이드 바 */}
-              {tabLayoutPosition === 'left' && isTabDrawerCollapsed && (
-                <div
-                  onClick={() => setIsTabDrawerCollapsed(false)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl p-2 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-900 transition-colors w-10 text-slate-400 hover:text-white"
-                  title="목차 및 북마크 패널 펼치기"
-                >
-                  <span className="text-xs font-bold">▶</span>
-                  <span className="text-[10px] [writing-mode:vertical-rl] mt-3 font-medium">목차 · 북마크</span>
                 </div>
               )}
 
               {/* 중앙 대용량 가상 뷰포트 캔버스 영역 (60fps 가상 스크롤러 & LRU 메모리가드 연동) */}
               <div
                 className={`${
-                  tabLayoutPosition === 'left' && !isTabDrawerCollapsed
-                    ? 'md:col-span-3'
-                    : tabLayoutPosition === 'left' && isTabDrawerCollapsed
-                    ? 'col-span-1 md:col-span-4'
-                    : 'col-span-1 md:col-span-4'
+                  tabOrientation === 'vertical' && isTabDrawerVisible
+                    ? 'col-span-1 md:col-span-3'
+                    : 'col-span-1'
                 } bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-col justify-between relative overflow-hidden shadow-inner`}
               >
                 {/* 캔버스 상단 가상화 뷰어 상태 배너 & OCR 선택 툴팁 */}
@@ -2865,12 +4230,16 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                     </span>
                   </div>
 
-                  {/* OCR 텍스트 퀵 액션 */}
-                  <div className="flex items-center gap-1 text-[11px]">
-                    <span className="text-slate-400 text-[10px] hidden sm:inline">텍스트 선택:</span>
+                  {/* OCR 텍스트 퀵 액션 및 바운딩 박스 상태 */}
+                  <div className="flex items-center gap-1.5 text-[11px]">
+                    <span className="text-slate-400 text-[10px] hidden sm:inline">OCR 텍스트 레이어:</span>
                     <button
                       type="button"
-                      onClick={() => alert(`제 ${viewerCurrentPage}쪽 본문 텍스트가 클립보드에 복사되었습니다.`)}
+                      onClick={() => {
+                        const pageSample = `[purePDFrend p.${viewerCurrentPage}] 제 ${Math.floor(viewerCurrentPage / 10) + 1}장. 대용량 전자책 아카이빙 및 가상 렌더링 - 투명 텍스트 레이어(Searchable PDF)가 스캔 이미지 하단에 정확히 정렬되어 단어 검색과 텍스트 복사를 완벽히 지원한다.`;
+                        navigator.clipboard?.writeText?.(pageSample);
+                        showToast(`제 ${viewerCurrentPage}쪽 본문 전체 텍스트가 클립보드에 복사되었습니다.`, 'info');
+                      }}
                       className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] cursor-pointer"
                     >
                       전체복사
@@ -2878,46 +4247,85 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                     <button
                       type="button"
                       onClick={() => {
-                        const newAnn = {
-                          id: `ann-${Date.now()}`,
+                        // OCR 바운딩 박스 전체를 형광펜 주석으로 일괄 변환 생성
+                        const newAnn: CanvasVectorAnnotation = {
+                          id: `ann-ocr-${Date.now()}`,
                           page: viewerCurrentPage,
-                          type: '형광펜',
+                          toolKind: 'highlighter',
+                          name: `OCR 형광펜 #${vectorAnnotations.length + 1}`,
                           author: 'jkok2j2m',
-                          text: `제 ${viewerCurrentPage}쪽 핵심 문구 강조`,
-                          color: toolStyleState.color,
+                          text: `제 ${viewerCurrentPage}쪽 Searchable PDF 핵심 문장`,
+                          color: '#facc15',
+                          strokeWidth: 12,
+                          opacity: 50,
                           date: '방금 전',
+                          tags: ['OCR', 'Searchable PDF'],
+                          isAiGenerated: true,
+                          confidence: 0.98,
                         };
-                        setViewerAnnotations([newAnn, ...viewerAnnotations]);
-                        alert(`제 ${viewerCurrentPage}쪽에 형광펜 주석이 등록되었습니다.`);
+                        pushAnnotationHistory([...vectorAnnotations, newAnn]);
+                        setSelectedVectorId(newAnn.id);
+                        setPulseAnnotationId(newAnn.id);
+                        setTimeout(() => setPulseAnnotationId(null), 1800);
+                        setAnnotFilterTypes((prev) => new Set([...prev, 'markup']));
+                        showToast(`제 ${viewerCurrentPage}페이지에 OCR 바운딩 박스 형광펜 주석이 자동 생성되었습니다.`, 'success');
                       }}
-                      className="px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 text-[10px] font-bold cursor-pointer"
+                      className="px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 text-[10px] font-bold cursor-pointer flex items-center gap-1"
                     >
-                      형광펜
+                      <Sparkles className="w-3 h-3 text-yellow-400" />
+                      <span>+ OCR 형광펜</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => {
-                        const newAnn = {
-                          id: `ann-${Date.now()}`,
+                        const newAnn: CanvasVectorAnnotation = {
+                          id: `ann-ocr-note-${Date.now()}`,
                           page: viewerCurrentPage,
-                          type: '메모',
+                          toolKind: 'text',
+                          name: `OCR 메모 #${vectorAnnotations.length + 1}`,
                           author: 'jkok2j2m',
-                          text: `제 ${viewerCurrentPage}쪽 독서 메모`,
+                          text: `제 ${viewerCurrentPage}페이지 OCR 인식 구역 발췌 메모`,
                           color: '#38bdf8',
+                          strokeWidth: 1,
+                          opacity: 100,
+                          fontSize: 13,
                           date: '방금 전',
+                          tags: ['OCR', '메모'],
+                          isAiGenerated: true,
+                          confidence: 0.96,
                         };
-                        setViewerAnnotations([newAnn, ...viewerAnnotations]);
-                        alert(`제 ${viewerCurrentPage}쪽에 새 메모가 등록되었습니다.`);
+                        pushAnnotationHistory([...vectorAnnotations, newAnn]);
+                        setSelectedVectorId(newAnn.id);
+                        setPulseAnnotationId(newAnn.id);
+                        setTimeout(() => setPulseAnnotationId(null), 1800);
+                        setAnnotFilterTypes((prev) => new Set([...prev, 'text']));
+                        showToast(`제 ${viewerCurrentPage}페이지에 OCR 텍스트 기반 주석 메모가 등록되었습니다.`, 'success');
                       }}
                       className="px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 hover:bg-sky-500/30 text-[10px] font-bold cursor-pointer"
                     >
-                      메모
+                      + OCR 메모
                     </button>
                   </div>
                 </div>
 
                 {/* 실제 도서 본문 렌더링 캔버스 (확대/회전/Searchable PDF 하이라이트 반영) */}
-                <div className="flex-1 bg-slate-900/60 rounded-xl p-4 overflow-auto flex items-center justify-center min-h-[380px] relative">
+                <div
+                  className={`flex-1 bg-slate-900/60 rounded-xl p-4 overflow-auto flex items-center justify-center min-h-[380px] relative ${
+                    currentTool.toLowerCase().includes('eraser') || toolStyleState.toolKind === 'eraser'
+                      ? 'cursor-crosshair'
+                      : ''
+                  }`}
+                >
+                  {/* 지우개 활성 알림 배너 */}
+                  {(currentTool.toLowerCase().includes('eraser') || toolStyleState.toolKind === 'eraser') && (
+                    <div className="absolute top-3 right-3 z-30 px-3 py-1.5 rounded-full bg-rose-600/90 text-white text-xs font-bold shadow-xl border border-rose-400/50 flex items-center gap-2 animate-bounce">
+                      <span>🧹 지우개 모드 활성 (터치 시 삭제)</span>
+                      <span className="text-[10px] bg-rose-950 px-1.5 py-0.5 rounded font-mono">
+                        반경 {toolStyleState.eraserSize || 20}pt
+                      </span>
+                    </div>
+                  )}
+
                   {/* ========================================================================= */}
                   {/* [Xodo 캡처 핵심 벤치마킹] 좌상단 플로팅 쪽수 칩 [ 157 / 504 ] */}
                   {/* 터치 시 직관적인 쪽수 점프 슬라이더 팝오버 표시 */}
@@ -3034,78 +4442,605 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                       </div>
 
                       {/* ========================================================================= */}
-                      {/* [Xodo 캡처 핵심 벤치마킹] 밑줄/주석 클릭 시 상황별 팝오버 및 3번째 형태전환 */}
+                      {/* [Xodo 캡처 핵심 벤치마킹] 밑줄/형광펜/마크업 주석 동적 연동 및 상황별 팝오버 */}
                       {/* ========================================================================= */}
-                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs leading-relaxed text-slate-700 relative">
-                        <span>ChatGPT나 클로드에선 </span>
-                        {/* 클릭 가능한 밑줄 주석 텍스트 스팬 */}
-                        <span className="relative inline-block mx-1">
-                          <span
-                            onClick={() =>
-                              setActiveAnnotationPopover({
-                                isOpen: true,
-                                annId: 'ann-demo-1',
-                                text: '코드를 바로 실행해볼 수도 있습니다.',
-                                type: activeAnnotationPopover.type || 'underline',
-                                color: activeAnnotationPopover.color || '#38bdf8',
-                              })
-                            }
-                            className={`cursor-pointer px-1 py-0.5 rounded transition-all font-medium ${
-                              activeAnnotationPopover.type === 'highlight'
-                                ? 'bg-yellow-300/80 text-black font-semibold'
-                                : activeAnnotationPopover.type === 'strike'
-                                ? 'line-through text-rose-500 font-semibold'
-                                : activeAnnotationPopover.type === 'squiggly'
-                                ? 'underline decoration-wavy decoration-sky-500 font-semibold'
-                                : 'underline decoration-2 decoration-sky-500 font-semibold'
-                            }`}
-                            style={{
-                              borderColor: activeAnnotationPopover.color,
-                            }}
-                            title="클릭하여 밑줄 주석 관리 팝오버 열기"
-                          >
-                            코드를 바로 실행해볼 수도 있습니다.
+                      {(() => {
+                        const currentMarkups = vectorAnnotations.filter(
+                          (a) =>
+                            a.page === viewerCurrentPage &&
+                            ['underline', 'highlighter', 'strike', 'squiggly'].includes(a.toolKind)
+                        );
+
+                        return (
+                          <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs leading-relaxed text-slate-700 relative space-y-2">
+                            <div>
+                              <span>ChatGPT나 클로드에선 </span>
+                              {currentMarkups.length > 0 ? (
+                                currentMarkups.map((markup) => {
+                                  const isSelected = selectedVectorId === markup.id;
+                                  const isPulsing = pulseAnnotationId === markup.id;
+                                  const isPopoverActive =
+                                    activeAnnotationPopover.isOpen && activeAnnotationPopover.annId === markup.id;
+
+                                  return (
+                                    <span
+                                      key={markup.id}
+                                      id={`annot-canvas-${markup.id}`}
+                                      className="relative inline-block mx-1"
+                                    >
+                                      <span
+                                        onClick={() => {
+                                          setSelectedVectorId(markup.id);
+                                          setPulseAnnotationId(markup.id);
+                                          setTimeout(() => setPulseAnnotationId(null), 1800);
+                                          setActiveAnnotationPopover({
+                                            isOpen: true,
+                                            annId: markup.id,
+                                            text: markup.text || markup.name,
+                                            type: (markup.toolKind === 'highlighter' ? 'highlight' : markup.toolKind) as any,
+                                            color: markup.color,
+                                          });
+                                          setToolStyleState((prev) => ({
+                                            ...prev,
+                                            toolKind: markup.toolKind,
+                                            color: markup.color,
+                                            strokeWidth: markup.strokeWidth,
+                                            opacity: markup.opacity,
+                                          }));
+                                        }}
+                                        className={`cursor-pointer px-1 py-0.5 rounded transition-all font-medium ${
+                                          isPulsing
+                                            ? 'ring-4 ring-sky-400 animate-pulse shadow-lg scale-105'
+                                            : isSelected
+                                            ? 'ring-2 ring-sky-500 ring-offset-1'
+                                            : ''
+                                        } ${
+                                          markup.toolKind === 'highlighter'
+                                            ? 'bg-yellow-300/80 text-black font-semibold'
+                                            : markup.toolKind === 'strike'
+                                            ? 'line-through text-rose-500 font-semibold'
+                                            : markup.toolKind === 'squiggly'
+                                            ? 'underline decoration-wavy decoration-sky-500 font-semibold'
+                                            : 'underline decoration-2 decoration-sky-500 font-semibold'
+                                        }`}
+                                        style={{
+                                          borderColor: markup.color,
+                                        }}
+                                        title={`클릭하여 ${markup.name} 관리 팝오버 열기`}
+                                      >
+                                        {markup.text || markup.name}
+                                      </span>
+
+                                      {/* 터치 핸들러 시각적 점프 표시기 (블루 핸들러 ● --- ●) */}
+                                      {isPopoverActive && (
+                                        <>
+                                          <span className="absolute -left-1 -bottom-1 w-2.5 h-2.5 rounded-full bg-sky-500 border border-white shadow-xs pointer-events-none" />
+                                          <span className="absolute -right-1 -bottom-1 w-2.5 h-2.5 rounded-full bg-sky-500 border border-white shadow-xs pointer-events-none" />
+                                        </>
+                                      )}
+
+                                      {/* [핵심] AnnotationActionPopover 마운트 */}
+                                      {isPopoverActive && (
+                                        <AnnotationActionPopover
+                                          isOpen={activeAnnotationPopover.isOpen}
+                                          onClose={() => setActiveAnnotationPopover((prev) => ({ ...prev, isOpen: false }))}
+                                          selectedText={activeAnnotationPopover.text}
+                                          currentType={activeAnnotationPopover.type}
+                                          currentColor={activeAnnotationPopover.color}
+                                          onUpdateType={(newType) => {
+                                            setActiveAnnotationPopover((prev) => ({ ...prev, type: newType }));
+                                            const updated = vectorAnnotations.map((a) =>
+                                              a.id === markup.id
+                                                ? {
+                                                    ...a,
+                                                    toolKind: (newType === 'highlight' ? 'highlighter' : newType) as any,
+                                                  }
+                                                : a
+                                            );
+                                            pushAnnotationHistory(updated);
+                                            showToast(`마크업 유형이 [${newType}]으로 변경되었습니다.`, 'success');
+                                          }}
+                                          onUpdateColor={(col) => {
+                                            setActiveAnnotationPopover((prev) => ({ ...prev, color: col }));
+                                            const updated = vectorAnnotations.map((a) =>
+                                              a.id === markup.id ? { ...a, color: col } : a
+                                            );
+                                            pushAnnotationHistory(updated);
+                                            showToast('마크업 색상이 변경되었습니다.', 'info');
+                                          }}
+                                          onAddComment={(comment) => {
+                                            const updated = vectorAnnotations.map((a) =>
+                                              a.id === markup.id ? { ...a, memo: comment } : a
+                                            );
+                                            pushAnnotationHistory(updated);
+                                            showToast(`주석에 메모가 저장되었습니다: "${comment}"`, 'success');
+                                          }}
+                                          onDelete={() => {
+                                            const updated = vectorAnnotations.filter((a) => a.id !== markup.id);
+                                            pushAnnotationHistory(updated);
+                                            if (selectedVectorId === markup.id) setSelectedVectorId(null);
+                                            setActiveAnnotationPopover((prev) => ({ ...prev, isOpen: false }));
+                                            showToast('마크업 주석이 삭제되었습니다.', 'info');
+                                          }}
+                                          onCopy={() => {
+                                            navigator.clipboard?.writeText?.(activeAnnotationPopover.text);
+                                            showToast(`"${activeAnnotationPopover.text}" 클립보드에 복사 완료!`, 'info');
+                                          }}
+                                        />
+                                      )}
+                                    </span>
+                                  );
+                                })
+                              ) : (
+                                <span className="text-slate-400 italic">
+                                  (현재 {viewerCurrentPage}쪽에는 등록된 마크업 주석이 없습니다. 아래 빠른 추가로 등록해보세요.)
+                                </span>
+                              )}
+                              <span> ChatGPT는 코드 인터프리터, 클로드는 아티팩트, 구글 제미나이는 캔버스를 지원합니다.</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* ========================================================================= */}
+                      {/* [Searchable PDF 양방향 매핑] OCR 투명 텍스트 레이어 & 바운딩 박스 선택 영역 */}
+                      {/* ========================================================================= */}
+                      <div className="p-3 bg-amber-500/5 rounded-lg border border-amber-500/20 text-xs leading-relaxed space-y-2 relative">
+                        <div className="flex items-center justify-between text-[11px] pb-1 border-b border-amber-500/10">
+                          <span className="font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                            Searchable PDF OCR 바운딩 박스 레이어 (클릭 시 주석 자동생성)
                           </span>
+                          <span className="text-[10px] text-slate-500">신뢰도: 99.4% (Gemini Flash OCR)</span>
+                        </div>
 
-                          {/* 터치 핸들러 시각적 점프 표시기 (블루 핸들러 ● --- ●) */}
-                          {activeAnnotationPopover.isOpen && (
-                            <>
-                              <span className="absolute -left-1 -bottom-1 w-2.5 h-2.5 rounded-full bg-sky-500 border border-white shadow-xs pointer-events-none" />
-                              <span className="absolute -right-1 -bottom-1 w-2.5 h-2.5 rounded-full bg-sky-500 border border-white shadow-xs pointer-events-none" />
-                            </>
-                          )}
+                        {/* 대화형 OCR 바운딩 박스 단어 텍스트 블록 시뮬레이션 */}
+                        <div className="flex flex-wrap gap-1.5 items-center text-slate-800 dark:text-slate-200">
+                          {[
+                            { id: 'ocr-box-1', text: '인공지능', kind: 'highlighter', color: '#facc15' },
+                            { id: 'ocr-box-2', text: '가상화', kind: 'underline', color: '#38bdf8' },
+                            { id: 'ocr-box-3', text: '렌더링', kind: 'highlighter', color: '#4ade80' },
+                            { id: 'ocr-box-4', text: '엔진', kind: 'underline', color: '#f43f5e' },
+                            { id: 'ocr-box-5', text: 'Searchable PDF', kind: 'highlighter', color: '#fb923c' },
+                            { id: 'ocr-box-6', text: '양방향 매핑', kind: 'underline', color: '#a855f7' },
+                          ].map((box) => {
+                            const isBoxSelected = selectedOcrBoxId === box.id;
+                            const matchedAnnotation = vectorAnnotations.find(
+                              (a) => a.page === viewerCurrentPage && a.text?.includes(box.text)
+                            );
 
-                          {/* [핵심] AnnotationActionPopover 마운트 */}
-                          <AnnotationActionPopover
-                            isOpen={activeAnnotationPopover.isOpen}
-                            onClose={() => setActiveAnnotationPopover({ ...activeAnnotationPopover, isOpen: false })}
-                            selectedText={activeAnnotationPopover.text}
-                            currentType={activeAnnotationPopover.type}
-                            currentColor={activeAnnotationPopover.color}
-                            onUpdateType={(newType) => {
-                              setActiveAnnotationPopover((prev) => ({ ...prev, type: newType }));
-                            }}
-                            onUpdateColor={(col) => {
-                              setActiveAnnotationPopover((prev) => ({ ...prev, color: col }));
-                            }}
-                            onAddComment={(comment) => {
-                              alert(`주석에 메모가 추가되었습니다: "${comment}"`);
-                            }}
-                            onDelete={() => {
-                              alert('밑줄 주석이 성공적으로 삭제되었습니다.');
-                              setActiveAnnotationPopover({ ...activeAnnotationPopover, isOpen: false });
-                            }}
-                            onCopy={() => {
-                              alert(`"${activeAnnotationPopover.text}" 클립보드에 복사 완료!`);
-                            }}
-                          />
-                        </span>
-                        <span> ChatGPT는 코드 인터프리터, 클로드는 아티팩트, 구글 제미나이는 캔버스를 지원합니다.</span>
+                            return (
+                              <div
+                                key={box.id}
+                                onClick={() => {
+                                  setSelectedOcrBoxId(box.id);
+                                  // 이미 연결된 주석이 있다면 포커스
+                                  if (matchedAnnotation) {
+                                    setSelectedVectorId(matchedAnnotation.id);
+                                    setPulseAnnotationId(matchedAnnotation.id);
+                                    setTimeout(() => setPulseAnnotationId(null), 1800);
+                                    showToast(`기존 주석 "${matchedAnnotation.name}"으로 연결되었습니다.`, 'info');
+                                  } else {
+                                    // 없으면 클릭 시 해당 바운딩 박스로부터 신규 주석 즉시 자동 생성
+                                    const newAnn: CanvasVectorAnnotation = {
+                                      id: `ann-ocr-${box.id}-${Date.now()}`,
+                                      page: viewerCurrentPage,
+                                      toolKind: box.kind as any,
+                                      name: `OCR [${box.text}]`,
+                                      author: 'jkok2j2m',
+                                      text: box.text,
+                                      color: box.color,
+                                      strokeWidth: box.kind === 'highlighter' ? 12 : 2,
+                                      opacity: box.kind === 'highlighter' ? 55 : 100,
+                                      date: '방금 전',
+                                      tags: ['OCR', box.text],
+                                      isAiGenerated: true,
+                                      confidence: 0.99,
+                                    };
+                                    pushAnnotationHistory([...vectorAnnotations, newAnn]);
+                                    setSelectedVectorId(newAnn.id);
+                                    setPulseAnnotationId(newAnn.id);
+                                    setTimeout(() => setPulseAnnotationId(null), 1800);
+                                    showToast(`OCR 바운딩 박스 [${box.text}] 주석이 자동 생성되었습니다!`, 'success');
+                                  }
+                                }}
+                                className={`px-2 py-1 rounded text-xs transition-all cursor-pointer select-none font-mono relative border ${
+                                  matchedAnnotation
+                                    ? 'bg-sky-500/20 border-sky-400 text-sky-700 dark:text-sky-300 font-bold shadow-xs'
+                                    : isBoxSelected
+                                    ? 'bg-amber-500/30 border-amber-500 ring-2 ring-amber-400/50 text-amber-900 dark:text-amber-200 font-bold'
+                                    : 'bg-white/80 dark:bg-slate-800/80 hover:bg-amber-100 dark:hover:bg-slate-700/80 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                                }`}
+                                title={`클릭하여 "${box.text}" OCR 바운딩 박스를 주석으로 변환`}
+                              >
+                                <span>{box.text}</span>
+                                {matchedAnnotation ? (
+                                  <span className="ml-1 text-[9px] text-sky-600 dark:text-sky-400 font-sans">● 매핑됨</span>
+                                ) : (
+                                  <span className="ml-1 text-[9px] text-amber-600 dark:text-amber-400 opacity-70 font-sans">+ 주석화</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
 
                       <p className="text-slate-600 text-xs">
                         {viewerCurrentPage}쪽에 포함된 OCR 바운딩 박스는 실시간 양방향 포커스를 지원하며, 선택 도구인 <strong>[{registry.getAllTools().find((t) => t.id === currentTool)?.name || currentTool}]</strong>을 통해 화면 위에서 즉시 주석을 작성하고 저장할 수 있다.
                       </p>
+
+                      {/* ========================================================================= */}
+                      {/* [실시간 양방향 벡터 렌더링 캔버스 영역] */}
+                      {/* 자유펜, 도형, 텍스트 상자 등 터치 시 도구 팔레트 속성과 양방향 동기화 */}
+                      {/* ========================================================================= */}
+                      <div className="pt-2 border-t border-slate-200 space-y-2">
+                        <div className="flex items-center justify-between text-xs text-slate-500 font-sans">
+                          <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse" />
+                            벡터 주석 레이어 ({vectorAnnotations.length}개 객체 연동)
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            {selectedVectorId ? '객체 선택됨 (스타일 즉시 반영)' : '주석을 탭하여 선택'}
+                          </span>
+                        </div>
+
+                        {/* 신규 주석 퀵 추가 시연 바 */}
+                        <div className="flex flex-wrap items-center gap-1.5 p-1.5 rounded-lg bg-slate-100 border border-slate-200 text-[11px] font-sans">
+                          <span className="text-slate-500 text-[10px] shrink-0 font-medium">시연 추가:</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newPen: CanvasVectorAnnotation = {
+                                id: `vec-pen-${Date.now()}`,
+                                page: viewerCurrentPage,
+                                toolKind: 'pen',
+                                name: `자유펜 #${vectorAnnotations.length + 1}`,
+                                color: toolStyleState.color,
+                                strokeWidth: toolStyleState.strokeWidth,
+                                opacity: toolStyleState.opacity,
+                                pathData: 'M 10 35 Q 80 5 150 40 T 250 25',
+                                tags: ['자유펜'],
+                              };
+                              setAnnotFilterTypes((prev) => new Set([...prev, 'pen']));
+                              pushAnnotationHistory([...vectorAnnotations, newPen]);
+                              setSelectedVectorId(newPen.id);
+                              setPulseAnnotationId(newPen.id);
+                              setTimeout(() => setPulseAnnotationId(null), 1800);
+                              setToolStyleState((prev) => ({
+                                ...prev,
+                                toolKind: 'pen',
+                              }));
+                              setIsStylePopoverOpen(true);
+                              showToast('자유펜 주석이 추가되었습니다.', 'success');
+                            }}
+                            className="px-2 py-0.5 rounded bg-white hover:bg-sky-50 text-sky-700 font-bold border border-slate-300 shadow-2xs transition-colors cursor-pointer"
+                          >
+                            + 펜 필기
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newShape: CanvasVectorAnnotation = {
+                                id: `vec-shape-${Date.now()}`,
+                                page: viewerCurrentPage,
+                                toolKind: 'shape',
+                                name: `도형(사각형) #${vectorAnnotations.length + 1}`,
+                                color: toolStyleState.color,
+                                strokeWidth: toolStyleState.strokeWidth,
+                                opacity: toolStyleState.opacity,
+                                fillColor:
+                                  toolStyleState.fillColor && toolStyleState.fillColor !== 'transparent'
+                                    ? toolStyleState.fillColor
+                                    : '#38bdf8',
+                                fillOpacity: 20,
+                                tags: ['도형'],
+                              };
+                              setAnnotFilterTypes((prev) => new Set([...prev, 'shape']));
+                              pushAnnotationHistory([...vectorAnnotations, newShape]);
+                              setSelectedVectorId(newShape.id);
+                              setPulseAnnotationId(newShape.id);
+                              setTimeout(() => setPulseAnnotationId(null), 1800);
+                              setToolStyleState((prev) => ({
+                                ...prev,
+                                toolKind: 'shape',
+                                fillColor: newShape.fillColor,
+                              }));
+                              setIsStylePopoverOpen(true);
+                              showToast('도형(사각형) 주석이 추가되었습니다.', 'success');
+                            }}
+                            className="px-2 py-0.5 rounded bg-white hover:bg-emerald-50 text-emerald-700 font-bold border border-slate-300 shadow-2xs transition-colors cursor-pointer"
+                          >
+                            + 사각형
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newText: CanvasVectorAnnotation = {
+                                id: `vec-text-${Date.now()}`,
+                                page: viewerCurrentPage,
+                                toolKind: 'text',
+                                name: `텍스트 상자 #${vectorAnnotations.length + 1}`,
+                                color: toolStyleState.color,
+                                text: '독서 핵심 키워드 정리',
+                                fontSize: 12,
+                                fillColor: '#fef3c7',
+                                textAlign: 'left',
+                                strokeWidth: 1,
+                                opacity: 100,
+                                tags: ['메모'],
+                              };
+                              setAnnotFilterTypes((prev) => new Set([...prev, 'text']));
+                              pushAnnotationHistory([...vectorAnnotations, newText]);
+                              setSelectedVectorId(newText.id);
+                              setPulseAnnotationId(newText.id);
+                              setTimeout(() => setPulseAnnotationId(null), 1800);
+                              setToolStyleState((prev) => ({
+                                ...prev,
+                                toolKind: 'text',
+                                fontSize: 12,
+                              }));
+                              setIsStylePopoverOpen(true);
+                              showToast('텍스트 상자 주석이 추가되었습니다.', 'success');
+                            }}
+                            className="px-2 py-0.5 rounded bg-white hover:bg-amber-50 text-amber-700 font-bold border border-slate-300 shadow-2xs transition-colors cursor-pointer"
+                          >
+                            + 텍스트
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newHighlight: CanvasVectorAnnotation = {
+                                id: `ann-hl-${Date.now()}`,
+                                page: viewerCurrentPage,
+                                toolKind: 'highlighter',
+                                name: `형광펜 강조 #${vectorAnnotations.length + 1}`,
+                                color: '#facc15',
+                                strokeWidth: 4,
+                                opacity: 85,
+                                text: `제 ${viewerCurrentPage}페이지 핵심 논점 하이라이트 문맥`,
+                                tags: ['형광펜'],
+                              };
+                              setAnnotFilterTypes((prev) => new Set([...prev, 'markup']));
+                              pushAnnotationHistory([...vectorAnnotations, newHighlight]);
+                              setSelectedVectorId(newHighlight.id);
+                              setPulseAnnotationId(newHighlight.id);
+                              setTimeout(() => setPulseAnnotationId(null), 1800);
+                              setActiveAnnotationPopover({
+                                isOpen: true,
+                                annId: newHighlight.id,
+                                text: newHighlight.text || newHighlight.name,
+                                type: 'highlight',
+                                color: newHighlight.color,
+                              });
+                              showToast('형광펜 마크업 주석이 추가되었습니다.', 'success');
+                            }}
+                            className="px-2 py-0.5 rounded bg-white hover:bg-yellow-50 text-yellow-700 font-bold border border-slate-300 shadow-2xs transition-colors cursor-pointer"
+                          >
+                            + 형광펜
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newUnderline: CanvasVectorAnnotation = {
+                                id: `ann-ul-${Date.now()}`,
+                                page: viewerCurrentPage,
+                                toolKind: 'underline',
+                                name: `본문 밑줄 #${vectorAnnotations.length + 1}`,
+                                color: '#38bdf8',
+                                strokeWidth: 2,
+                                opacity: 90,
+                                text: `제 ${viewerCurrentPage}페이지 표준 가이드 라인 준수 본문`,
+                                tags: ['밑줄'],
+                              };
+                              setAnnotFilterTypes((prev) => new Set([...prev, 'markup']));
+                              pushAnnotationHistory([...vectorAnnotations, newUnderline]);
+                              setSelectedVectorId(newUnderline.id);
+                              setPulseAnnotationId(newUnderline.id);
+                              setTimeout(() => setPulseAnnotationId(null), 1800);
+                              setActiveAnnotationPopover({
+                                isOpen: true,
+                                annId: newUnderline.id,
+                                text: newUnderline.text || newUnderline.name,
+                                type: 'underline',
+                                color: newUnderline.color,
+                              });
+                              showToast('본문 밑줄 주석이 추가되었습니다.', 'success');
+                            }}
+                            className="px-2 py-0.5 rounded bg-white hover:bg-sky-50 text-sky-700 font-bold border border-slate-300 shadow-2xs transition-colors cursor-pointer"
+                          >
+                            + 밑줄
+                          </button>
+
+                          {selectedVectorId && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                pushAnnotationHistory(vectorAnnotations.filter((a) => a.id !== selectedVectorId));
+                                setSelectedVectorId(null);
+                                showToast('선택된 주석이 삭제되었습니다.', 'info');
+                              }}
+                              className="px-2 py-0.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold border border-rose-200 ml-auto transition-colors cursor-pointer"
+                            >
+                              선택 삭제
+                            </button>
+                          )}
+                        </div>
+
+                        {/* 벡터 주석 렌더링 컨테이너 (현재 페이지 객체만 필터링) */}
+                        <div className="space-y-2.5">
+                          {vectorAnnotations
+                            .filter(
+                              (ann) =>
+                                ann.page === viewerCurrentPage &&
+                                !['underline', 'highlighter', 'strike', 'squiggly'].includes(ann.toolKind)
+                            )
+                            .map((ann) => {
+                              const isSelected = selectedVectorId === ann.id;
+                              const isPulsing = pulseAnnotationId === ann.id;
+
+                              // 1. 도형 (Shape - 사각형)
+                              if (ann.toolKind === 'shape') {
+                                return (
+                                  <div
+                                    key={ann.id}
+                                    id={`annot-canvas-${ann.id}`}
+                                    onClick={() => {
+                                      if (
+                                        currentTool.toLowerCase().includes('eraser') ||
+                                        toolStyleState.toolKind === 'eraser'
+                                      ) {
+                                        pushAnnotationHistory(vectorAnnotations.filter((a) => a.id !== ann.id));
+                                        if (selectedVectorId === ann.id) setSelectedVectorId(null);
+                                        showToast(`[지우개] "${ann.name}" 주석이 삭제되었습니다.`, 'info');
+                                        return;
+                                      }
+                                      setSelectedVectorId(ann.id);
+                                      setToolStyleState((prev) => ({
+                                        ...prev,
+                                        toolKind: 'shape',
+                                        color: ann.color,
+                                        strokeWidth: ann.strokeWidth,
+                                        opacity: ann.opacity,
+                                        fillColor: ann.fillColor || 'transparent',
+                                        fillOpacity: ann.fillOpacity ?? 20,
+                                      }));
+                                    }}
+                                    style={{
+                                      borderWidth: `${ann.strokeWidth}px`,
+                                      borderStyle: 'solid',
+                                      borderColor: ann.color,
+                                      backgroundColor: ann.fillColor === 'transparent' ? 'transparent' : ann.fillColor,
+                                      opacity: ann.opacity / 100,
+                                    }}
+                                    className={`p-3 rounded-lg relative cursor-pointer transition-all ${
+                                      isPulsing
+                                        ? 'ring-4 ring-sky-400 animate-pulse scale-[1.02] shadow-xl'
+                                        : isSelected
+                                        ? 'ring-2 ring-sky-500 ring-offset-2 shadow-md'
+                                        : 'hover:shadow-xs'
+                                    }`}
+                                  >
+                                    {isSelected && (
+                                      <span className="absolute -top-2.5 -left-1 px-1.5 py-0.2 rounded bg-sky-600 text-[9px] font-bold text-white shadow-xs">
+                                        선택됨 (도형)
+                                      </span>
+                                    )}
+                                    <p className="text-xs font-serif text-slate-800 m-0 leading-normal">
+                                      ■ <strong>{ann.name}:</strong> ISO 32000-2 아카이빙 표준에 따라 주석의 벡터 좌표와 색상 속성은 무손실로 보존된다.
+                                    </p>
+                                  </div>
+                                );
+                              }
+
+                              // 2. 자유펜 (Freehand Pen SVG Path)
+                              if (ann.toolKind === 'pen') {
+                                return (
+                                  <div
+                                    key={ann.id}
+                                    id={`annot-canvas-${ann.id}`}
+                                    onClick={() => {
+                                      if (
+                                        currentTool.toLowerCase().includes('eraser') ||
+                                        toolStyleState.toolKind === 'eraser'
+                                      ) {
+                                        pushAnnotationHistory(vectorAnnotations.filter((a) => a.id !== ann.id));
+                                        if (selectedVectorId === ann.id) setSelectedVectorId(null);
+                                        showToast(`[지우개] "${ann.name}" 주석이 삭제되었습니다.`, 'info');
+                                        return;
+                                      }
+                                      setSelectedVectorId(ann.id);
+                                      setToolStyleState((prev) => ({
+                                        ...prev,
+                                        toolKind: 'pen',
+                                        color: ann.color,
+                                        strokeWidth: ann.strokeWidth,
+                                        opacity: ann.opacity,
+                                      }));
+                                    }}
+                                    className={`p-1.5 rounded-lg relative cursor-pointer transition-all ${
+                                      isPulsing
+                                        ? 'bg-slate-100 ring-4 ring-sky-400 animate-pulse scale-[1.02] shadow-xl'
+                                        : isSelected
+                                        ? 'bg-slate-100 ring-2 ring-sky-500 ring-offset-2 shadow-md'
+                                        : 'hover:bg-slate-50'
+                                    }`}
+                                  >
+                                    {isSelected && (
+                                      <span className="absolute -top-2 -left-1 px-1.5 py-0.2 rounded bg-sky-600 text-[9px] font-bold text-white shadow-xs">
+                                        선택됨 (펜 필기)
+                                      </span>
+                                    )}
+                                    <svg className="w-full h-10 overflow-visible" viewBox="0 0 280 40">
+                                      <path
+                                        d={ann.pathData || 'M 10 30 Q 70 5 130 35 T 240 20'}
+                                        fill="none"
+                                        stroke={ann.color}
+                                        strokeWidth={ann.strokeWidth}
+                                        strokeOpacity={ann.opacity / 100}
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                    </svg>
+                                  </div>
+                                );
+                              }
+
+                              // 3. 텍스트 상자 (Text / FreeText)
+                              if (ann.toolKind === 'text') {
+                                return (
+                                  <div
+                                    key={ann.id}
+                                    id={`annot-canvas-${ann.id}`}
+                                    onClick={() => {
+                                      if (
+                                        currentTool.toLowerCase().includes('eraser') ||
+                                        toolStyleState.toolKind === 'eraser'
+                                      ) {
+                                        pushAnnotationHistory(vectorAnnotations.filter((a) => a.id !== ann.id));
+                                        if (selectedVectorId === ann.id) setSelectedVectorId(null);
+                                        showToast(`[지우개] "${ann.name}" 주석이 삭제되었습니다.`, 'info');
+                                        return;
+                                      }
+                                      setSelectedVectorId(ann.id);
+                                      setToolStyleState((prev) => ({
+                                        ...prev,
+                                        toolKind: 'text',
+                                        color: ann.color,
+                                        fontSize: ann.fontSize || 12,
+                                        fillColor: ann.fillColor || 'transparent',
+                                        textAlign: ann.textAlign || 'left',
+                                        opacity: ann.opacity,
+                                      }));
+                                    }}
+                                    style={{
+                                      color: ann.color,
+                                      backgroundColor: ann.fillColor === 'transparent' ? 'transparent' : ann.fillColor,
+                                      fontSize: `${ann.fontSize || 12}px`,
+                                      textAlign: ann.textAlign || 'left',
+                                      opacity: ann.opacity / 100,
+                                    }}
+                                    className={`p-2.5 rounded-lg border border-slate-300 font-sans relative cursor-pointer transition-all ${
+                                      isPulsing
+                                        ? 'ring-4 ring-sky-400 animate-pulse scale-[1.02] shadow-xl'
+                                        : isSelected
+                                        ? 'ring-2 ring-sky-500 ring-offset-2 shadow-md'
+                                        : 'hover:shadow-xs'
+                                    }`}
+                                  >
+                                    {isSelected && (
+                                      <span className="absolute -top-2.5 -left-1 px-1.5 py-0.2 rounded bg-sky-600 text-[9px] font-bold text-white shadow-xs">
+                                        선택됨 (텍스트)
+                                      </span>
+                                    )}
+                                    <span>{ann.text || '메모 내용'}</span>
+                                  </div>
+                                );
+                              }
+
+                              return null;
+                            })}
+                        </div>
+                      </div>
 
                       <div className="p-3 bg-sky-50 border-l-4 border-sky-500 rounded text-xs text-sky-950 font-sans">
                         <strong>📌 독서 진행 메모:</strong> 현재 {viewerCurrentPage}쪽을 열람 중이며, 상단의 [← 서재 목록으로] 버튼을 누르면 서재 카드의 독서 진행률이 실시간 갱신됩니다.
@@ -3157,6 +5092,29 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                 </div>
               </div>
             </div>
+
+            {/* 비차단 인앱 토스트 피드백 */}
+            {viewerToast && (
+              <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-slate-900/95 border border-sky-500/50 shadow-2xl text-xs text-white backdrop-blur-md animate-in fade-in slide-in-from-bottom-2">
+                <span
+                  className={`w-2.5 h-2.5 rounded-full animate-pulse ${
+                    viewerToast.type === 'success'
+                      ? 'bg-emerald-400'
+                      : viewerToast.type === 'warn'
+                      ? 'bg-amber-400'
+                      : 'bg-sky-400'
+                  }`}
+                />
+                <span className="font-medium">{viewerToast.message}</span>
+                <button
+                  type="button"
+                  onClick={() => setViewerToast(null)}
+                  className="ml-2 text-slate-400 hover:text-white text-xs cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
 
             {/* 툴바 순서 설정 팝업 (모달) */}
             {isToolbarModalOpen && (
