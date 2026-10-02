@@ -150,6 +150,25 @@
   ],
   "tasks": [
     {
+      "task_id": "TASK-0020-08",
+      "session_id": "SESSION-0020",
+      "task_name": "목차TOC제거·주석행체크박스및선택레이어팝업·OCR위아래탐색및즉시현행화 완결",
+      "status_cd": "정리완료",
+      "priority": "HIGH",
+      "assigned_agent": "gemini",
+      "git_branch": "task/0020_01_가상스크롤뷰어연동_툴바고도화_Gemini",
+      "started_at": "2026-10-02T11:45:00.000Z",
+      "ended_at": "2026-10-02T12:20:00.000Z",
+      "doc_payload": {
+        "review_doc": "docs/10.리뷰/261002_038_목차TOC제거_주석행체크박스및선택레이어팝업_OCR위아래탐색및즉시현행화_완결_코드리뷰.md"
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 3
+    },
+    {
       "task_id": "TASK-0020-02",
       "session_id": "SESSION-0020",
       "task_name": "Xodo 스타일 팝오버 틀 및 초슬림 2단 툴바, 좌상단 플로팅 쪽수 칩(157/504) UI 뼈대 구현",
@@ -158,7 +177,7 @@
       "assigned_agent": "gemini",
       "git_branch": "task/0020_01_가상스크롤뷰어연동_툴바고도화_Gemini",
       "started_at": "2026-10-01T15:33:32.000Z",
-      "ended_at": "2026-10-01T15:50:00.000Z",
+      "ended_at": "2026-10-01T22:52:54.318Z",
       "doc_payload": {
         "items": [
           "1. 상단 툴바 레이어 초슬림 2단 통폐합 (Top 1단: 뒤로가기+모드드롭다운+문서명+우측글로벌 / Top 2단: 도구슬라이더+스타일버튼+Undo/Redo+배율)",
@@ -166,17 +185,15 @@
           "3. 캔버스 좌상단 플로팅 쪽수 칩(157 / 800) 및 터치 시 쪽수 점프 슬라이더 팝오버 구현",
           "4. 밑줄/주석 클릭 시 상황별 액션 팝오버(AnnotationActionPopover.tsx) 구현 및 3번째 아이콘 형태전환(형광펜/취소선/물결선/밑줄) 상호전환 지원"
         ],
-        "branch": "task/0020_01_가상스크롤뷰어연동_툴바고도화_Gemini",
+        "review_doc": "docs/10.리뷰/261001_037_Xodo_스타일_팝오버_틀_및_초슬림_2단_툴바_좌상단_플로팅_쪽수칩_코드리뷰.md",
         "operator_account": "jkok2j2m",
-        "agent_account": "jkok2j2m@gmail.com",
-        "user_email": "jkok2j2m@gmail.com",
-        "review_doc": "docs/10.리뷰/261001_037_Xodo_스타일_팝오버_틀_및_초슬림_2단_툴바_좌상단_플로팅_쪽수칩_코드리뷰.md"
+        "user_email": "jkok2j2m@gmail.com"
       },
       "created_sys": "agent-harness",
       "created_by": "system",
       "updated_sys": "agent-harness",
       "updated_by": "system",
-      "version": 1
+      "version": 2
     },
     {
       "task_id": "TASK-0019-02",
@@ -426,6 +443,59 @@
       "updated_sys": "agent-harness",
       "updated_by": "system",
       "version": 3
+    },
+    {
+      "task_id": "TASK-0020-03",
+      "session_id": "SESSION-0020",
+      "task_name": "도구별(자유펜/지우개/도형/텍스트) 상세 속성 커스텀 팔레트 및 주석 벡터 렌더링 양방향 바인딩 구현",
+      "git_branch": "task/0020_01_가상스크롤뷰어연동_툴바고도화_Gemini",
+      "status_cd": "완료",
+      "started_at": "2026-10-01T15:54:23.000Z",
+      "ended_at": "2026-10-02T02:33:00.081Z",
+      "doc_payload": {
+        "items": [
+          "1. ToolStylePopover.tsx 다형성 도구 속성 UI 확장 (지우개 반경/모드토글, 도형 테두리/채우기투명24색, 텍스트 글자크기/색상/배경/정렬)",
+          "2. PG-USR-06 뷰어 캔버스 양방향 바인딩 (도구선택 mapToolIdToKind 자동라우팅, handleUpdateToolStyle 캔버스 객체 실시간 동기화)",
+          "3. 지우개 툴 인터랙션 연계 (지우개 활성 상태에서 캔버스 객체 클릭 시 원터치 삭제)",
+          "4. 캔버스 시연 퀵 액션 바 (+ 펜 필기, + 사각형, + 텍스트, 선택 삭제) 구현",
+          "5. 15-18 학습 문서 발행 및 README_학습.md 현행화"
+        ],
+        "learning_doc": "docs/15.학습/15-18_Xodo_벤치마킹_다형성_도구속성_팔레트_및_벡터주석_양방향_바인딩_패턴.md",
+        "operator_account": "jkok2j2m",
+        "user_email": "jkok2j2m@gmail.com"
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 1
+    },
+    {
+      "task_id": "TASK-0020-04",
+      "session_id": "SESSION-0020",
+      "task_name": "주석 목록(3탭 패널) 실시간 연동, 클릭 시 해당 위치 점프 포커스 및 유형 필터링 구현",
+      "git_branch": "task/0020_01_가상스크롤뷰어연동_툴바고도화_Gemini",
+      "status_cd": "완료",
+      "started_at": "2026-10-01T19:47:39.000Z",
+      "ended_at": "2026-10-02T02:52:10.502Z",
+      "doc_payload": {
+        "items": [
+          "1. 텍스트 마크업(밑줄/형광펜)과 벡터 객체(도형/펜/텍스트)를 CanvasVectorAnnotation 단일 원장(SSOT)으로 통합",
+          "2. 좌측 3탭 주석 패널 고도화: 실시간 검색어, 범위 토글(현재쪽 vs 전체문서), 5대 유형 퀵 필터 칩(전체/펜/도형/텍스트/마크업), 정렬 토글(쪽순/최신순)",
+          "3. 원클릭 양방향 점프 및 1.8초 시각적 펄스 링(Highlight Pulse Ring) 포커스 연동",
+          "4. 고아 상태(Orphan Reference) 방어: 주석 삭제 시 선택 ID 및 액션 팝오버 안전 해제",
+          "5. Empty State 친절한 가이드 및 하단 JSON / ISO 32000-2 XFDF 내보내기 퀵 액션 탑재",
+          "6. 15-19 학습 문서 발행 및 README_학습.md 현행화"
+        ],
+        "learning_doc": "docs/15.학습/15-19_단일원장_기반_주석목록_실시간연동_및_양방향_포커스점프_아키텍처.md",
+        "operator_account": "jkok2j2m",
+        "user_email": "jkok2j2m@gmail.com"
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 1
     }
   ],
   "loops": [
@@ -491,5 +561,6 @@
       "updated_by": "system",
       "version": 3
     }
-  ]
+  ],
+  "traces": []
 }
