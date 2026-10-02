@@ -53,24 +53,25 @@ function requestGitHub<T = any>(
         'Authorization': `Bearer ${GITHUB_TOKEN}`,
         'Accept': 'application/vnd.github.v3+json',
         ...(payload ? {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
           'Content-Length': Buffer.byteLength(payload)
         } : {})
       }
     }, (res) => {
-      let body = '';
-      res.on('data', (chunk) => body += chunk);
+      const chunks: Buffer[] = [];
+      res.on('data', (c) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
       res.on('end', () => {
+        const text = Buffer.concat(chunks).toString('utf8');
         try {
-          resolve({ status: res.statusCode || 500, body: JSON.parse(body) });
+          resolve({ status: res.statusCode || 500, body: JSON.parse(text) });
         } catch {
-          resolve({ status: res.statusCode || 500, body: body as any });
+          resolve({ status: res.statusCode || 500, body: text as any });
         }
       });
     });
 
     req.on('error', reject);
-    if (payload) req.write(payload);
+    if (payload) req.write(payload, 'utf8');
     req.end();
   });
 }
