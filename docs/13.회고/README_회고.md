@@ -15,6 +15,7 @@
 | `13-13` | `13-13_SESSION-260928-0017_세션종합_KPT_회고록.md` | SESSION-260928-0017 세션 종합 KPT 회고록 | Keep(공통 가로 슬라이더 및 44px 가드레일, Canvas Crop 및 공식 소셜 브랜드 준수, 3대 브랜치 일치), Problem(원격 GitHub 이슈 상태 수동 잔류 현상), Try(800쪽 대용량 가상화 PDF 뷰어 렌더링 최적화) |
 | `13-14` | `13-14_SESSION-260930-0018_세션종합_KPT_회고록.md` | SESSION-260930-0018 세션 종합 KPT 회고록 | Keep(GitHub Git Data API Commit/Push 및 PR #42 dev/stg/main 100% 동기화, 대화턴 6개 전수 원문/Markdown 무손실 영속화, KST 16:00 슬라이딩 윈도우 적응형 쿼터 예측 API), Problem(이전 세션 대화턴 누락, 컨텍스트 단절 위험), Try(이전 세션 대화턴 역추적 백필, 800쪽 가상화 뷰어 최적화) |
 | `13-15` | `13-15_SESSION-261001-0019_세션종합_KPT_회고록.md` | SESSION-261001-0019 세션 종합 KPT 회고록 | Keep(aiagent 11대 테이블/컬럼 코멘트 등록, 104건 무손실 스키마 스왑, 편집레이어 네비게이션 일체형 내포, 모바일 카테고리 접힘 배너 상시노출, PR #46/#47 머지 및 dev/stg/main 일치), Problem(모달 분리형 레이아웃 시각적 불안정, 조건부 렌더링 누락), Try(PG-USR-06 PDF 전용 가상 뷰어 연동) |
+| `13-16` | `13-16_SESSION-261002-0020_세션종합_KPT_회고록.md` | SESSION-261002-0020 세션 종합 KPT 회고록 | Keep(목차 복원·TOC 영문 배제, 툴바 좌우정렬 표준화, 주석 레이어팝업, OCR 위아래 탐색/현행화, 대화턴 10건 무손실 영속화, Git Data API Push 및 PR #52 머지), Problem(자동화 스크립트의 하네스 단계 경계 침범), Try(GitHub Sync Push 스크립트 단계 플래그 분리) |
 
 ```mermaid
 pie title 회고 이슈 비중
