@@ -228,10 +228,9 @@ export async function syncAndPush(
   }
   console.log(`   All ${treeItems.length} tree items prepared.`);
 
-  // 4. Create new tree
-  console.log('4. Creating new Git Tree...');
+  // 4. Create new tree (Full tree creation without base_tree to cleanly purge broken/obsolete remote paths)
+  console.log('4. Creating clean Git Tree (purging obsolete/broken remote entries)...');
   const treeRes = await requestGitHub('/git/trees', 'POST', {
-    base_tree: baseTreeSha,
     tree: treeItems,
   });
   if (treeRes.status !== 201) {
