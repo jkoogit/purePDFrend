@@ -29,7 +29,7 @@ import { WireframeTopLayer } from '../../components/WireframeTopLayer';
 import { DocumentLibraryViewer, DocumentItem } from '../../components/DocumentLibraryViewer';
 import { ToolStylePopover, ToolStyleState, ToolKind } from '../../components/ToolStylePopover';
 import { AnnotationActionPopover, AnnotationKind } from '../../components/AnnotationActionPopover';
-import { Undo2, Redo2, Sliders, Pin, PinOff, Eye, EyeOff } from 'lucide-react';
+import { Undo2, Redo2, Sliders, Eye, EyeOff, PanelLeft, PanelTop, ArrowUp, ArrowDown, GripVertical, X } from 'lucide-react';
 
 export const USER_PROGRAMS = [
   { id: 'PG-USR-01', name: '첫화면 (랜딩)', desc: '공개 문서조회 바, 롤링배너, 공지/리뷰/가이드 탭, 고객센터 푸터' },
@@ -629,6 +629,76 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
   const [viewerJumpInput, setViewerJumpInput] = useState('42');
   const [viewerSearchQuery, setViewerSearchQuery] = useState('');
   const [viewerBookmarks, setViewerBookmarks] = useState<number[]>([1, 14, 42, 120]);
+
+  // [0021-01 신규 인터랙션 상태]
+  // 1) 3건목록 세로설정 시 너비 조절 상태 (240px ~ 480px, 기본 320px)
+  const [viewerSidebarWidth, setViewerSidebarWidth] = useState(320);
+  const isResizingSidebarRef = useRef(false);
+  const resizeStartXRef = useRef(0);
+  const resizeStartWidthRef = useRef(320);
+
+  // 2) 북마크명 인라인 수정 상태
+  const [bookmarkCustomTitles, setBookmarkCustomTitles] = useState<Record<number, string>>({
+    1: '제 1 페이지 북마크 (총칙)',
+    14: '목차 및 주요 규약 정의',
+    42: '가상화 렌더링 핵심 알고리즘',
+    120: 'Searchable PDF 부록'
+  });
+  const [editingBookmarkPage, setEditingBookmarkPage] = useState<number | null>(null);
+  const [tempBookmarkTitle, setTempBookmarkTitle] = useState('');
+
+  // 3) 툴바 순서 롱프레스 이동모드 및 드래그앤드롭 상태
+  const [isReorderDragMode, setIsReorderDragMode] = useState(false);
+  const [wiggleCardIdx, setWiggleCardIdx] = useState<number | null>(null);
+  const [draggedToolIdx, setDraggedToolIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  const longPressTimerRef = useRef<any>(null);
+
+  // 4) 문서영역 좌우 여백 클릭 시 페이지 이동 옵션
+  const [navigateOnMarginClick, setNavigateOnMarginClick] = useState(true);
+
+  // 5) 하단 배율 및 열람 페이지수 인라인 직접입력 상태 (10단위 % 선택옵션 지원 및 단일 콤보박스 통합)
+  const SCALE_OPTIONS_10 = [30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 250, 300];
+  const [isZoomDropdownOpen, setIsZoomDropdownOpen] = useState(false);
+  const [isEditingScaleInput, setIsEditingScaleInput] = useState(false);
+  const [tempScaleInput, setTempScaleInput] = useState('100');
+  const [isEditingBottomPage, setIsEditingBottomPage] = useState(false);
+  const [tempBottomPageInput, setTempBottomPageInput] = useState('42');
+
+  // UI 정책: 가로모드 / 세로모드 전환 시 너비 및 높이 상태 현행화 핸들러
+  const handleSwitchOrientation = (newOrientation: 'vertical' | 'horizontal') => {
+    setTabOrientation(newOrientation);
+    if (newOrientation === 'vertical') {
+      if (!isMobileMode && (viewerSidebarWidth < 240 || viewerSidebarWidth > 480)) {
+        setViewerSidebarWidth(320);
+      }
+    }
+    showToast(`${newOrientation === 'vertical' ? '세로 모드(좌측 사이드바)' : '가로 모드(상단 서랍)'}로 전환되었습니다.`, 'info');
+  };
+
+  // 사이드바 분할 바 드래그 리사이저 핸들러
+  const handleSidebarResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizingSidebarRef.current = true;
+    resizeStartXRef.current = e.clientX;
+    resizeStartWidthRef.current = viewerSidebarWidth;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      if (!isResizingSidebarRef.current) return;
+      const diff = moveEvent.clientX - resizeStartXRef.current;
+      const newWidth = Math.max(240, Math.min(480, resizeStartWidthRef.current + diff));
+      setViewerSidebarWidth(newWidth);
+    };
+
+    const onMouseUp = () => {
+      isResizingSidebarRef.current = false;
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
 
   // 목차 데이터 (깊이 1~7 무제한 계층 구조 지원, 'TOC' 문자 완전 배제)
   const [viewerTocItems] = useState([
@@ -1336,49 +1406,53 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
               </select>
             </div>
 
-            {/* [피드백 8 반영] 정렬 기준 및 오름차순 / 내림차순 문구 개선 */}
-            <div className="flex items-center gap-1 text-[10px]">
-              <select
-                value={annotSortOrder}
-                onChange={(e) => setAnnotSortOrder(e.target.value as any)}
-                className="bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-slate-200 font-medium cursor-pointer"
-              >
-                <option value="page">페이지순</option>
-                <option value="latest">최신등록순</option>
-              </select>
-              <button
-                type="button"
-                onClick={() => setAnnotSortDirection(annotSortDirection === 'asc' ? 'desc' : 'asc')}
-                className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-sky-300 font-mono cursor-pointer border border-slate-700"
-                title="오름차순 / 내림차순 토글"
-              >
-                {annotSortDirection === 'asc' ? '⬇️ 오름차순' : '⬆️ 내림차순'}
-              </button>
-            </div>
+              {/* [피드백 04 반영] 정렬 기준 및 고인식성 볼드 화살표 아이콘으로 통일 (텍스트 제거) */}
+              <div className="flex items-center gap-1 text-[10px]">
+                <select
+                  value={annotSortOrder}
+                  onChange={(e) => setAnnotSortOrder(e.target.value as any)}
+                  className="bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-slate-200 font-medium cursor-pointer"
+                >
+                  <option value="page">페이지순</option>
+                  <option value="latest">최신등록순</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setAnnotSortDirection(annotSortDirection === 'asc' ? 'desc' : 'asc')}
+                  className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 cursor-pointer flex items-center justify-center transition-colors shadow-2xs shrink-0"
+                  title={annotSortDirection === 'asc' ? '오름차순 정렬 (클릭 시 내림차순)' : '내림차순 정렬 (클릭 시 오름차순)'}
+                >
+                  {annotSortDirection === 'asc' ? (
+                    <ArrowUp className="w-4 h-4 stroke-[2.5]" />
+                  ) : (
+                    <ArrowDown className="w-4 h-4 stroke-[2.5]" />
+                  )}
+                </button>
+              </div>
 
             {/* 퀵 Undo / Redo */}
-            <div className="flex items-center gap-0.5 bg-slate-950 border border-slate-800 rounded p-0.5">
+            <div className="flex items-center gap-1 bg-slate-950 border border-slate-800 rounded-lg p-0.5">
               <button
                 type="button"
                 disabled={undoStack.length === 0}
                 onClick={handleUndoAnnotation}
-                className={`p-1 rounded text-[10px] ${
+                className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${
                   undoStack.length > 0 ? 'text-sky-300 hover:bg-slate-800 cursor-pointer' : 'text-slate-600 cursor-not-allowed'
                 }`}
                 title="실행취소 (Ctrl+Z)"
               >
-                <Undo2 className="w-3 h-3" />
+                <Undo2 className="w-3.5 h-3.5 stroke-[2]" />
               </button>
               <button
                 type="button"
                 disabled={redoStack.length === 0}
                 onClick={handleRedoAnnotation}
-                className={`p-1 rounded text-[10px] ${
+                className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${
                   redoStack.length > 0 ? 'text-sky-300 hover:bg-slate-800 cursor-pointer' : 'text-slate-600 cursor-not-allowed'
                 }`}
                 title="다시실행 (Ctrl+Y)"
               >
-                <Redo2 className="w-3 h-3" />
+                <Redo2 className="w-3.5 h-3.5 stroke-[2]" />
               </button>
             </div>
           </div>
@@ -1923,14 +1997,18 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                 </select>
               </div>
 
-              {/* [피드백 8 반영] 오름차순 / 내림차순 토글 */}
+              {/* [피드백 04 반영] 오름차순 / 내림차순 토글 (고인식성 볼드 화살표 아이콘으로 통일 및 텍스트 배제) */}
               <button
                 type="button"
                 onClick={() => setBookmarkSortDirection(bookmarkSortDirection === 'asc' ? 'desc' : 'asc')}
-                className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-sky-300 font-mono text-[10px] cursor-pointer border border-slate-700"
-                title="오름차순 / 내림차순 토글"
+                className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 cursor-pointer flex items-center justify-center transition-colors shadow-2xs shrink-0"
+                title={bookmarkSortDirection === 'asc' ? '오름차순 정렬 (클릭 시 내림차순)' : '내림차순 정렬 (클릭 시 오름차순)'}
               >
-                {bookmarkSortDirection === 'asc' ? '⬇️ 오름차순' : '⬆️ 내림차순'}
+                {bookmarkSortDirection === 'asc' ? (
+                  <ArrowUp className="w-4 h-4 stroke-[2.5]" />
+                ) : (
+                  <ArrowDown className="w-4 h-4 stroke-[2.5]" />
+                )}
               </button>
 
               {/* [피드백 9 반영] 현재 페이지 북마크 추가 (용어 통일: 쪽 -> 페이지) */}
@@ -1967,49 +2045,112 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
           >
             {sortedBookmarkPages.map((page) => {
               const isCur = viewerCurrentPage === page;
+              const isEditing = editingBookmarkPage === page;
+              const titleText = bookmarkCustomTitles[page] || `제 ${page} 페이지 북마크`;
+
               return (
                 <div
                   key={page}
-                  className={`px-3 py-1.5 rounded-lg border flex items-center justify-between transition-colors group ${
+                  className={`px-3 py-1.5 rounded-lg border flex items-center justify-between transition-colors group gap-2 ${
                     isCur
                       ? 'bg-sky-950/80 border-sky-500 text-sky-300 font-bold shadow-xs'
                       : 'bg-slate-900/60 hover:bg-slate-900 border-slate-800 text-slate-300'
                   }`}
                 >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setViewerCurrentPage(page);
-                      setViewerJumpInput(String(page));
-                      showToast(`제 ${page}페이지로 이동했습니다.`, 'info');
-                    }}
-                    className="flex items-center gap-2 cursor-pointer hover:underline text-left flex-1"
-                  >
-                    <span>🔖</span>
-                    <span className="font-bold text-sky-300">제 {page} 페이지 북마크</span>
-                    {isCur && (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-400 font-sans">
-                        현재 페이지
-                      </span>
-                    )}
-                  </button>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">
-                      {activeViewingDoc?.title ? `${activeViewingDoc.title.slice(0, 15)}...` : '표준문서'}
-                    </span>
+                  {isEditing ? (
+                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                      <span>🔖</span>
+                      <input
+                        type="text"
+                        value={tempBookmarkTitle}
+                        onChange={(e) => setTempBookmarkTitle(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            if (tempBookmarkTitle.trim()) {
+                              setBookmarkCustomTitles((prev) => ({ ...prev, [page]: tempBookmarkTitle.trim() }));
+                              showToast(`제 ${page}페이지 북마크명이 수정되었습니다.`, 'success');
+                            }
+                            setEditingBookmarkPage(null);
+                          } else if (e.key === 'Escape') {
+                            setEditingBookmarkPage(null);
+                          }
+                        }}
+                        autoFocus
+                        className="px-2 py-0.5 bg-slate-950 border border-sky-400 rounded text-xs text-white flex-1 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (tempBookmarkTitle.trim()) {
+                            setBookmarkCustomTitles((prev) => ({ ...prev, [page]: tempBookmarkTitle.trim() }));
+                            showToast(`제 ${page}페이지 북마크명이 수정되었습니다.`, 'success');
+                          }
+                          setEditingBookmarkPage(null);
+                        }}
+                        className="p-1 rounded bg-sky-600 hover:bg-sky-500 text-white text-[10px] cursor-pointer"
+                        title="저장 (Enter)"
+                      >
+                        <Check className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingBookmarkPage(null)}
+                        className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] cursor-pointer"
+                        title="취소 (Esc)"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
                     <button
                       type="button"
                       onClick={() => {
-                        setViewerBookmarks(viewerBookmarks.filter((b) => b !== page));
-                        showToast(`제 ${page}페이지 북마크가 해제되었습니다.`, 'info');
+                        setViewerCurrentPage(page);
+                        setViewerJumpInput(String(page));
+                        showToast(`제 ${page}페이지로 이동했습니다.`, 'info');
                       }}
-                      className="text-slate-500 hover:text-rose-400 text-xs px-1.5 py-0.5 rounded hover:bg-rose-950/40 transition-colors cursor-pointer"
-                      title="북마크 해제"
+                      className="flex items-center gap-2 cursor-pointer hover:underline text-left flex-1 min-w-0"
                     >
-                      ✕
+                      <span>🔖</span>
+                      <span className="font-bold text-sky-300 truncate">{titleText}</span>
+                      {isCur && (
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-400 font-sans shrink-0">
+                          현재 페이지
+                        </span>
+                      )}
                     </button>
-                  </div>
+                  )}
+
+                  {!isEditing && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingBookmarkPage(page);
+                          setTempBookmarkTitle(titleText);
+                        }}
+                        className="p-1 text-slate-400 hover:text-sky-300 hover:bg-slate-800 rounded transition-colors cursor-pointer"
+                        title="북마크명 수정"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                      <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">
+                        {activeViewingDoc?.title ? `${activeViewingDoc.title.slice(0, 15)}...` : '표준문서'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setViewerBookmarks(viewerBookmarks.filter((b) => b !== page));
+                          showToast(`제 ${page}페이지 북마크가 해제되었습니다.`, 'info');
+                        }}
+                        className="text-slate-500 hover:text-rose-400 text-xs px-1.5 py-0.5 rounded hover:bg-rose-950/40 transition-colors cursor-pointer"
+                        title="북마크 해제"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -2151,20 +2292,6 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                   {/* 스와이프 스크롤 트랙 컨테이너 (부드러운 애니메이션 및 마우스휠 이벤트 완벽 격리 적용) */}
                   <div
                     ref={bannerContainerRef}
-                    onWheel={(e) => {
-                      // 마우스 휠 이벤트: 이벤트 버블링 및 상위 전파 원천 차단
-                      e.preventDefault();
-                      e.stopPropagation();
-                      e.nativeEvent.stopImmediatePropagation();
-                      const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
-                      if (Math.abs(delta) > 10) {
-                        if (delta > 0) {
-                          handleNextBanner();
-                        } else {
-                          handlePrevBanner();
-                        }
-                      }
-                    }}
                     onMouseDown={handleBannerMouseDown}
                     onMouseMove={handleBannerMouseMove}
                     onMouseUp={handleBannerMouseUp}
@@ -3894,15 +4021,277 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                     {isTabDrawerVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                   </button>
 
-                  {/* 순서설정 */}
-                  <button
-                    type="button"
-                    onClick={() => setIsToolbarModalOpen(true)}
-                    className="p-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-white border border-slate-800 transition-colors cursor-pointer"
-                    title="도구 순서 및 사용자 설정"
-                  >
-                    <Sliders className="w-4 h-4" />
-                  </button>
+                  {/* [0021-01] 순서설정 (플로팅 팝오버 방식 & 카드 롱프레스 위글 DnD) */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsToolbarModalOpen(!isToolbarModalOpen);
+                        if (isToolbarModalOpen) setIsReorderDragMode(false);
+                      }}
+                      className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                        isToolbarModalOpen
+                          ? 'bg-sky-600 text-white border-sky-400 shadow-md ring-2 ring-sky-500/50'
+                          : 'bg-slate-900 text-slate-400 hover:text-white border-slate-800'
+                      }`}
+                      title="뷰어 툴바 순서 및 사용자 설정 (클릭 시 팝오버)"
+                    >
+                      <Sliders className="w-4 h-4" />
+                    </button>
+
+                    {/* 플로팅 팝오버 레이어 (모바일 화면 맞춤) */}
+                    {isToolbarModalOpen && (
+                      <div className="fixed sm:absolute top-14 sm:top-10 inset-x-2 sm:inset-x-auto sm:right-0 z-50 w-auto sm:w-96 max-w-[calc(100vw-16px)] mx-auto sm:mx-0 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 shadow-2xl p-4 space-y-3 text-xs text-slate-100 animate-in fade-in zoom-in-95 duration-150">
+                        <div className="flex justify-between items-center pb-2.5 border-b border-slate-800">
+                          <h4 className="font-bold text-white text-xs flex items-center gap-2">
+                            <span>⚙ 뷰어 툴바 순서 및 사용자 설정</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-medium ${
+                              isReorderDragMode ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-sky-500/20 text-sky-400'
+                            }`}>
+                              {isReorderDragMode ? '🔄 드래그 이동모드' : '길게 눌러 이동'}
+                            </span>
+                          </h4>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsToolbarModalOpen(false);
+                              setIsReorderDragMode(false);
+                              setWiggleCardIdx(null);
+                              setDragOverIdx(null);
+                            }}
+                            className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        </div>
+
+                        <div className="flex items-center justify-between text-[11px] bg-slate-950/80 p-2 rounded-lg border border-slate-800 text-slate-300">
+                          <span className="truncate">
+                            {isReorderDragMode
+                              ? '선택된 카드를 드래그하여 가이드라인 위치에 놓으세요.'
+                              : '카드를 0.4초 길게 누르면 해당 카드만 흔들림과 함께 이동모드로 전환됩니다.'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsReorderDragMode(!isReorderDragMode);
+                              if (isReorderDragMode) {
+                                setWiggleCardIdx(null);
+                                setDragOverIdx(null);
+                              }
+                            }}
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors shrink-0 ml-2 cursor-pointer ${
+                              isReorderDragMode
+                                ? 'bg-amber-500 text-slate-950 border-amber-400'
+                                : 'bg-slate-800 text-slate-300 border-slate-700 hover:text-white'
+                            }`}
+                          >
+                            {isReorderDragMode ? '완료' : '순서 변경'}
+                          </button>
+                        </div>
+
+                        {/* 도구 목록 카드들 (선택 카드만 롱프레스 위글 & 가이드라인 DnD) */}
+                        <div className="space-y-1.5 max-h-64 overflow-y-auto text-xs pr-1">
+                          {activeTools.map((item, idx) => {
+                            const isWiggling = wiggleCardIdx === idx;
+                            const isDropTarget = dragOverIdx === idx && draggedToolIdx !== null && draggedToolIdx !== idx;
+
+                            return (
+                              <div key={`${item.id}-${idx}`} className="relative">
+                                {/* [피드백 07 & 2 반영] 드래그 시 삽입 배치될 위치 가이드라인 표시 (가이드라인 위 드롭 완벽 지원) */}
+                                {isDropTarget && (
+                                  <div
+                                    onDragOver={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      e.dataTransfer.dropEffect = 'move';
+                                      if (dragOverIdx !== idx) setDragOverIdx(idx);
+                                    }}
+                                    onDrop={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      const sourceIdx = draggedToolIdx !== null ? draggedToolIdx : parseInt(e.dataTransfer.getData('text/plain'), 10);
+                                      if (!isNaN(sourceIdx) && sourceIdx !== idx) {
+                                        handleMoveTool(activeGroup, sourceIdx, idx);
+                                        showToast(`[${item.name}] 도구 순서가 변경되었습니다.`, 'success');
+                                      }
+                                      setDraggedToolIdx(null);
+                                      setDragOverIdx(null);
+                                      setWiggleCardIdx(null);
+                                    }}
+                                    className="my-1.5 py-1 px-1 flex items-center gap-1.5 transition-all animate-pulse bg-sky-950/40 rounded-lg border border-sky-400/40"
+                                  >
+                                    <div className="w-2 h-2 rounded-full bg-sky-400 shadow-sm shadow-sky-400 ring-2 ring-sky-300/40 shrink-0"></div>
+                                    <div className="h-0.5 flex-1 bg-gradient-to-r from-sky-400 via-indigo-400 to-sky-400 rounded-full shadow-sm shadow-sky-400/50"></div>
+                                    <span className="text-[9px] font-mono font-bold text-sky-300 bg-sky-950/95 px-2 py-0.5 rounded border border-sky-400/60 shadow-xs shrink-0">
+                                      📍 이곳에 배치 (삽입 위치)
+                                    </span>
+                                    <div className="h-0.5 flex-1 bg-gradient-to-r from-sky-400 via-indigo-400 to-sky-400 rounded-full shadow-sm shadow-sky-400/50"></div>
+                                    <div className="w-2 h-2 rounded-full bg-sky-400 shadow-sm shadow-sky-400 ring-2 ring-sky-300/40 shrink-0"></div>
+                                  </div>
+                                )}
+
+                                <div
+                                  draggable={true}
+                                  onDragStart={(e) => {
+                                    setDraggedToolIdx(idx);
+                                    setWiggleCardIdx(idx);
+                                    setIsReorderDragMode(true);
+                                    e.dataTransfer.setData('text/plain', String(idx));
+                                    e.dataTransfer.effectAllowed = 'move';
+                                  }}
+                                  onDragOver={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    e.dataTransfer.dropEffect = 'move';
+                                    if (dragOverIdx !== idx) setDragOverIdx(idx);
+                                  }}
+                                  onDrop={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    const sourceIdx = draggedToolIdx !== null ? draggedToolIdx : parseInt(e.dataTransfer.getData('text/plain'), 10);
+                                    if (!isNaN(sourceIdx) && sourceIdx !== idx) {
+                                      handleMoveTool(activeGroup, sourceIdx, idx);
+                                      showToast(`[${item.name}] 도구 순서가 변경되었습니다.`, 'success');
+                                    }
+                                    setDraggedToolIdx(null);
+                                    setDragOverIdx(null);
+                                    setWiggleCardIdx(null);
+                                  }}
+                                  onDragEnd={() => {
+                                    setDraggedToolIdx(null);
+                                    setDragOverIdx(null);
+                                    setWiggleCardIdx(null);
+                                  }}
+                                  onMouseDown={() => {
+                                    longPressTimerRef.current = setTimeout(() => {
+                                      setIsReorderDragMode(true);
+                                      setWiggleCardIdx(idx);
+                                      showToast(`[${item.name}] 이동 모드 활성화 (드래그하여 위치 변경)`, 'info');
+                                    }, 400);
+                                  }}
+                                  onMouseUp={() => {
+                                    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+                                  }}
+                                  onMouseLeave={() => {
+                                    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+                                  }}
+                                  onTouchStart={() => {
+                                    longPressTimerRef.current = setTimeout(() => {
+                                      setIsReorderDragMode(true);
+                                      setWiggleCardIdx(idx);
+                                    }, 400);
+                                  }}
+                                  onTouchEnd={() => {
+                                    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+                                  }}
+                                  className={`p-2 rounded-xl border flex items-center justify-between transition-all select-none ${
+                                    isWiggling
+                                      ? 'animate-card-wiggle border-amber-400 bg-amber-950/40 cursor-grab active:cursor-grabbing shadow-lg ring-2 ring-amber-400/40'
+                                      : isDropTarget
+                                      ? 'border-sky-400/80 bg-sky-950/30'
+                                      : 'bg-slate-950/90 border-slate-800 hover:border-slate-700'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2 truncate flex-1 min-w-0">
+                                    <GripVertical className="w-4 h-4 text-slate-500 hover:text-sky-400 cursor-grab active:cursor-grabbing shrink-0" />
+                                    <span className="text-slate-500 font-mono text-[11px] w-4">{idx + 1}</span>
+                                    <span className="text-base shrink-0">{item.icon}</span>
+                                    <div className="truncate">
+                                      <div className="text-slate-200 font-medium truncate flex items-center gap-1.5">
+                                        <span>{item.name}</span>
+                                        {isWiggling && (
+                                          <span className="text-[10px] text-amber-300 font-mono font-bold animate-pulse">선택됨</span>
+                                        )}
+                                      </div>
+                                      <div className="text-[10px] text-amber-300/80 font-mono">
+                                        단축키: {viewerConfig.shortcuts[item.id] || item.defaultKey}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-1 shrink-0 ml-2">
+                                    {idx > 0 && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleMoveTool(activeGroup, idx, idx - 1);
+                                        }}
+                                        className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[10px] cursor-pointer"
+                                        title="위로 이동"
+                                      >
+                                        ▲
+                                      </button>
+                                    )}
+                                    {idx < activeTools.length - 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleMoveTool(activeGroup, idx, idx + 1);
+                                        }}
+                                        className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[10px] cursor-pointer"
+                                        title="아래로 이동"
+                                      >
+                                        ▼
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRemoveToolFromGroup(activeGroup, idx);
+                                      }}
+                                      className="p-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded text-[10px] cursor-pointer"
+                                      title="툴바에서 숨기기"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <div className="flex justify-between items-center pt-2 border-t border-slate-800 text-[11px]">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsToolbarModalOpen(false);
+                              setSelectedProg('PG-USR-09');
+                              setSettingsTab('groups');
+                            }}
+                            className="text-sky-400 hover:underline text-[10px]"
+                          >
+                            + 다른 도구 추가 ➔
+                          </button>
+                          <div className="flex gap-1.5">
+                            <button
+                              type="button"
+                              onClick={handleResetConfig}
+                              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[10px] cursor-pointer"
+                            >
+                              초기화
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsToolbarModalOpen(false);
+                                setIsReorderDragMode(false);
+                                setWiggleCardIdx(null);
+                                setDragOverIdx(null);
+                              }}
+                              className="px-3 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded font-bold text-[10px] cursor-pointer"
+                            >
+                              완료
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -3957,13 +4346,14 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                       <span className="hidden sm:inline text-[11px]">스타일</span>
                     </button>
 
-                    {/* Xodo 스타일 팝오버 틀 컴포넌트 마운트 */}
+                    {/* [피드백 05 반영] Xodo 스타일 팝오버 컴포넌트 마운트 (모바일 모드 우측 잘림 원천 방지) */}
                     <ToolStylePopover
                       isOpen={isStylePopoverOpen}
                       onClose={() => setIsStylePopoverOpen(false)}
                       toolName={registry.getAllTools().find((t) => t.id === currentTool)?.name || currentTool}
                       styleState={toolStyleState}
                       onChangeStyle={handleUpdateToolStyle}
+                      isMobile={isMobileMode}
                     />
                   </div>
 
@@ -3974,14 +4364,14 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                     type="button"
                     onClick={handleUndoAnnotation}
                     disabled={undoStack.length === 0}
-                    className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                    className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
                       undoStack.length > 0
                         ? 'bg-slate-900 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:text-white'
                         : 'bg-slate-950 text-slate-600 border-slate-800/60 cursor-not-allowed opacity-50'
                     }`}
                     title={`실행취소 (Ctrl + Z)${undoStack.length > 0 ? ` [${undoStack.length}단계 가능]` : ' (취소할 작업 없음)'}`}
                   >
-                    <Undo2 className="w-4 h-4" />
+                    <Undo2 className="w-4 h-4 stroke-[2]" />
                   </button>
 
                   {/* 다시실행 (Redo) */}
@@ -3989,14 +4379,14 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                     type="button"
                     onClick={handleRedoAnnotation}
                     disabled={redoStack.length === 0}
-                    className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                    className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
                       redoStack.length > 0
                         ? 'bg-slate-900 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:text-white'
                         : 'bg-slate-950 text-slate-600 border-slate-800/60 cursor-not-allowed'
                     }`}
                     title={`다시실행 (Ctrl + Y)${redoStack.length > 0 ? ` [${redoStack.length}단계 가능]` : ' (다시 실행할 작업 없음)'}`}
                   >
-                    <Redo2 className="w-4 h-4" />
+                    <Redo2 className="w-4 h-4 stroke-[2]" />
                   </button>
 
                   <div className="w-px h-4 bg-slate-800 mx-0.5" />
@@ -4030,51 +4420,11 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
             {/* 5. [피드백 1, 2, 3 반영] 가로 모드(horizontal)일 때 상단 위아래 배치 드로어 */}
             {tabOrientation === 'horizontal' && isTabDrawerVisible && (
               <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2 animate-in slide-in-from-top-2 duration-150 shadow-md">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                  {/* [피드백 2 반영] 고정핀 여부와 무관하게 심플한 고정상태(하단 언더라인 탭) 디자인 및 여백 100% 통일 (북마크, 목차, 주석 3탭 - 'toc' 영문 배제) */}
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setActiveViewerTab('bookmarks')}
-                      className={`pb-1.5 text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
-                        activeViewerTab === 'bookmarks'
-                          ? 'text-sky-400 border-b-2 border-sky-400 font-bold'
-                          : 'text-slate-400 hover:text-slate-200 border-b-2 border-transparent'
-                      }`}
-                    >
-                      <span>🔖</span>
-                      <span>북마크 ({viewerBookmarks.length})</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveViewerTab('toc')}
-                      className={`pb-1.5 text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
-                        activeViewerTab === 'toc'
-                          ? 'text-sky-400 border-b-2 border-sky-400 font-bold'
-                          : 'text-slate-400 hover:text-slate-200 border-b-2 border-transparent'
-                      }`}
-                    >
-                      <span>📖</span>
-                      <span>목차 ({viewerTocItems.length})</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveViewerTab('annots')}
-                      className={`pb-1.5 text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
-                        activeViewerTab === 'annots'
-                          ? 'text-sky-400 border-b-2 border-sky-400 font-bold'
-                          : 'text-slate-400 hover:text-slate-200 border-b-2 border-transparent'
-                      }`}
-                    >
-                      <span>✏️</span>
-                      <span>주석 ({vectorAnnotations.length})</span>
-                    </button>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {/* [피드백 1 반영] 3그룹 표시높이 설정 버튼열거 공간차지 해소: 컴팩트 선택목록(드롭다운)으로 변경 */}
+                <div className="border-b border-slate-800 pb-2 space-y-2 md:space-y-0 md:flex md:items-center md:justify-between">
+                  {/* [피드백 1 반영] 모바일 모드 및 협소 화면: 탭 밑으로 높이설정이 가는 어색함 해소 ➔ 상단 1단에 높이설정 + 전환/닫기 우선 배치 */}
+                  <div className={`flex items-center justify-between gap-1.5 ${isMobileMode ? 'w-full' : 'md:order-2 md:ml-auto'}`}>
                     <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-800 text-[10px]">
-                      <span className="text-slate-400 font-medium hidden sm:inline">표시높이:</span>
+                      <span className="text-slate-400 font-medium">표시높이:</span>
                       <select
                         value={topDrawerHeightMode}
                         onChange={(e) => setTopDrawerHeightMode(e.target.value as any)}
@@ -4087,39 +4437,80 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                       </select>
                     </div>
 
-                    {activeViewerTab === 'bookmarks' && (
+                    <div className="flex items-center gap-1.5">
+                      {activeViewerTab === 'bookmarks' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!viewerBookmarks.includes(viewerCurrentPage)) {
+                              setViewerBookmarks([...viewerBookmarks, viewerCurrentPage].sort((a, b) => a - b));
+                              showToast(`제 ${viewerCurrentPage}페이지가 북마크에 추가되었습니다.`, 'success');
+                            }
+                          }}
+                          className="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold cursor-pointer whitespace-nowrap"
+                        >
+                          + 현재 {viewerCurrentPage}p
+                        </button>
+                      )}
+
+                      {/* [피드백 08 반영] 가로세로 전환버튼 및 닫기버튼 아이콘 크기·스타일 100% 일체화 (w-7 h-7, w-4 h-4) */}
                       <button
                         type="button"
-                        onClick={() => {
-                          if (!viewerBookmarks.includes(viewerCurrentPage)) {
-                            setViewerBookmarks([...viewerBookmarks, viewerCurrentPage].sort((a, b) => a - b));
-                          }
-                        }}
-                        className="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold cursor-pointer"
+                        onClick={() => handleSwitchOrientation('vertical')}
+                        className="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-sky-400 border border-slate-800 hover:border-sky-500/50 transition-colors cursor-pointer flex items-center justify-center shadow-2xs shrink-0"
+                        title="세로 모드(좌측 패널)로 배치 전환"
                       >
-                        + 현재 {viewerCurrentPage}페이지 북마크
+                        <PanelLeft className="w-4 h-4 stroke-[2]" />
                       </button>
-                    )}
 
-                    {/* [피드백 C 반영] 고정핀 아이콘: 클릭 시 세로 모드(좌측 패널)로 고정 전환 */}
+                      <button
+                        type="button"
+                        onClick={() => setIsTabDrawerVisible(false)}
+                        className="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700 transition-colors cursor-pointer flex items-center justify-center shadow-2xs shrink-0"
+                        title="패널 숨기기"
+                      >
+                        <X className="w-4 h-4 stroke-[2]" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 3탭 전환 바: 좁은 화면/모바일에서는 탭이 온전히 한 줄을 차지하여 영역 초과 원천 방지 */}
+                  <div className={`flex items-center justify-around sm:justify-start gap-2 pt-1 md:pt-0 ${isMobileMode ? 'border-t border-slate-800/60' : 'border-t md:border-t-0 border-slate-800/60 md:order-1'}`}>
                     <button
                       type="button"
-                      onClick={() => setTabOrientation('vertical')}
-                      className="p-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-sky-300 border border-slate-800 text-xs transition-colors cursor-pointer flex items-center gap-1"
-                      title="고정핀: 세로(좌측 패널) 방향으로 고정"
+                      onClick={() => setActiveViewerTab('bookmarks')}
+                      className={`pb-1 md:pb-1.5 text-xs transition-all cursor-pointer flex items-center gap-1 ${
+                        activeViewerTab === 'bookmarks'
+                          ? 'text-sky-400 border-b-2 border-sky-400 font-bold'
+                          : 'text-slate-400 hover:text-slate-200 border-b-2 border-transparent'
+                      }`}
                     >
-                      <PinOff className="w-3.5 h-3.5" />
-                      <span className="text-[10px] hidden md:inline">가로(해제됨)</span>
+                      <span>🔖</span>
+                      <span>북마크 ({viewerBookmarks.length})</span>
                     </button>
-
-                    {/* 닫기(숨김) 버튼 */}
                     <button
                       type="button"
-                      onClick={() => setIsTabDrawerVisible(false)}
-                      className="text-slate-400 hover:text-white text-xs px-2 py-0.5 rounded bg-slate-900 border border-slate-800 cursor-pointer"
-                      title="패널 숨기기"
+                      onClick={() => setActiveViewerTab('toc')}
+                      className={`pb-1 md:pb-1.5 text-xs transition-all cursor-pointer flex items-center gap-1 ${
+                        activeViewerTab === 'toc'
+                          ? 'text-sky-400 border-b-2 border-sky-400 font-bold'
+                          : 'text-slate-400 hover:text-slate-200 border-b-2 border-transparent'
+                      }`}
                     >
-                      ✕
+                      <span>📖</span>
+                      <span>목차 ({viewerTocItems.length})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveViewerTab('annots')}
+                      className={`pb-1 md:pb-1.5 text-xs transition-all cursor-pointer flex items-center gap-1 ${
+                        activeViewerTab === 'annots'
+                          ? 'text-sky-400 border-b-2 border-sky-400 font-bold'
+                          : 'text-slate-400 hover:text-slate-200 border-b-2 border-transparent'
+                      }`}
+                    >
+                      <span>✏️</span>
+                      <span>주석 ({vectorAnnotations.length})</span>
                     </button>
                   </div>
                 </div>
@@ -4133,90 +4524,128 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
               </div>
             )}
 
-            {/* 6. 메인 워크스페이스: [세로 모드일 때 좌측 패널 + 고성능 가상 캔버스 뷰포트] */}
-            <div className={`grid grid-cols-1 ${tabOrientation === 'vertical' && isTabDrawerVisible ? 'md:grid-cols-4' : 'grid-cols-1'} gap-3 min-h-[480px]`}>
+            {/* 6. 메인 워크스페이스: [세로 모드일 때 좌측 패널 + 드래그 리사이저 분할바 + 고성능 가상 캔버스 뷰포트] */}
+            <div className={`flex flex-col ${tabOrientation === 'vertical' && isTabDrawerVisible ? 'md:flex-row' : ''} gap-0 min-h-[480px] relative`}>
               {/* [피드백 C, D 반영] 세로 모드(vertical)일 때 문서영역 좌측에 나란히 배치되는 세로 사이드 패널 */}
               {tabOrientation === 'vertical' && isTabDrawerVisible && (
-                <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-col text-xs shadow-sm col-span-1">
-                  {/* 패널 상단: 3탭 전환 바(북마크, 목차, 주석 - 'toc' 영문 배제) + [고정핀 아이콘 (세로 On)] + 닫기 버튼 */}
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setActiveViewerTab('bookmarks')}
-                        className={`pb-1.5 text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
-                          activeViewerTab === 'bookmarks'
-                            ? 'text-sky-400 border-b-2 border-sky-400 font-bold'
-                            : 'text-slate-400 hover:text-slate-200 border-b-2 border-transparent'
-                        }`}
-                      >
-                        <span>🔖</span>
-                        <span>북마크 ({viewerBookmarks.length})</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setActiveViewerTab('toc')}
-                        className={`pb-1.5 text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
-                          activeViewerTab === 'toc'
-                            ? 'text-sky-400 border-b-2 border-sky-400 font-bold'
-                            : 'text-slate-400 hover:text-slate-200 border-b-2 border-transparent'
-                        }`}
-                      >
-                        <span>📖</span>
-                        <span>목차 ({viewerTocItems.length})</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setActiveViewerTab('annots')}
-                        className={`pb-1.5 text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
-                          activeViewerTab === 'annots'
-                            ? 'text-sky-400 border-b-2 border-sky-400 font-bold'
-                            : 'text-slate-400 hover:text-slate-200 border-b-2 border-transparent'
-                        }`}
-                      >
-                        <span>✏️</span>
-                        <span>주석 ({vectorAnnotations.length})</span>
-                      </button>
+                <>
+                  <div
+                    style={{ width: isMobileMode ? '100%' : `${viewerSidebarWidth}px` }}
+                    className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-col text-xs shadow-sm shrink-0 min-w-[220px] max-w-[500px]"
+                  >
+                    {/* [피드백 1 반영] 패널 상단: 모바일 모드이거나 너비가 좁아지면 높이설정 목록을 탭 위로 배치하여 영역초과 방지 */}
+                    <div className="border-b border-slate-800 pb-2 mb-2 space-y-1.5">
+                      {/* 상단 1단: 높이설정 목록(모바일 모드 시 노출) + [배치전환 아이콘 (가로/세로)] + 닫기 버튼 */}
+                      <div className="flex items-center justify-between gap-1.5">
+                        <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-800 text-[10px]">
+                          <span className="text-slate-400 font-medium">표시높이:</span>
+                          <select
+                            value={topDrawerHeightMode}
+                            onChange={(e) => setTopDrawerHeightMode(e.target.value as any)}
+                            className="bg-slate-950 border border-slate-700/80 rounded px-1.5 py-0.5 text-slate-200 font-medium cursor-pointer"
+                            title="3그룹 컨텐츠 목록 표시 높이 선택"
+                          >
+                            <option value="narrow">좁게 (3~4줄)</option>
+                            <option value="default">기본 (7~9줄)</option>
+                            <option value="fit">맞춤 (자동확장)</option>
+                          </select>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 ml-auto">
+                          {/* [피드백 08 반영] 레이아웃 모드 전환 버튼: 세로 ➔ 가로 (w-7 h-7, w-4 h-4 통일) */}
+                          <button
+                            type="button"
+                            onClick={() => handleSwitchOrientation('horizontal')}
+                            className="w-7 h-7 rounded-lg bg-sky-950/70 hover:bg-sky-900 text-sky-400 border border-sky-500/50 hover:border-sky-400 cursor-pointer transition-colors flex items-center justify-center shadow-2xs shrink-0"
+                            title="가로 모드(상단 서랍)로 배치 전환"
+                          >
+                            <PanelTop className="w-4 h-4 stroke-[2]" />
+                          </button>
+                          {/* 닫기 버튼: 전환버튼과 동일 규격 및 Lucide X 아이콘 적용 */}
+                          <button
+                            type="button"
+                            onClick={() => setIsTabDrawerVisible(false)}
+                            className="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700 transition-colors cursor-pointer flex items-center justify-center shadow-2xs shrink-0"
+                            title="패널 숨기기"
+                          >
+                            <X className="w-4 h-4 stroke-[2]" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 하단 2단: 3탭 전환 바 (북마크, 목차, 주석) - 탭이 1열 전체를 차지하여 텍스트 및 숫자 잘림 완전 방지 */}
+                      <div className="flex items-center justify-around sm:justify-start gap-2 pt-1 border-t border-slate-800/60 overflow-x-auto">
+                        <button
+                          type="button"
+                          onClick={() => setActiveViewerTab('bookmarks')}
+                          className={`pb-1 text-xs transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+                            activeViewerTab === 'bookmarks'
+                              ? 'text-sky-400 border-b-2 border-sky-400 font-bold'
+                              : 'text-slate-400 hover:text-slate-200 border-b-2 border-transparent'
+                          }`}
+                        >
+                          <span>🔖</span>
+                          <span>북마크 ({viewerBookmarks.length})</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveViewerTab('toc')}
+                          className={`pb-1 text-xs transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+                            activeViewerTab === 'toc'
+                              ? 'text-sky-400 border-b-2 border-sky-400 font-bold'
+                              : 'text-slate-400 hover:text-slate-200 border-b-2 border-transparent'
+                          }`}
+                        >
+                          <span>📖</span>
+                          <span>목차 ({viewerTocItems.length})</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveViewerTab('annots')}
+                          className={`pb-1 text-xs transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+                            activeViewerTab === 'annots'
+                              ? 'text-sky-400 border-b-2 border-sky-400 font-bold'
+                              : 'text-slate-400 hover:text-slate-200 border-b-2 border-transparent'
+                          }`}
+                        >
+                          <span>✏️</span>
+                          <span>주석 ({vectorAnnotations.length})</span>
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
-                      {/* [피드백 C 반영] 고정핀 아이콘: 클릭 시 가로 모드(상단 위아래 배치)로 전환 */}
-                      <button
-                        type="button"
-                        onClick={() => setTabOrientation('horizontal')}
-                        className="p-1 rounded bg-sky-950/70 hover:bg-sky-900 text-sky-400 border border-sky-500/50 cursor-pointer transition-colors"
-                        title="고정핀: 세로(좌측) 고정됨 (클릭 시 가로 상단 모드로 전환)"
-                      >
-                        <Pin className="w-3.5 h-3.5 fill-sky-400 text-sky-400" />
-                      </button>
-                      {/* [피드백 B 반영] 접기 아이콘 대신 깔끔한 닫기(숨김) 버튼 */}
-                      <button
-                        type="button"
-                        onClick={() => setIsTabDrawerVisible(false)}
-                        className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
-                        title="패널 숨기기"
-                      >
-                        ✕
-                      </button>
+                    {/* 좌측 패널 본문 목록 (모바일일 때는 표시높이 모드에 따라 스크롤 높이 제어) */}
+                    <div
+                      className={`flex-1 overflow-y-auto space-y-1.5 text-slate-300 font-mono text-[11px] pr-1 ${
+                        isMobileMode
+                          ? topDrawerHeightMode === 'narrow'
+                            ? 'max-h-36'
+                            : topDrawerHeightMode === 'default'
+                            ? 'max-h-64'
+                            : 'max-h-96'
+                          : ''
+                      }`}
+                    >
+                      {activeViewerTab === 'bookmarks' && renderBookmarkPanelContent(false)}
+                      {activeViewerTab === 'toc' && renderTocPanelContent(false)}
+                      {activeViewerTab === 'annots' && renderAnnotationPanelContent(false)}
                     </div>
                   </div>
 
-                  {/* 좌측 패널 본문 목록 (동일한 1열 단일행 컴포넌트 렌더러 직결, 세로는 높이 무제한) */}
-                  <div className="flex-1 overflow-y-auto space-y-1.5 text-slate-300 font-mono text-[11px] pr-1">
-                    {activeViewerTab === 'bookmarks' && renderBookmarkPanelContent(false)}
-                    {activeViewerTab === 'toc' && renderTocPanelContent(false)}
-                    {activeViewerTab === 'annots' && renderAnnotationPanelContent(false)}
+                  {/* [0021-01] 분할 리사이저 바 (Splitter Drag Handle: 마우스 드래그로 너비 조정) */}
+                  <div
+                    onMouseDown={handleSidebarResizeStart}
+                    className="hidden md:flex items-center justify-center w-3 cursor-col-resize hover:bg-sky-500/20 active:bg-sky-500/40 rounded transition-colors group z-10 shrink-0 mx-1 select-none"
+                    title="드래그하여 좌측 패널 너비 조절 (240px ~ 480px)"
+                  >
+                    <div className="w-1 h-12 rounded-full bg-slate-700 group-hover:bg-sky-400 transition-colors" />
                   </div>
-                </div>
+                </>
               )}
 
               {/* 중앙 대용량 가상 뷰포트 캔버스 영역 (60fps 가상 스크롤러 & LRU 메모리가드 연동) */}
               <div
-                className={`${
-                  tabOrientation === 'vertical' && isTabDrawerVisible
-                    ? 'col-span-1 md:col-span-3'
-                    : 'col-span-1'
-                } bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-col justify-between relative overflow-hidden shadow-inner`}
+                className="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-col justify-between relative overflow-hidden shadow-inner min-w-0"
               >
                 {/* 캔버스 상단 가상화 뷰어 상태 배너 & OCR 선택 툴팁 */}
                 <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-slate-900/90 border border-slate-800 rounded-lg text-xs mb-2">
@@ -4308,13 +4737,40 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                   </div>
                 </div>
 
-                {/* 실제 도서 본문 렌더링 캔버스 (확대/회전/Searchable PDF 하이라이트 반영) */}
+                {/* 실제 도서 본문 렌더링 캔버스 (확대/회전/Searchable PDF 하이라이트 반영 + [0021-01] 좌/우 여백 클릭 페이지 이동) */}
                 <div
+                  onClick={(e) => {
+                    if (!navigateOnMarginClick) return;
+                    const target = e.target as HTMLElement;
+                    // 페이지 카드 내부 클릭이거나 버튼, 입력창, 팝오버 클릭이면 무시
+                    if (target.closest('.document-page-card') || target.closest('button') || target.closest('input')) {
+                      return;
+                    }
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const width = rect.width;
+                    const total = activeViewingDoc?.totalPages || 800;
+
+                    if (clickX < width * 0.35) {
+                      const next = Math.max(1, viewerCurrentPage - 1);
+                      setViewerCurrentPage(next);
+                      setViewerJumpInput(String(next));
+                      showToast(`◀ 제 ${next}페이지 (좌측 여백 클릭)`, 'info');
+                    } else if (clickX > width * 0.65) {
+                      const next = Math.min(total, viewerCurrentPage + 1);
+                      setViewerCurrentPage(next);
+                      setViewerJumpInput(String(next));
+                      showToast(`제 ${next}페이지 ▶ (우측 여백 클릭)`, 'info');
+                    }
+                  }}
                   className={`flex-1 bg-slate-900/60 rounded-xl p-4 overflow-auto flex items-center justify-center min-h-[380px] relative ${
                     currentTool.toLowerCase().includes('eraser') || toolStyleState.toolKind === 'eraser'
                       ? 'cursor-crosshair'
+                      : navigateOnMarginClick
+                      ? 'cursor-pointer'
                       : ''
                   }`}
+                  title={navigateOnMarginClick ? '좌/우 빈 여백 클릭 시 이전/다음 페이지 이동' : ''}
                 >
                   {/* 지우개 활성 알림 배너 */}
                   {(currentTool.toLowerCase().includes('eraser') || toolStyleState.toolKind === 'eraser') && (
@@ -4403,7 +4859,7 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                       transformOrigin: 'center center',
                       transition: 'transform 0.15s ease-out',
                     }}
-                    className="w-full max-w-xl bg-white text-slate-900 rounded-lg p-6 sm:p-8 shadow-2xl space-y-4 select-text relative border border-slate-300"
+                    className="document-page-card w-full max-w-xl bg-white text-slate-900 rounded-lg p-6 sm:p-8 shadow-2xl space-y-4 select-text relative border border-slate-300 cursor-default"
                   >
                     {/* 상단 헤더 쪽수 표시 */}
                     <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono border-b border-slate-200 pb-2">
@@ -5054,14 +5510,189 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                   </div>
                 </div>
 
-                {/* 캔버스 하단 플로팅 컨트롤 (빠른 페이지 넘김) */}
+                {/* 캔버스 하단 플로팅 컨트롤 (빠른 페이지 넘김 & [0021-01] 인라인 쪽수/배율 직접수정 + 여백클릭 토글) */}
                 <div className="mt-2 pt-2 border-t border-slate-800 flex flex-wrap justify-between items-center text-xs text-slate-400 gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-slate-300">
-                      열람 쪽수: <strong className="text-sky-400">{viewerCurrentPage}</strong> / {activeViewingDoc?.totalPages || 800} 쪽
-                    </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* 1. 열람 쪽수 인라인 수정 필드 */}
+                    <div className="flex items-center gap-1 font-mono text-slate-300">
+                      <span>열람 쪽수:</span>
+                      {isEditingBottomPage ? (
+                        <input
+                          type="number"
+                          min={1}
+                          max={activeViewingDoc?.totalPages || 800}
+                          value={tempBottomPageInput}
+                          onChange={(e) => setTempBottomPageInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              const p = parseInt(tempBottomPageInput, 10);
+                              const total = activeViewingDoc?.totalPages || 800;
+                              if (!isNaN(p) && p >= 1 && p <= total) {
+                                setViewerCurrentPage(p);
+                                setViewerJumpInput(String(p));
+                                showToast(`제 ${p}페이지로 이동했습니다.`, 'info');
+                              }
+                              setIsEditingBottomPage(false);
+                            } else if (e.key === 'Escape') {
+                              setIsEditingBottomPage(false);
+                            }
+                          }}
+                          onBlur={() => {
+                            const p = parseInt(tempBottomPageInput, 10);
+                            const total = activeViewingDoc?.totalPages || 800;
+                            if (!isNaN(p) && p >= 1 && p <= total) {
+                              setViewerCurrentPage(p);
+                              setViewerJumpInput(String(p));
+                            }
+                            setIsEditingBottomPage(false);
+                          }}
+                          autoFocus
+                          className="w-14 px-1.5 py-0.5 bg-slate-900 border border-sky-400 rounded text-center text-sky-400 font-bold font-mono focus:outline-none"
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTempBottomPageInput(String(viewerCurrentPage));
+                            setIsEditingBottomPage(true);
+                          }}
+                          className="px-1.5 py-0.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-sky-400 font-bold cursor-pointer hover:border-sky-400 transition-colors"
+                          title="클릭하여 페이지 번호 직접 입력 및 이동"
+                        >
+                          {viewerCurrentPage} ✏️
+                        </button>
+                      )}
+                      <span>/ {activeViewingDoc?.totalPages || 800} 페이지</span>
+                    </div>
+
                     <span className="text-slate-600">|</span>
-                    <span className="text-slate-400 text-[11px]">배율: {Math.round(viewerScale * 100)}%</span>
+
+                    {/* [피드백 03 반영] 배율 선택목록과 직접입력을 단일 통합 콤보박스(Unified Zoom Combobox)로 일체화 (더블클릭 선택 & 포커스아웃 자동적용) */}
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-300">
+                      <span>배율:</span>
+                      <div className="relative inline-flex items-center">
+                        <div className="relative flex items-center">
+                          <input
+                            type="text"
+                            value={isEditingScaleInput ? tempScaleInput : `${Math.round(viewerScale * 100)}%`}
+                            onFocus={(e) => {
+                              setIsEditingScaleInput(true);
+                              setTempScaleInput(String(Math.round(viewerScale * 100)));
+                              e.currentTarget.select();
+                            }}
+                            onClick={() => {
+                              if (!isEditingScaleInput) {
+                                setIsEditingScaleInput(true);
+                                setTempScaleInput(String(Math.round(viewerScale * 100)));
+                              }
+                            }}
+                            onDoubleClick={(e) => {
+                              setIsEditingScaleInput(true);
+                              setTempScaleInput(String(Math.round(viewerScale * 100)));
+                              e.currentTarget.select();
+                            }}
+                            onChange={(e) => {
+                              const cleanVal = e.target.value.replace(/[^0-9]/g, '');
+                              setTempScaleInput(cleanVal);
+                            }}
+                            onBlur={() => {
+                              const val = parseInt(tempScaleInput, 10);
+                              if (!isNaN(val) && val >= 30 && val <= 300) {
+                                setViewerScale(val / 100);
+                                showToast(`배율 ${val}% 적용`, 'info');
+                              } else {
+                                setTempScaleInput(String(Math.round(viewerScale * 100)));
+                              }
+                              setIsEditingScaleInput(false);
+                              setIsZoomDropdownOpen(false);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                const val = parseInt(tempScaleInput, 10);
+                                if (!isNaN(val) && val >= 30 && val <= 300) {
+                                  setViewerScale(val / 100);
+                                  showToast(`배율 ${val}% 적용`, 'info');
+                                } else {
+                                  setTempScaleInput(String(Math.round(viewerScale * 100)));
+                                }
+                                setIsEditingScaleInput(false);
+                                setIsZoomDropdownOpen(false);
+                                (e.target as HTMLElement).blur();
+                              } else if (e.key === 'Escape') {
+                                setTempScaleInput(String(Math.round(viewerScale * 100)));
+                                setIsEditingScaleInput(false);
+                                setIsZoomDropdownOpen(false);
+                                (e.target as HTMLElement).blur();
+                              }
+                            }}
+                            className="w-16 h-6 px-1.5 pr-5 bg-slate-900 border border-slate-700 hover:border-amber-400 focus:border-amber-400 rounded text-center text-amber-300 font-mono text-[11px] font-bold outline-none cursor-text transition-colors shadow-2xs select-all"
+                            title="더블클릭하여 숫자 선택 입력 (포커스아웃/Enter 시 적용, ▼ 클릭 시 10단위 선택)"
+                          />
+                          <button
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setIsZoomDropdownOpen((prev) => !prev);
+                            }}
+                            className="absolute right-1 text-[8px] text-amber-300/80 hover:text-amber-200 p-1 cursor-pointer"
+                            title="10단위 % 선택목록 열기"
+                          >
+                            ▼
+                          </button>
+                        </div>
+
+                        {/* 단일 통합 10단위 % 드롭다운 팝업 레이어 */}
+                        {isZoomDropdownOpen && (
+                          <>
+                            <div className="fixed inset-0 z-30" onClick={() => setIsZoomDropdownOpen(false)} />
+                            <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 z-40 w-24 max-h-48 overflow-y-auto bg-slate-900 border border-slate-700 rounded-lg shadow-xl py-1 text-center font-mono text-xs animate-in fade-in zoom-in-95 duration-100">
+                              <div className="text-[9px] text-slate-400 px-1 py-0.5 border-b border-slate-800 font-sans">
+                                10단위 선택
+                              </div>
+                              {SCALE_OPTIONS_10.map((pct) => (
+                                <div
+                                  key={pct}
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    setViewerScale(pct / 100);
+                                    setTempScaleInput(String(pct));
+                                    setIsEditingScaleInput(false);
+                                    setIsZoomDropdownOpen(false);
+                                    showToast(`배율 ${pct}% 적용`, 'info');
+                                  }}
+                                  className={`px-2 py-1 cursor-pointer transition-colors ${
+                                    Math.round(viewerScale * 100) === pct
+                                      ? 'bg-amber-500/20 text-amber-300 font-bold'
+                                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                  }`}
+                                >
+                                  {pct}%
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <span className="text-slate-600">|</span>
+
+                    {/* 3. 여백 클릭 이동 토글 칩 */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNavigateOnMarginClick(!navigateOnMarginClick);
+                        showToast(`여백 클릭 페이지 이동: ${!navigateOnMarginClick ? '활성화' : '해제'}`, 'info');
+                      }}
+                      className={`px-2 py-0.5 rounded text-[10px] font-medium border cursor-pointer transition-colors ${
+                        navigateOnMarginClick
+                          ? 'bg-sky-500/20 text-sky-400 border-sky-500/40'
+                          : 'bg-slate-900 text-slate-500 border-slate-800'
+                      }`}
+                      title="문서 좌/우 빈 여백 클릭 시 이전/다음 페이지 이동 토글"
+                    >
+                      여백클릭 이동: {navigateOnMarginClick ? 'ON' : 'OFF'}
+                    </button>
                   </div>
 
                   <div className="flex items-center gap-1.5">
@@ -5113,108 +5744,6 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                 >
                   ✕
                 </button>
-              </div>
-            )}
-
-            {/* 툴바 순서 설정 팝업 (모달) */}
-            {isToolbarModalOpen && (
-              <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
-                  <div className="flex justify-between items-center pb-3 border-b border-slate-800">
-                    <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                      <span>⚙ 뷰어 툴바 순서 및 사용자 설정</span>
-                      <span className="text-xs px-2 py-0.5 bg-sky-500/20 text-sky-400 rounded font-mono">User Custom</span>
-                    </h3>
-                    <button
-                      type="button"
-                      onClick={() => setIsToolbarModalOpen(false)}
-                      className="text-slate-400 hover:text-white"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <p className="text-xs text-slate-400">
-                    툴바 아이콘의 공식 명칭과 단축키를 확인하고, 그룹 내 순서를 변경하거나 자주 쓰지 않는 도구를 숨길 수 있습니다.
-                  </p>
-                  <div className="space-y-2 max-h-60 overflow-y-auto text-xs pr-1">
-                    {activeTools.map((item, idx) => (
-                      <div
-                        key={`${item.id}-${idx}`}
-                        className="p-2 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-between"
-                      >
-                        <div className="flex items-center gap-2.5 truncate">
-                          <span className="text-slate-500 font-mono text-[11px] w-4">{idx + 1}</span>
-                          <span className="text-base">{item.icon}</span>
-                          <div className="truncate">
-                            <div className="text-slate-200 font-medium truncate">{item.name}</div>
-                            <div className="text-[10px] text-amber-300/80 font-mono">
-                              단축키: {viewerConfig.shortcuts[item.id] || item.defaultKey}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {idx > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => handleMoveTool(activeGroup, idx, idx - 1)}
-                              className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[11px]"
-                              title="위로 이동"
-                            >
-                              ▲
-                            </button>
-                          )}
-                          {idx < activeTools.length - 1 && (
-                            <button
-                              type="button"
-                              onClick={() => handleMoveTool(activeGroup, idx, idx + 1)}
-                              className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[11px]"
-                              title="아래로 이동"
-                            >
-                              ▼
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveToolFromGroup(activeGroup, idx)}
-                            className="px-1.5 py-0.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded text-[11px]"
-                            title="툴바에서 숨기기"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-slate-800 text-xs">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsToolbarModalOpen(false);
-                        setSelectedProg('PG-USR-09');
-                        setSettingsTab('groups');
-                      }}
-                      className="text-sky-400 hover:underline text-[11px]"
-                    >
-                      + 다른 그룹 도구 중복추가 (설정창 열기) ➔
-                    </button>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={handleResetConfig}
-                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[11px]"
-                      >
-                        초기화 (Reset)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsToolbarModalOpen(false)}
-                        className="px-4 py-1.5 bg-sky-600 text-white rounded font-medium text-[11px]"
-                      >
-                        완료
-                      </button>
-                    </div>
-                  </div>
-                </div>
               </div>
             )}
           </div>
