@@ -7,3 +7,4 @@ export * from './strategies/ClaudeQuotaDetectionStrategy';
 export * from './strategies/OpenAIQuotaDetectionStrategy';
 export * from './strategies/DeepSeekQuotaDetectionStrategy';
 export * from './strategies/GenericQuotaDetectionStrategy';
+export * from './services/TurnTraceService';
