@@ -73,15 +73,3 @@ div:not([data-carousel-track]):not(nav):not(.no-scrollbar)::-webkit-scrollbar-th
 div:not([data-carousel-track]):not(nav):not(.no-scrollbar)::-webkit-scrollbar-thumb:hover {
   background: rgba(99, 102, 241, 0.5);
 }
-
-/* 툴바 순서 이동모드 카드 흔들림 (초미세 Gentle Soft Wiggle - 선택 카드 전용) */
-@keyframes card-wiggle {
-  0%, 100% { transform: rotate(-0.35deg) translateY(-0.25px); }
-  50% { transform: rotate(0.35deg) translateY(0.25px); }
-}
-
-.animate-card-wiggle {
-  animation: card-wiggle 0.36s ease-in-out infinite;
-}
-
-

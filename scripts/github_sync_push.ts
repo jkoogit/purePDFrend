@@ -53,25 +53,24 @@ function requestGitHub<T = any>(
         'Authorization': `Bearer ${GITHUB_TOKEN}`,
         'Accept': 'application/vnd.github.v3+json',
         ...(payload ? {
-          'Content-Type': 'application/json; charset=utf-8',
+          'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(payload)
         } : {})
       }
     }, (res) => {
-      const chunks: Buffer[] = [];
-      res.on('data', (c) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
+      let body = '';
+      res.on('data', (chunk) => body += chunk);
       res.on('end', () => {
-        const text = Buffer.concat(chunks).toString('utf8');
         try {
-          resolve({ status: res.statusCode || 500, body: JSON.parse(text) });
+          resolve({ status: res.statusCode || 500, body: JSON.parse(body) });
         } catch {
-          resolve({ status: res.statusCode || 500, body: text as any });
+          resolve({ status: res.statusCode || 500, body: body as any });
         }
       });
     });
 
     req.on('error', reject);
-    if (payload) req.write(payload, 'utf8');
+    if (payload) req.write(payload);
     req.end();
   });
 }
@@ -160,15 +159,9 @@ export async function syncAndPush(
   console.log('0. Running Pre-flight Comprehensive Service Health Check...');
   const healthCheck = await runComprehensiveServiceCheck();
   if (!healthCheck.allPassed) {
-    // 정책 03-10 (DB 장애 대응 및 무중단 운영): 외부 DB 브릿지 오프라인 시 로컬 폴백 모드로 소스 푸시 허용
-    const isCriticalFailure = healthCheck.results.some(r => r.step !== '1단계' && r.step !== '3단계' && !r.passed);
-    if (isCriticalFailure) {
-      throw new Error('❌ Pre-flight Service Health Check FAILED. GitHub Push aborted to protect remote branches.');
-    }
-    console.warn('⚠️ Pre-flight Service Health Check: DB 브릿지 경고 (정책 03-10 로컬 폴백 모드 활성). 원격 Git Push를 계속 진행합니다...');
-  } else {
-    console.log('✅ Pre-flight Service Health Check PASSED (100% Integrity). Proceeding to Git Push...');
+    throw new Error('❌ Pre-flight Service Health Check FAILED. GitHub Push aborted to protect remote branches.');
   }
+  console.log('✅ Pre-flight Service Health Check PASSED (100% Integrity). Proceeding to Git Push...');
 
   // 1. Fetch current dev reference to base our work
   console.log(`1. Fetching current reference for branch '${targetBranch}'...`);
@@ -229,9 +222,10 @@ export async function syncAndPush(
   }
   console.log(`   All ${treeItems.length} tree items prepared.`);
 
-  // 4. Create new tree (Full tree creation without base_tree to cleanly purge broken/obsolete remote paths)
-  console.log('4. Creating clean Git Tree (purging obsolete/broken remote entries)...');
+  // 4. Create new tree
+  console.log('4. Creating new Git Tree...');
   const treeRes = await requestGitHub('/git/trees', 'POST', {
+    base_tree: baseTreeSha,
     tree: treeItems,
   });
   if (treeRes.status !== 201) {
