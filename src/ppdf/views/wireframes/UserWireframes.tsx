@@ -5,6 +5,7 @@ import {
   Image as ImageIcon,
   FileText,
   Minimize2,
+  Maximize2,
   Lock,
   UploadCloud,
   CheckCircle2,
@@ -20,8 +21,12 @@ import {
   Pencil,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   ShieldCheck,
   Search,
+  Highlighter,
+  MousePointerClick,
 } from 'lucide-react';
 import { ViewerConfigRegistry, ViewerConfigState } from '../../domain/ViewerConfigRegistry';
 import { HorizontalSlideContainer } from '../../components/HorizontalSlideContainer';
@@ -29,7 +34,7 @@ import { WireframeTopLayer } from '../../components/WireframeTopLayer';
 import { DocumentLibraryViewer, DocumentItem } from '../../components/DocumentLibraryViewer';
 import { ToolStylePopover, ToolStyleState, ToolKind } from '../../components/ToolStylePopover';
 import { AnnotationActionPopover, AnnotationKind } from '../../components/AnnotationActionPopover';
-import { Undo2, Redo2, Sliders, Eye, EyeOff, PanelLeft, PanelTop, ArrowUp, ArrowDown, GripVertical, X } from 'lucide-react';
+import { Undo2, Redo2, Sliders, PanelLeft, PanelTop, ArrowUp, ArrowDown, GripVertical, X, Share2, Columns3 } from 'lucide-react';
 
 export const USER_PROGRAMS = [
   { id: 'PG-USR-01', name: '첫화면 (랜딩)', desc: '공개 문서조회 바, 롤링배너, 공지/리뷰/가이드 탭, 고객센터 푸터' },
@@ -47,7 +52,23 @@ export interface UserWireframesProps {
   isMobileMode?: boolean;
 }
 
-export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
+export function UserWireframes({ isMobileMode: propIsMobileMode = false }: UserWireframesProps) {
+  // 실제 브라우저 윈도우/iframe 너비 감지 (Google AI Studio 상단 디바이스 모바일 토글 실시간 감지)
+  const [isWindowMobile, setIsWindowMobile] = useState<boolean>(() => {
+    return typeof window !== 'undefined' ? window.innerWidth < 640 : false;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsWindowMobile(window.innerWidth < 640);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // 와이어프레임 내부 버튼 토글과 AI스튜디오 디바이스 모드 하이브리드 연동
+  const isMobileMode = propIsMobileMode || isWindowMobile;
+
   const [selectedProg, setSelectedProg] = useState('PG-USR-01');
 
   // PG-USR-03 Active Tool Subpage state (7대 PDF 핵심 문서 도구 전용 작업화면)
@@ -323,8 +344,28 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
   // - isTabDrawerVisible: 표시/숨김 여부 (헤더의 표시/숨김 눈 아이콘과 연동)
   // - topDrawerHeightMode: 가로 모드 표시 높이 ('narrow': 3~4줄 / 'default': 7~9줄 / 'fit': 컨텐츠 맞춤)
   const [tabOrientation, setTabOrientation] = useState<'vertical' | 'horizontal'>('vertical');
+  // [요구사항 2] 모바일 모드 시 가로 모드 강제 적용 (데스크톱 복귀 시 기존 tabOrientation 원복)
+  const effectiveTabOrientation = isMobileMode ? 'horizontal' : tabOrientation;
+  const [isMobileGroupModalOpen, setIsMobileGroupModalOpen] = useState(false);
   const [isTabDrawerVisible, setIsTabDrawerVisible] = useState(true);
   const [topDrawerHeightMode, setTopDrawerHeightMode] = useState<'narrow' | 'default' | 'fit'>('default');
+
+  // 주석·문서영역 전체화면 & 몰입형 독서(상·하단 토글) 상태
+  const [isViewerFullscreen, setIsViewerFullscreen] = useState(false);
+  const [isImmersiveZenMode, setIsImmersiveZenMode] = useState(false);
+
+  // ESC 키 누를 시 전체화면 및 젠모드 안전 복구
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isViewerFullscreen) {
+        setIsViewerFullscreen(false);
+        setIsImmersiveZenMode(false);
+        showToast('↩️ 일반 화면으로 복구되었습니다.', 'info');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isViewerFullscreen]);
 
   // OCR 바운딩 박스 선택 및 Searchable PDF 양방향 매핑 상태
   const [selectedOcrBoxId, setSelectedOcrBoxId] = useState<string | null>(null);
@@ -627,7 +668,7 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
   const [viewerRotation] = useState(0); // 0, 90, 180, 270
   const [viewerCurrentPage, setViewerCurrentPage] = useState(42);
   const [viewerJumpInput, setViewerJumpInput] = useState('42');
-  const [viewerSearchQuery, setViewerSearchQuery] = useState('');
+  const [viewerSearchQuery, _setViewerSearchQuery] = useState('');
   const [viewerBookmarks, setViewerBookmarks] = useState<number[]>([1, 14, 42, 120]);
 
   // [0021-01 신규 인터랙션 상태]
@@ -771,6 +812,387 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
     setViewerConfig(updated);
   };
 
+  // =========================================================================
+  // PG-USR-07: 문서공유 및 협업작업 관리 상태 (제시된 검토내용 100% 반영)
+  // =========================================================================
+  const [shareOwnershipFilter, setShareOwnershipFilter] = useState<'all' | 'provided' | 'participated'>('all'); // [요청 3] 공유구분 검색조건
+  const [shareScopeFilter, setShareScopeFilter] = useState<'all' | 'file' | 'category' | 'version'>('all');
+  const [shareRoleFilter, setShareRoleFilter] = useState<'all' | 'viewer' | 'reviewer' | 'editor'>('all');
+  const [sharePeriodFilter, setSharePeriodFilter] = useState<'all' | 'valid' | 'expiring' | 'expired' | 'unlimited'>('all');
+  const [shareStatusFilter, setShareStatusFilter] = useState<'all' | 'active' | 'unused' | 'revoked'>('all');
+  const [shareSearchQuery, setShareSearchQuery] = useState('');
+  const [sharePublicGuestFilter, setSharePublicGuestFilter] = useState(false);
+
+  // 뷰어(PG-USR-06) 주석 작성자 라벨 토글 및 필터 상태
+  const [showAuthorLabels, setShowAuthorLabels] = useState(false);
+  const [annotAuthorFilter, setAnnotAuthorFilter] = useState<string>('all');
+
+  // 모달 1: 공유링크 신규 등록/수정 레이어 팝업
+  const [isShareCreateModalOpen, setIsShareCreateModalOpen] = useState(false);
+  const [editingShareLink, setEditingShareLink] = useState<any | null>(null);
+  const [shareFormTargetKind, setShareFormTargetKind] = useState<'file' | 'category'>('file');
+  const [shareFormTargetDocTitle, setShareFormTargetDocTitle] = useState('ISO 32000-2 표준 가이드북');
+  const [isDocSearchDropdownOpen, setIsDocSearchDropdownOpen] = useState(false);
+  const [shareFormPermission, setShareFormPermission] = useState<'viewer' | 'reviewer' | 'editor'>('reviewer');
+  const [shareFormPeriodKind, setShareFormPeriodKind] = useState<'unlimited' | '1d' | '7d' | '30d' | 'custom'>('7d');
+  const [shareFormIsPublicRead, setShareFormIsPublicRead] = useState(true);
+  const [shareFormPassword, setShareFormPassword] = useState('');
+  const [shareFormPasswordConfirm, setShareFormPasswordConfirm] = useState('');
+
+  // 후보 문서 및 카테고리 목록 (like 검색용)
+  const CANDIDATE_DOCS = [
+    'ISO 32000-2 표준 가이드북 및 엔터프라이즈 PDF 아카이빙 지침서',
+    '2026 엔터프라이즈 클라우드 아키텍처 백서',
+    'PDF OCR 텍스트 인식 및 양방향 매핑 가이드',
+    'TypeScript 기반 풀스택 시스템 개발 규약집',
+    'PostgreSQL 16 고성능 쿼리 최적화 핸드북',
+    '2026 상반기 금융보안 인증문서군'
+  ];
+
+  const CANDIDATE_CATEGORIES = [
+    '웹 프론트엔드 (React 생태계)',
+    '백엔드 / DB (PostgreSQL)',
+    '교양 / 인문 (역사 / 철학)',
+    '엔터프라이즈 아카이빙 / 표준규격',
+    '디자인 / UIUX 가이드라인',
+    '사내 보안 및 개인정보처리 표준문서함'
+  ];
+
+  // 모달 2: 문서작업현황 팝업 (Collaboration Studio Modal)
+  const [isCollabStatusModalOpen, setIsCollabStatusModalOpen] = useState(false);
+  const [selectedCollabDocId, setSelectedCollabDocId] = useState<string>('link-1');
+  const [selectedCollaboratorUserId, setSelectedCollaboratorUserId] = useState<string | null>(null);
+  const [selectedRevokeUserIds, setSelectedRevokeUserIds] = useState<string[]>([]);
+
+  // 공유링크 목록 원장 (제공 5건 + 참여 3건 = 총 8건)
+  const [shareLinksList, setShareLinksList] = useState<Array<any>>([
+    {
+      id: 'link-1',
+      myRole: 'owner',
+      targetKind: 'file',
+      targetName: 'ISO 32000-2 표준 가이드북',
+      docId: 'DOC-9821',
+      docVersion: 'v1.2',
+      totalPages: 840,
+      ownerName: '홍길동 (나)',
+      permission: 'reviewer',
+      periodKind: '7d',
+      expireDateText: '2026-10-10 (D-7)',
+      isExpired: false,
+      isRevoked: false,
+      isPublicRead: true,
+      hasPassword: true,
+      shareUrl: 'https://purepdfrend.io/share/DOC-9821-X3A',
+      createdAt: '2026-10-01 10:00',
+      updatedAt: '2026-10-03 11:30',
+      activeCollaboratorCount: 3,
+      recentActivityText: '김철수 책임님이 14쪽 취소선 주석 등록',
+    },
+    {
+      id: 'link-2',
+      myRole: 'owner',
+      targetKind: 'category',
+      targetName: '2026 상반기 금융보안 인증문서군 (외 3건)',
+      docId: 'CAT-2026-FIN',
+      docVersion: 'v2.0',
+      totalPages: 320,
+      ownerName: '홍길동 (나)',
+      permission: 'viewer',
+      periodKind: 'unlimited',
+      expireDateText: '무제한 (상시 유지)',
+      isExpired: false,
+      isRevoked: false,
+      isPublicRead: false,
+      hasPassword: false,
+      shareUrl: 'https://purepdfrend.io/share/CAT-FIN-99B',
+      createdAt: '2026-09-28 14:20',
+      updatedAt: '2026-09-30 09:10',
+      activeCollaboratorCount: 1,
+      recentActivityText: '이영희 매니저님이 4쪽 열람중',
+    },
+    {
+      id: 'link-3',
+      myRole: 'owner',
+      targetKind: 'version',
+      targetName: '차세대 금융 결제망 설계도 (v2.1 스냅샷)',
+      docId: 'DOC-5501-V21',
+      docVersion: 'v2.1',
+      totalPages: 150,
+      ownerName: '홍길동 (나)',
+      permission: 'editor',
+      periodKind: 'custom',
+      expireDateText: '2026-10-05 (D-2)',
+      isExpired: false,
+      isRevoked: false,
+      isPublicRead: false,
+      hasPassword: true,
+      shareUrl: 'https://purepdfrend.io/share/DOC-5501-REV',
+      createdAt: '2026-09-29 16:00',
+      updatedAt: '2026-10-02 18:20',
+      activeCollaboratorCount: 2,
+      recentActivityText: '동시 공동편집 진행중',
+    },
+    {
+      id: 'link-4',
+      myRole: 'owner',
+      targetKind: 'file',
+      targetName: '엔터프라이즈 모바일 디자인가이드',
+      docId: 'DOC-1102',
+      docVersion: 'v1.0',
+      totalPages: 64,
+      ownerName: '홍길동 (나)',
+      permission: 'viewer',
+      periodKind: '7d',
+      expireDateText: '2026-09-30 (만료됨)',
+      isExpired: true,
+      isRevoked: false,
+      isPublicRead: true,
+      hasPassword: false,
+      shareUrl: 'https://purepdfrend.io/share/DOC-1102-EXP',
+      createdAt: '2026-09-23 09:00',
+      updatedAt: '2026-09-30 23:59',
+      activeCollaboratorCount: 0,
+      recentActivityText: '공유 기간이 종료되었습니다.',
+    },
+    {
+      id: 'link-5',
+      myRole: 'owner',
+      targetKind: 'file',
+      targetName: '인사평가 및 승진 심사규정 (대외비)',
+      docId: 'DOC-SEC-09',
+      docVersion: 'v3.0',
+      totalPages: 48,
+      ownerName: '홍길동 (나)',
+      permission: 'editor',
+      periodKind: '30d',
+      expireDateText: '권한 회수됨 (소유자)',
+      isExpired: false,
+      isRevoked: true,
+      isPublicRead: false,
+      hasPassword: true,
+      shareUrl: 'https://purepdfrend.io/share/DOC-SEC-REV',
+      createdAt: '2026-09-15 11:00',
+      updatedAt: '2026-09-25 14:00',
+      activeCollaboratorCount: 0,
+      recentActivityText: '소유자에 의해 공유 권한이 회수되었습니다.',
+    },
+    // 참여 문서 (내가 초대받은 문서)
+    {
+      id: 'link-6',
+      myRole: 'invited',
+      targetKind: 'file',
+      targetName: '2026 클라우드 네이티브 아키텍처 제안서',
+      docId: 'DOC-CLOUD-26',
+      docVersion: 'v2.0',
+      totalPages: 120,
+      ownerName: '김철수 책임',
+      permission: 'editor',
+      periodKind: 'unlimited',
+      expireDateText: '무제한 (상시 유지)',
+      isExpired: false,
+      isRevoked: false,
+      isPublicRead: false,
+      hasPassword: true,
+      shareUrl: 'https://purepdfrend.io/share/DOC-CLOUD-26',
+      createdAt: '2026-10-02 11:00',
+      updatedAt: '2026-10-03 12:10',
+      activeCollaboratorCount: 2,
+      recentActivityText: '10분 전 김철수 책임님이 열람함',
+    },
+    {
+      id: 'link-7',
+      myRole: 'invited',
+      targetKind: 'category',
+      targetName: '글로벌 표준 API 명세서 패키지',
+      docId: 'CAT-API-STD',
+      docVersion: 'v1.4',
+      totalPages: 280,
+      ownerName: '박상무 팀장',
+      permission: 'reviewer',
+      periodKind: '30d',
+      expireDateText: '2026-10-20 (D-17)',
+      isExpired: false,
+      isRevoked: false,
+      isPublicRead: false,
+      hasPassword: false,
+      shareUrl: 'https://purepdfrend.io/share/CAT-API-STD',
+      createdAt: '2026-09-20 15:00',
+      updatedAt: '2026-10-02 09:30',
+      activeCollaboratorCount: 1,
+      recentActivityText: '어제 박상무님이 결재 스탬프 날인',
+    },
+    {
+      id: 'link-8',
+      myRole: 'invited',
+      targetKind: 'file',
+      targetName: '분기 재무제표 및 감사보고서 (v1.1)',
+      docId: 'DOC-FIN-Q3',
+      docVersion: 'v1.1',
+      totalPages: 95,
+      ownerName: '이영희 매니저',
+      permission: 'viewer',
+      periodKind: '7d',
+      expireDateText: '만료됨 (회수됨)',
+      isExpired: true,
+      isRevoked: true,
+      isPublicRead: false,
+      hasPassword: true,
+      shareUrl: 'https://purepdfrend.io/share/DOC-FIN-Q3',
+      createdAt: '2026-09-18 10:00',
+      updatedAt: '2026-09-25 18:00',
+      activeCollaboratorCount: 0,
+      recentActivityText: '공유가 만료되어 문서 열람이 제한되었습니다.',
+    }
+  ]);
+
+  // 실시간 작업자 목록 (동시 열람 3인 + 오프라인 1인)
+  const [collaboratorsList, setCollaboratorsList] = useState<Array<any>>([
+    {
+      userId: 'usr-chulsoo',
+      name: '김철수 책임',
+      roleTitle: '주석 검토자',
+      status: 'active',
+      currentPage: 14,
+      currentActionText: 'p.14 형광펜 작성중',
+      colorBorder: 'border-emerald-500',
+      avatarLetter: '김',
+    },
+    {
+      userId: 'usr-younghee',
+      name: '이영희 매니저',
+      roleTitle: '단순 열람자',
+      status: 'active',
+      currentPage: 4,
+      currentActionText: 'p.4 목차 탐색중',
+      colorBorder: 'border-amber-500',
+      avatarLetter: '이',
+    },
+    {
+      userId: 'usr-sangmoo',
+      name: '박상무 팀장',
+      roleTitle: '문서 관리자',
+      status: 'idle',
+      currentPage: 1,
+      currentActionText: 'p.1 표지 대기 (유휴 15분)',
+      colorBorder: 'border-sky-500',
+      avatarLetter: '박',
+    },
+    {
+      userId: 'usr-seonim',
+      name: '최선임 연구원',
+      roleTitle: '초대된 열람자',
+      status: 'offline',
+      currentPage: 28,
+      currentActionText: '오프라인 (3일 전 접속)',
+      colorBorder: 'border-slate-600',
+      avatarLetter: '최',
+    },
+  ]);
+
+  // 4단계 시간 그루핑 활동 피드
+  const [activityLogsList] = useState<Array<any>>([
+    {
+      id: 'log-1',
+      timeCategory: 'just_now',
+      timeText: '방금 전',
+      authorName: '김철수 책임',
+      actionText: '14페이지에 취소선 및 수정 의견 주석을 등록했습니다.',
+      targetPage: 14,
+      annotationId: 'ann-demo-1',
+    },
+    {
+      id: 'log-2',
+      timeCategory: 'just_now',
+      timeText: '1분 전',
+      authorName: '홍길동 (나)',
+      actionText: '12페이지에 스탬프(결재 승인완료)를 날인했습니다.',
+      targetPage: 12,
+    },
+    {
+      id: 'log-3',
+      timeCategory: '10m_ago',
+      timeText: '8분 전',
+      authorName: '이영희 매니저',
+      actionText: '문서 공유 링크를 통해 열람실에 입장했습니다.',
+      targetPage: 4,
+    },
+    {
+      id: 'log-4',
+      timeCategory: '10m_ago',
+      timeText: '12분 전',
+      authorName: '시스템 자동저장',
+      actionText: '오프라인 주석 큐가 클라우드 스토리지와 성공적으로 동기화되었습니다.',
+    },
+    {
+      id: 'log-5',
+      timeCategory: '7d_ago',
+      timeText: '3일 전',
+      authorName: '박상무 팀장',
+      actionText: '문서 공유 권한을 [검토자(주석달기 허용)]으로 승급했습니다.',
+    },
+    {
+      id: 'log-6',
+      timeCategory: '7d_ago',
+      timeText: '5일 전',
+      authorName: '김철수 책임',
+      actionText: '85쪽에 [메모리가드 밑줄] 주석을 추가했습니다.',
+      targetPage: 85,
+      annotationId: 'ann-85-1',
+    },
+    {
+      id: 'log-7',
+      timeCategory: 'long_ago',
+      timeText: '2주 전',
+      authorName: '홍길동 (소유자)',
+      actionText: 'ISO 32000-2 표준 가이드북 공유 링크(DOC-9821-X3A)를 최초 생성했습니다.',
+    },
+    {
+      id: 'log-8',
+      timeCategory: 'long_ago',
+      timeText: '1개월 전',
+      authorName: '시스템',
+      actionText: '문서 v1.0 원본이 등록되었습니다.',
+    },
+  ]);
+
+  // PG-USR-07 협업 및 공유 문서 뷰어(PG-USR-06) 즉시 오픈 핸들러
+  const handleOpenDocInViewer = (
+    docId: string,
+    title: string,
+    totalPages: number,
+    ownerName: string,
+    targetPage: number = 1
+  ) => {
+    setActiveViewingDoc((prev) => ({
+      ...(prev || {
+        publisher: '사내 표준문서함',
+        categoryId: 'cat-dev',
+        categoryPath: '사내문서',
+        lastCategory: '사내문서',
+        readPages: 1,
+        progressPercent: 0,
+        lastReadAt: '방금 전',
+        rawDate: '2026-10-03',
+        security: '일반',
+        docType: '내가 공유한 문서',
+        version: 'v1.0',
+        fileSize: '18.4 MB',
+        round: '1회독',
+        coverBg: 'from-sky-600 to-indigo-900',
+        accentColor: 'sky',
+      }),
+      id: docId,
+      title,
+      totalPages,
+      author: ownerName,
+      fileSize: '18.4 MB',
+      status: 'OCR완료',
+    }));
+    setViewerCurrentPage(targetPage);
+    setSelectedProg('PG-USR-06');
+    setIsCollabStatusModalOpen(false);
+  };
+
   // 프로필 사진 크롭 및 포인터 조작 핸들러
   const handleApplyCrop = () => {
     try {
@@ -893,6 +1315,11 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
         (isMarkup && annotFilterTypes.has('markup'));
 
       if (!typeMatched) return false;
+
+      // [협업 기능] 작성자별 필터
+      if (annotAuthorFilter !== 'all' && ann.author !== annotAuthorFilter) {
+        return false;
+      }
 
       // 검색어 필터 (이름, 텍스트, 작성자, 태그)
       if (annotSearchKeyword.trim()) {
@@ -1249,6 +1676,36 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
 
             {/* 우측 도구 그룹: 선택목록 레이어 팝업 + 범위 + 모드 + 정렬 + Undo/Redo (오른쪽 정렬) */}
             <div className="flex items-center gap-1.5 ml-auto flex-wrap justify-end">
+              {/* [협업 기능] 작성자별 필터 드롭다운 & 일괄 삭제 */}
+              <div className="flex items-center gap-1 bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-700/80 text-[10px]">
+                <span className="text-slate-400">작성자:</span>
+                <select
+                  value={annotAuthorFilter}
+                  onChange={(e) => setAnnotAuthorFilter(e.target.value)}
+                  className="bg-transparent text-slate-200 font-medium focus:outline-hidden cursor-pointer"
+                >
+                  <option value="all">전체 작성자</option>
+                  <option value="홍길동 (나)">홍길동 (나)</option>
+                  <option value="김철수 책임">김철수 책임</option>
+                  <option value="운영자">운영자</option>
+                </select>
+                {annotAuthorFilter !== 'all' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const count = vectorAnnotations.filter((a) => a.author === annotAuthorFilter).length;
+                      pushAnnotationHistory(vectorAnnotations.filter((a) => a.author !== annotAuthorFilter));
+                      showToast(`🗑️ [${annotAuthorFilter}]님의 주석 ${count}건이 일괄 삭제되었습니다.`, 'warn');
+                      setAnnotAuthorFilter('all');
+                    }}
+                    className="ml-1 text-[9px] px-1 py-0.2 bg-rose-500/20 text-rose-300 rounded hover:bg-rose-500/30 cursor-pointer"
+                    title="선택된 작성자의 모든 주석 일괄 삭제"
+                  >
+                    일괄삭제
+                  </button>
+                )}
+              </div>
+
               {/* [피드백 5 반영] 주석 선택목록 레이어 팝업 (펼쳤을 때 체크박스 목록 표시 & '전체' 토글) */}
               <div className="relative">
               <button
@@ -3885,6 +4342,16 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
               }
               setSelectedProg('PG-USR-06');
             }}
+            onRequestShare={(targetKind, targetName) => {
+              setEditingShareLink(null);
+              setShareFormTargetKind(targetKind);
+              setShareFormTargetDocTitle(targetName);
+              setShareFormPermission('reviewer');
+              setShareFormPeriodKind('7d');
+              setShareFormIsPublicRead(true);
+              setShareFormPassword('');
+              setIsShareCreateModalOpen(true);
+            }}
             isMobileMode={isMobileMode}
           />
         )}
@@ -3896,242 +4363,409 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
             {/* [Xodo 벤치마킹] 초슬림 2단 통폐합 툴바 (Top 1단: 글로벌 헤더 / Top 2단: 도구 툴바) */}
             {/* ========================================================================= */}
             <div className="bg-slate-950 border border-slate-800 rounded-2xl shadow-xl overflow-visible relative">
-              {/* Top 1단: 뒤로가기(서재) + 모드 스위처 드롭다운 + 도서명 + 우측 글로벌 액션 */}
-              <div className="h-11 px-3 border-b border-slate-800/80 flex items-center justify-between gap-2">
-                {/* 좌측: [←] 뒤로가기 & [모드 ∨] 드롭다운 스위처 */}
-                <div className="flex items-center gap-2 min-w-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (activeViewingDoc) {
-                        const total = activeViewingDoc.totalPages || 800;
-                        const progress = Math.min(100, Math.round((viewerCurrentPage / total) * 100));
-                        setActiveViewingDoc({
-                          ...activeViewingDoc,
-                          readPages: viewerCurrentPage,
-                          progressPercent: progress,
-                          lastReadAt: '방금 전',
-                        });
-                      }
-                      setSelectedProg('PG-USR-05');
-                    }}
-                    className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
-                    title="서재 목록(PG-USR-05)으로 복귀"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                  </button>
-
-                  {/* 모드 스위처 드롭다운 버튼 (Xodo [주석 달기 ∨] 형태) */}
-                  <div className="relative">
+              {/* [통합 2열 툴바] PC·태블릿·모바일 일관된 2열 컨텐츠 배치 유지 */}
+              <div className="space-y-0 text-xs">
+                {/* 1열: 뒤로가기 > 문서명(슬라이드클릭드래그휠) > 공유 > 협업 > 목록그룹 > 작성자 */}
+                <div className="h-10 px-2.5 sm:px-3 border-b border-slate-800/80 flex items-center justify-between gap-1.5 sm:gap-2">
+                  {/* 좌측: [←] 뒤로가기 & 문서명(슬라이드클릭드래그휠) */}
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
                     <button
                       type="button"
-                      onClick={() => setIsModeDropdownOpen(!isModeDropdownOpen)}
-                      className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700/70 text-xs font-bold text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
-                      title="도구 모드 그룹 변경"
+                      onClick={() => {
+                        if (activeViewingDoc) {
+                          const total = activeViewingDoc.totalPages || 800;
+                          const progress = Math.min(100, Math.round((viewerCurrentPage / total) * 100));
+                          setActiveViewingDoc({
+                            ...activeViewingDoc,
+                            readPages: viewerCurrentPage,
+                            progressPercent: progress,
+                            lastReadAt: '방금 전',
+                          });
+                        }
+                        setSelectedProg('PG-USR-05');
+                      }}
+                      className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer shrink-0"
+                      title="서재 목록(PG-USR-05)으로 복귀"
                     >
-                      <span className="text-sky-400">
-                        {activeGroup === 'annot' ? '주석 달기' :
-                         activeGroup === 'draw' ? '그리기' :
-                         activeGroup === 'sign' ? '작성 및 서명' :
-                         activeGroup === 'view' ? '보기' :
-                         activeGroup === 'favorite' ? '즐겨찾기' :
-                         activeGroup === 'insert' ? '삽입' : '펜'}
-                      </span>
-                      <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isModeDropdownOpen ? 'rotate-180' : ''}`} />
+                      <ArrowLeft className="w-4 h-4" />
                     </button>
 
-                    {/* 모드 드롭다운 메뉴 */}
-                    {isModeDropdownOpen && (
-                      <div className="absolute top-9 left-0 z-50 w-44 rounded-xl bg-slate-900/95 backdrop-blur-xl border border-slate-700 shadow-2xl p-1 space-y-0.5 animate-in fade-in zoom-in-95 duration-100">
+                    {/* 문서명: 마우스오버 시 전체 문서명 툴팁 + 가로 슬라이더/휠 스크롤 컨테이너 */}
+                    <div className="flex-1 min-w-0 overflow-hidden">
+                      <HorizontalSlideContainer scrollStep={120} showScrollButtons={false} className="w-full">
+                        <span
+                          className="text-xs font-bold text-slate-300 truncate cursor-default whitespace-nowrap inline-block"
+                          title={activeViewingDoc?.title || 'ISO 32000-2 표준 가이드북'}
+                        >
+                          {activeViewingDoc?.title || 'ISO 32000-2 표준 가이드북'}
+                        </span>
+                      </HorizontalSlideContainer>
+                    </div>
+                  </div>
+
+                  {/* 우측: 공유 > 협업 > 목록그룹 > 작성자 */}
+                  <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                    {/* 공유 */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingShareLink(null);
+                        setShareFormTargetKind('file');
+                        setShareFormTargetDocTitle(activeViewingDoc?.title || 'ISO 32000-2 표준 가이드북');
+                        setShareFormPermission('reviewer');
+                        setShareFormPeriodKind('7d');
+                        setShareFormIsPublicRead(true);
+                        setShareFormPassword('');
+                        setShareFormPasswordConfirm('');
+                        setIsShareCreateModalOpen(true);
+                      }}
+                      className="p-1.5 rounded-lg bg-slate-900 hover:bg-sky-600/30 text-slate-300 hover:text-sky-300 border border-slate-700/80 transition-all cursor-pointer"
+                      title="이 문서 공유 등록"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* 협업 (버튼명: 협업, (3) 텍스트 전면 삭제) */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const docItem = shareLinksList.find((l) => l.docId === (activeViewingDoc?.id || 'DOC-9821')) || shareLinksList[0];
+                        if (docItem) {
+                          setSelectedCollabDocId(docItem.id);
+                          setIsCollabStatusModalOpen(true);
+                        }
+                      }}
+                      className="px-1.5 sm:px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                      title="실시간 협업 및 동시 열람 작업자 현황"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>협업</span>
+                    </button>
+
+                    {/* 목록그룹 (눈모양 대신 3단 목록 아이콘 Columns3) */}
+                    <button
+                      type="button"
+                      onClick={() => setIsTabDrawerVisible(!isTabDrawerVisible)}
+                      className={`p-1.5 rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
+                        isTabDrawerVisible
+                          ? 'bg-sky-600/30 text-sky-300 border-sky-500/50 shadow-xs'
+                          : 'bg-slate-900 text-slate-400 hover:text-white border-slate-800'
+                      }`}
+                      title={`목차/북마크/주석 3단 목록 패널 ${isTabDrawerVisible ? '숨기기' : '표시'}`}
+                    >
+                      <Columns3 className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* 작성자 라벨 토글 */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAuthorLabels(!showAuthorLabels);
+                        showToast(
+                          showAuthorLabels
+                            ? '주석 작성자 라벨이 숨겨졌습니다.'
+                            : '🏷️ 모든 주석 끝에 작성자 라벨(아바타/이름)이 상시 표시됩니다.',
+                          'info'
+                        );
+                      }}
+                      className={`p-1.5 sm:px-2 rounded-lg border text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                        showAuthorLabels
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 ring-1 ring-amber-400/40'
+                          : 'bg-slate-900 hover:bg-slate-800 text-slate-400 border-slate-700/80 hover:text-slate-200'
+                      }`}
+                      title="주석 끝에 작성자명/아바타 상시 표시 토글"
+                    >
+                      <span>🏷️</span>
+                      <span className="hidden sm:inline text-[11px]">작성자</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2열: 주석그룹 > 대상 주석아이콘 > 주석그룹수정아이콘 > | 도구상세설정 > 취소 > 재실행 */}
+                <div className="h-10 px-2.5 sm:px-3 flex items-center justify-between gap-1.5 sm:gap-2 overflow-visible relative text-xs">
+                  {/* 좌측: 주석그룹 & 대상 주석아이콘 & 주석그룹수정아이콘 */}
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+                    {/* PC/태블릿: 주석그룹 선택목록 드롭다운 */}
+                    {!isMobileMode ? (
+                      <div className="relative shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setIsModeDropdownOpen(!isModeDropdownOpen)}
+                          className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700/70 text-xs font-bold text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                          title="도구 모드 그룹 변경"
+                        >
+                          <span className="text-sky-400">
+                            {activeGroup === 'annot' ? '주석 달기' :
+                             activeGroup === 'draw' ? '그리기' :
+                             activeGroup === 'sign' ? '작성 및 서명' :
+                             activeGroup === 'view' ? '보기' :
+                             activeGroup === 'favorite' ? '즐겨찾기' :
+                             activeGroup === 'insert' ? '삽입' : '펜'}
+                          </span>
+                          <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isModeDropdownOpen ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {isModeDropdownOpen && (
+                          <div className="absolute top-9 left-0 z-50 w-44 rounded-xl bg-slate-900/95 backdrop-blur-xl border border-slate-700 shadow-2xl p-1 space-y-0.5 animate-in fade-in zoom-in-95 duration-100">
+                            {[
+                              { id: 'annot', name: '주석 달기', icon: '✏️' },
+                              { id: 'draw', name: '그리기', icon: '🎨' },
+                              { id: 'sign', name: '작성 및 서명', icon: '✍️' },
+                              { id: 'view', name: '보기 (읽기 전용)', icon: '👁️' },
+                              { id: 'favorite', name: '즐겨찾기', icon: '⭐' },
+                              { id: 'insert', name: '삽입', icon: '📎' },
+                            ].map((grp) => (
+                              <button
+                                key={grp.id}
+                                type="button"
+                                onClick={() => {
+                                  setActiveGroup(grp.id);
+                                  setIsModeDropdownOpen(false);
+                                }}
+                                className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium text-left flex items-center justify-between cursor-pointer transition-colors ${
+                                  activeGroup === grp.id
+                                    ? 'bg-sky-600 text-white font-bold'
+                                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                }`}
+                              >
+                                <span className="flex items-center gap-1.5">
+                                  <span>{grp.icon}</span>
+                                  <span>{grp.name}</span>
+                                </span>
+                                {activeGroup === grp.id && <Check className="w-3 h-3 text-white" />}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /* 모바일: 주석그룹 아이콘 (클릭 시 2분할 레이어 팝업 호출) */
+                      <button
+                        type="button"
+                        onClick={() => setIsMobileGroupModalOpen(!isMobileGroupModalOpen)}
+                        className={`h-7 px-2 rounded-lg border text-xs font-bold flex items-center gap-1 transition-all cursor-pointer shrink-0 ${
+                          isMobileGroupModalOpen
+                            ? 'bg-sky-600 text-white border-sky-400 shadow-md ring-2 ring-sky-500/50'
+                            : 'bg-slate-900 hover:bg-slate-800 text-sky-400 border-slate-700/80'
+                        }`}
+                        title="주석 그룹 및 도구 선택 레이어 팝업"
+                      >
+                        <span className="text-sm">
+                          {activeGroup === 'annot' ? '✏️' :
+                           activeGroup === 'draw' ? '🎨' :
+                           activeGroup === 'sign' ? '✍️' :
+                           activeGroup === 'view' ? '👁️' :
+                           activeGroup === 'favorite' ? '⭐' :
+                           activeGroup === 'insert' ? '📎' : '✏️'}
+                        </span>
+                        <ChevronDown className="w-3 h-3 text-slate-400" />
+                      </button>
+                    )}
+
+                    {/* PC/태블릿: 대상 주석아이콘 슬라이더 */}
+                    {!isMobileMode ? (
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <HorizontalSlideContainer scrollStep={160} showScrollButtons={false} className="w-full">
+                          {activeTools.map((item, idx) => (
+                            <button
+                              key={`${item.id}-${idx}`}
+                              onClick={() => {
+                                setCurrentTool(item.id);
+                                const kind = mapToolIdToKind(item.id);
+                                setToolStyleState((prev) => ({
+                                  ...prev,
+                                  toolKind: kind,
+                                }));
+                              }}
+                              title={`${item.name} (${viewerConfig.shortcuts[item.id] || item.defaultKey})`}
+                              className={`shrink-0 h-7 w-7 min-w-[28px] rounded-lg flex items-center justify-center text-xs transition-all relative cursor-pointer ${
+                                currentTool === item.id
+                                  ? 'bg-sky-600 text-white shadow-md shadow-sky-600/50 ring-2 ring-sky-400/50'
+                                  : 'bg-slate-900/80 text-slate-300 hover:bg-slate-800 hover:text-white'
+                              }`}
+                            >
+                              <span>{item.icon}</span>
+                            </button>
+                          ))}
+                        </HorizontalSlideContainer>
+                      </div>
+                    ) : (
+                      /* 모바일: 선택 주석아이콘 (단독 표시) */
+                      <button
+                        type="button"
+                        onClick={() => setIsMobileGroupModalOpen(true)}
+                        className="h-7 px-2 rounded-lg bg-sky-600/20 text-sky-300 border border-sky-500/40 flex items-center gap-1 shrink-0 font-medium"
+                        title={`현재 선택된 도구: ${registry.getAllTools().find((t) => t.id === currentTool)?.name || currentTool} (클릭하여 변경)`}
+                      >
+                        <span>{registry.getAllTools().find((t) => t.id === currentTool)?.icon || '✏️'}</span>
+                        <span className="text-[10px] font-bold truncate max-w-[64px]">
+                          {registry.getAllTools().find((t) => t.id === currentTool)?.name || currentTool}
+                        </span>
+                      </button>
+                    )}
+
+                    {/* 주석그룹수정아이콘 (Sliders) */}
+                    <div className="relative shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolbarModalOpen(!isToolbarModalOpen);
+                          if (isToolbarModalOpen) setIsReorderDragMode(false);
+                        }}
+                        className={`h-7 w-7 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
+                          isToolbarModalOpen
+                            ? 'bg-sky-600 text-white border-sky-400 shadow-md ring-2 ring-sky-500/50'
+                            : 'bg-slate-900 text-slate-400 hover:text-white border-slate-700/80 hover:bg-slate-800'
+                        }`}
+                        title="주석그룹 도구 순서 및 사용자 설정"
+                      >
+                        <Sliders className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 구분선 */}
+                  <div className="w-px h-4 bg-slate-800 mx-0.5 shrink-0" />
+
+                  {/* 우측: 설정 > 취소 > 재실행 */}
+                  <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 relative">
+                    {/* 설정 (버튼명: 설정) */}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setIsStylePopoverOpen(!isStylePopoverOpen)}
+                        className={`h-7 px-2 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                          isStylePopoverOpen
+                            ? 'bg-sky-600 text-white border-sky-400 shadow-md ring-2 ring-sky-500/50'
+                            : 'bg-slate-900 hover:bg-slate-800 text-slate-200 border-slate-700/80'
+                        }`}
+                        title="도구 상세속성(스타일, 획, 불투명도, 프리셋) 설정"
+                      >
+                        <span
+                          className="w-3 h-3 rounded-full border border-white/50 shadow-xs"
+                          style={{ backgroundColor: toolStyleState.color }}
+                        />
+                        <span className="text-[11px]">설정</span>
+                      </button>
+
+                      <ToolStylePopover
+                        isOpen={isStylePopoverOpen}
+                        onClose={() => setIsStylePopoverOpen(false)}
+                        toolName={registry.getAllTools().find((t) => t.id === currentTool)?.name || currentTool}
+                        styleState={toolStyleState}
+                        onChangeStyle={handleUpdateToolStyle}
+                        isMobile={isMobileMode}
+                      />
+                    </div>
+
+                    {/* 실행취소 */}
+                    <button
+                      type="button"
+                      onClick={handleUndoAnnotation}
+                      disabled={undoStack.length === 0}
+                      className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
+                        undoStack.length > 0
+                          ? 'bg-slate-900 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:text-white'
+                          : 'bg-slate-950 text-slate-600 border-slate-800/60 cursor-not-allowed opacity-50'
+                      }`}
+                      title={`실행취소 (Ctrl + Z)${undoStack.length > 0 ? ` [${undoStack.length}단계 가능]` : ' (취소할 작업 없음)'}`}
+                    >
+                      <Undo2 className="w-3.5 h-3.5 stroke-[2]" />
+                    </button>
+
+                    {/* 다시실행 */}
+                    <button
+                      type="button"
+                      onClick={handleRedoAnnotation}
+                      disabled={redoStack.length === 0}
+                      className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
+                        redoStack.length > 0
+                          ? 'bg-slate-900 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:text-white'
+                          : 'bg-slate-950 text-slate-600 border-slate-800/60 cursor-not-allowed'
+                      }`}
+                      title={`다시실행 (Ctrl + Y)${redoStack.length > 0 ? ` [${redoStack.length}단계 가능]` : ' (다시 실행할 작업 없음)'}`}
+                    >
+                      <Redo2 className="w-3.5 h-3.5 stroke-[2]" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* [요구사항 1.3] 모바일 주석그룹 2분할 레이어 팝업 */}
+              {isMobileGroupModalOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40 bg-black/40 backdrop-blur-2xs"
+                    onClick={() => setIsMobileGroupModalOpen(false)}
+                  />
+                  <div className="fixed top-24 left-2 right-2 sm:left-auto sm:right-4 z-50 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 shadow-2xl p-3 text-xs text-white max-w-[calc(100vw-16px)] sm:w-96 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
+                      <div className="font-bold flex items-center gap-1.5 text-xs text-sky-400">
+                        <span>✏️ 주석 그룹 및 도구 선택</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsMobileGroupModalOpen(false)}
+                        className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-[105px_1fr] gap-2 min-h-[170px] max-h-[300px]">
+                      {/* 왼쪽: 주석그룹 목록 */}
+                      <div className="border-r border-slate-800 pr-1.5 space-y-1 overflow-y-auto">
                         {[
                           { id: 'annot', name: '주석 달기', icon: '✏️' },
                           { id: 'draw', name: '그리기', icon: '🎨' },
                           { id: 'sign', name: '작성 및 서명', icon: '✍️' },
-                          { id: 'view', name: '보기 (읽기 전용)', icon: '👁️' },
+                          { id: 'view', name: '보기 (읽기)', icon: '👁️' },
                           { id: 'favorite', name: '즐겨찾기', icon: '⭐' },
                           { id: 'insert', name: '삽입', icon: '📎' },
                         ].map((grp) => (
                           <button
                             key={grp.id}
                             type="button"
-                            onClick={() => {
-                              setActiveGroup(grp.id);
-                              setIsModeDropdownOpen(false);
-                            }}
-                            className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-medium text-left flex items-center justify-between cursor-pointer transition-colors ${
+                            onClick={() => setActiveGroup(grp.id)}
+                            className={`w-full px-2 py-1.5 rounded-lg text-left text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                               activeGroup === grp.id
-                                ? 'bg-sky-600 text-white font-bold'
+                                ? 'bg-sky-600 text-white shadow-xs font-bold'
                                 : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                             }`}
                           >
-                            <span className="flex items-center gap-1.5">
-                              <span>{grp.icon}</span>
-                              <span>{grp.name}</span>
-                            </span>
-                            {activeGroup === grp.id && <Check className="w-3 h-3 text-white" />}
+                            <span>{grp.icon}</span>
+                            <span className="truncate">{grp.name}</span>
                           </button>
                         ))}
                       </div>
-                    )}
-                  </div>
 
-                  {/* 문서명 */}
-                  <div className="hidden sm:flex items-center gap-1.5 min-w-0 max-w-[240px] md:max-w-[340px]">
-                    <span className="text-slate-600">|</span>
-                    <span className="text-xs font-bold text-slate-300 truncate" title={activeViewingDoc?.title || 'ISO 32000-2 표준 가이드북'}>
-                      {activeViewingDoc?.title || 'ISO 32000-2 표준 가이드북'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* 우측: 글로벌 퀵 액션 (검색, 3탭 목차/북마크 열기, 3탭 배치전환, 설정) */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {/* 검색창 인라인 토글 */}
-                  <div className="relative hidden md:block">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="본문 검색..."
-                      value={viewerSearchQuery}
-                      onChange={(e) => setViewerSearchQuery(e.target.value)}
-                      className="w-32 lg:w-44 pl-7 pr-6 py-1 bg-slate-900 border border-slate-700/80 rounded-lg text-[11px] text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
-                    />
-                    {viewerSearchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => setViewerSearchQuery('')}
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-
-                  {/* [피드백 A 반영] 목록 3그룹(북마크/목차/주석) 표시/숨김 기능 및 아이콘 교체 */}
-                  <button
-                    type="button"
-                    onClick={() => setIsTabDrawerVisible(!isTabDrawerVisible)}
-                    className={`p-1.5 rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
-                      isTabDrawerVisible
-                        ? 'bg-sky-600/30 text-sky-300 border-sky-500/50 shadow-xs'
-                        : 'bg-slate-900 text-slate-400 hover:text-white border-slate-800'
-                    }`}
-                    title={isTabDrawerVisible ? '목차/북마크/주석 패널 숨기기' : '목차/북마크/주석 패널 표시'}
-                  >
-                    {isTabDrawerVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                  </button>
-
-                  {/* [0021-01] 순서설정 (플로팅 팝오버 방식 & 카드 롱프레스 위글 DnD) */}
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsToolbarModalOpen(!isToolbarModalOpen);
-                        if (isToolbarModalOpen) setIsReorderDragMode(false);
-                      }}
-                      className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
-                        isToolbarModalOpen
-                          ? 'bg-sky-600 text-white border-sky-400 shadow-md ring-2 ring-sky-500/50'
-                          : 'bg-slate-900 text-slate-400 hover:text-white border-slate-800'
-                      }`}
-                      title="뷰어 툴바 순서 및 사용자 설정 (클릭 시 팝오버)"
-                    >
-                      <Sliders className="w-4 h-4" />
-                    </button>
-
-                    {/* 플로팅 팝오버 레이어 (모바일 화면 맞춤) */}
-                    {isToolbarModalOpen && (
-                      <div className="fixed sm:absolute top-14 sm:top-10 inset-x-2 sm:inset-x-auto sm:right-0 z-50 w-auto sm:w-96 max-w-[calc(100vw-16px)] mx-auto sm:mx-0 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 shadow-2xl p-4 space-y-3 text-xs text-slate-100 animate-in fade-in zoom-in-95 duration-150">
-                        <div className="flex justify-between items-center pb-2.5 border-b border-slate-800">
-                          <h4 className="font-bold text-white text-xs flex items-center gap-2">
-                            <span>⚙ 뷰어 툴바 순서 및 사용자 설정</span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-medium ${
-                              isReorderDragMode ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-sky-500/20 text-sky-400'
-                            }`}>
-                              {isReorderDragMode ? '🔄 드래그 이동모드' : '길게 눌러 이동'}
-                            </span>
-                          </h4>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsToolbarModalOpen(false);
-                              setIsReorderDragMode(false);
-                              setWiggleCardIdx(null);
-                              setDragOverIdx(null);
-                            }}
-                            className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 cursor-pointer"
-                          >
-                            ✕
-                          </button>
-                        </div>
-
-                        <div className="flex items-center justify-between text-[11px] bg-slate-950/80 p-2 rounded-lg border border-slate-800 text-slate-300">
-                          <span className="truncate">
-                            {isReorderDragMode
-                              ? '선택된 카드를 드래그하여 가이드라인 위치에 놓으세요.'
-                              : '카드를 0.4초 길게 누르면 해당 카드만 흔들림과 함께 이동모드로 전환됩니다.'}
+                      {/* 오른쪽: 선택된 주석그룹의 주석 아이콘 열거 */}
+                      <div className="overflow-y-auto pl-0.5">
+                        <div className="text-[10px] text-slate-400 mb-1.5 flex items-center justify-between">
+                          <span className="flex items-center gap-1">
+                            <span>소속 도구</span>
+                            <span className="text-sky-400 font-mono font-bold">({activeTools.length}개)</span>
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsReorderDragMode(!isReorderDragMode);
-                              if (isReorderDragMode) {
-                                setWiggleCardIdx(null);
-                                setDragOverIdx(null);
-                              }
-                            }}
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors shrink-0 ml-2 cursor-pointer ${
-                              isReorderDragMode
-                                ? 'bg-amber-500 text-slate-950 border-amber-400'
-                                : 'bg-slate-800 text-slate-300 border-slate-700 hover:text-white'
-                            }`}
-                          >
-                            {isReorderDragMode ? '완료' : '순서 변경'}
-                          </button>
+                          <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono ${
+                            isReorderDragMode ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30' : 'text-slate-500'
+                          }`}>
+                            {isReorderDragMode ? '🔄 드래그 이동모드' : '길게 눌러 순서변경'}
+                          </span>
                         </div>
-
-                        {/* 도구 목록 카드들 (선택 카드만 롱프레스 위글 & 가이드라인 DnD) */}
-                        <div className="space-y-1.5 max-h-64 overflow-y-auto text-xs pr-1">
+                        <div className="grid grid-cols-4 gap-1.5">
                           {activeTools.map((item, idx) => {
                             const isWiggling = wiggleCardIdx === idx;
                             const isDropTarget = dragOverIdx === idx && draggedToolIdx !== null && draggedToolIdx !== idx;
 
                             return (
                               <div key={`${item.id}-${idx}`} className="relative">
-                                {/* [피드백 07 & 2 반영] 드래그 시 삽입 배치될 위치 가이드라인 표시 (가이드라인 위 드롭 완벽 지원) */}
+                                {/* 드래그 시 삽입 배치될 위치 가이드 가드 표시 */}
                                 {isDropTarget && (
-                                  <div
-                                    onDragOver={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      e.dataTransfer.dropEffect = 'move';
-                                      if (dragOverIdx !== idx) setDragOverIdx(idx);
-                                    }}
-                                    onDrop={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      const sourceIdx = draggedToolIdx !== null ? draggedToolIdx : parseInt(e.dataTransfer.getData('text/plain'), 10);
-                                      if (!isNaN(sourceIdx) && sourceIdx !== idx) {
-                                        handleMoveTool(activeGroup, sourceIdx, idx);
-                                        showToast(`[${item.name}] 도구 순서가 변경되었습니다.`, 'success');
-                                      }
-                                      setDraggedToolIdx(null);
-                                      setDragOverIdx(null);
-                                      setWiggleCardIdx(null);
-                                    }}
-                                    className="my-1.5 py-1 px-1 flex items-center gap-1.5 transition-all animate-pulse bg-sky-950/40 rounded-lg border border-sky-400/40"
-                                  >
-                                    <div className="w-2 h-2 rounded-full bg-sky-400 shadow-sm shadow-sky-400 ring-2 ring-sky-300/40 shrink-0"></div>
-                                    <div className="h-0.5 flex-1 bg-gradient-to-r from-sky-400 via-indigo-400 to-sky-400 rounded-full shadow-sm shadow-sky-400/50"></div>
-                                    <span className="text-[9px] font-mono font-bold text-sky-300 bg-sky-950/95 px-2 py-0.5 rounded border border-sky-400/60 shadow-xs shrink-0">
-                                      📍 이곳에 배치 (삽입 위치)
-                                    </span>
-                                    <div className="h-0.5 flex-1 bg-gradient-to-r from-sky-400 via-indigo-400 to-sky-400 rounded-full shadow-sm shadow-sky-400/50"></div>
-                                    <div className="w-2 h-2 rounded-full bg-sky-400 shadow-sm shadow-sky-400 ring-2 ring-sky-300/40 shrink-0"></div>
-                                  </div>
+                                  <div className="absolute -left-1 top-0 bottom-0 w-1 bg-gradient-to-b from-sky-400 via-indigo-400 to-sky-400 rounded-full shadow-md shadow-sky-400/80 animate-pulse z-30 pointer-events-none" />
                                 )}
 
-                                <div
+                                <button
+                                  type="button"
                                   draggable={true}
                                   onDragStart={(e) => {
                                     setDraggedToolIdx(idx);
@@ -4167,8 +4801,8 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                                     longPressTimerRef.current = setTimeout(() => {
                                       setIsReorderDragMode(true);
                                       setWiggleCardIdx(idx);
-                                      showToast(`[${item.name}] 이동 모드 활성화 (드래그하여 위치 변경)`, 'info');
-                                    }, 400);
+                                      showToast(`[${item.name}] 순서 이동 모드 (원하는 위치로 드래그)`, 'info');
+                                    }, 350);
                                   }}
                                   onMouseUp={() => {
                                     if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
@@ -4180,245 +4814,332 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                                     longPressTimerRef.current = setTimeout(() => {
                                       setIsReorderDragMode(true);
                                       setWiggleCardIdx(idx);
-                                    }, 400);
+                                    }, 350);
                                   }}
                                   onTouchEnd={() => {
                                     if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
                                   }}
-                                  className={`p-2 rounded-xl border flex items-center justify-between transition-all select-none ${
+                                  onClick={() => {
+                                    if (isWiggling || isReorderDragMode) {
+                                      setWiggleCardIdx(null);
+                                      setIsReorderDragMode(false);
+                                      return;
+                                    }
+                                    setCurrentTool(item.id);
+                                    const kind = mapToolIdToKind(item.id);
+                                    setToolStyleState((prev) => ({ ...prev, toolKind: kind }));
+                                    setIsMobileGroupModalOpen(false);
+                                    showToast(`'${item.name}' 도구가 선택되었습니다.`, 'info');
+                                  }}
+                                  className={`w-full h-11 rounded-xl flex flex-col items-center justify-center p-1 text-xs border transition-all cursor-pointer relative select-none ${
                                     isWiggling
-                                      ? 'animate-card-wiggle border-amber-400 bg-amber-950/40 cursor-grab active:cursor-grabbing shadow-lg ring-2 ring-amber-400/40'
+                                      ? 'animate-card-wiggle border-amber-400 bg-amber-950/60 ring-2 ring-amber-400/50 shadow-lg z-20 cursor-grab active:cursor-grabbing'
                                       : isDropTarget
-                                      ? 'border-sky-400/80 bg-sky-950/30'
-                                      : 'bg-slate-950/90 border-slate-800 hover:border-slate-700'
+                                      ? 'border-sky-400 bg-sky-950/40 ring-1 ring-sky-400'
+                                      : currentTool === item.id
+                                      ? 'bg-sky-600 text-white border-sky-400 shadow-md ring-2 ring-sky-400/40'
+                                      : 'bg-slate-950/80 text-slate-300 border-slate-800 hover:bg-slate-800 hover:text-white'
                                   }`}
+                                  title={`${item.name} (${viewerConfig.shortcuts[item.id] || item.defaultKey})`}
                                 >
-                                  <div className="flex items-center gap-2 truncate flex-1 min-w-0">
-                                    <GripVertical className="w-4 h-4 text-slate-500 hover:text-sky-400 cursor-grab active:cursor-grabbing shrink-0" />
-                                    <span className="text-slate-500 font-mono text-[11px] w-4">{idx + 1}</span>
-                                    <span className="text-base shrink-0">{item.icon}</span>
-                                    <div className="truncate">
-                                      <div className="text-slate-200 font-medium truncate flex items-center gap-1.5">
-                                        <span>{item.name}</span>
-                                        {isWiggling && (
-                                          <span className="text-[10px] text-amber-300 font-mono font-bold animate-pulse">선택됨</span>
-                                        )}
-                                      </div>
-                                      <div className="text-[10px] text-amber-300/80 font-mono">
-                                        단축키: {viewerConfig.shortcuts[item.id] || item.defaultKey}
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex items-center gap-1 shrink-0 ml-2">
-                                    {idx > 0 && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleMoveTool(activeGroup, idx, idx - 1);
-                                        }}
-                                        className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[10px] cursor-pointer"
-                                        title="위로 이동"
-                                      >
-                                        ▲
-                                      </button>
-                                    )}
-                                    {idx < activeTools.length - 1 && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleMoveTool(activeGroup, idx, idx + 1);
-                                        }}
-                                        className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[10px] cursor-pointer"
-                                        title="아래로 이동"
-                                      >
-                                        ▼
-                                      </button>
-                                    )}
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleRemoveToolFromGroup(activeGroup, idx);
-                                      }}
-                                      className="p-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded text-[10px] cursor-pointer"
-                                      title="툴바에서 숨기기"
-                                    >
-                                      ✕
-                                    </button>
-                                  </div>
-                                </div>
+                                  <span className="text-base">{item.icon}</span>
+                                  <span className="text-[8px] truncate max-w-full font-medium">{item.name}</span>
+                                </button>
                               </div>
                             );
                           })}
-                        </div>
 
-                        <div className="flex justify-between items-center pt-2 border-t border-slate-800 text-[11px]">
+                          {/* 마지막 아이콘: 해당 주석그룹 설정(순서변경 등) 아이콘 */}
                           <button
                             type="button"
                             onClick={() => {
-                              setIsToolbarModalOpen(false);
-                              setSelectedProg('PG-USR-09');
-                              setSettingsTab('groups');
+                              setIsMobileGroupModalOpen(false);
+                              setIsToolbarModalOpen(true);
                             }}
-                            className="text-sky-400 hover:underline text-[10px]"
+                            className="h-11 rounded-xl flex flex-col items-center justify-center p-1 text-xs border border-dashed border-amber-500/50 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 transition-all cursor-pointer"
+                            title="주석그룹 도구 순서 및 사용자 설정"
                           >
-                            + 다른 도구 추가 ➔
+                            <Sliders className="w-3.5 h-3.5 text-amber-400" />
+                            <span className="text-[8px] font-bold">설정</span>
                           </button>
-                          <div className="flex gap-1.5">
-                            <button
-                              type="button"
-                              onClick={handleResetConfig}
-                              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[10px] cursor-pointer"
-                            >
-                              초기화
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsToolbarModalOpen(false);
-                                setIsReorderDragMode(false);
-                                setWiggleCardIdx(null);
-                                setDragOverIdx(null);
-                              }}
-                              className="px-3 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded font-bold text-[10px] cursor-pointer"
-                            >
-                              완료
-                            </button>
-                          </div>
                         </div>
                       </div>
-                    )}
+                    </div>
                   </div>
-                </div>
-              </div>
+                </>
+              )}
 
-              {/* Top 2단: 선택된 그룹의 도구 아이콘 슬라이더 + [스타일 🎛️ 팔레트 버튼] + [↶/↷ Undo/Redo] + 배율 */}
-              <div className="h-11 px-3 flex items-center justify-between gap-2 overflow-visible relative">
-                {/* 좌측: 활성 도구 아이콘 슬라이더 */}
-                <div className="flex-1 min-w-0 overflow-hidden">
-                  <HorizontalSlideContainer scrollStep={180} className="w-full">
-                    {activeTools.map((item, idx) => (
+              {/* [요구사항 1.5] 주석그룹 수정 레이어팝업: 우측 기준 브라우저 영역 안 표시 */}
+              {isToolbarModalOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40 bg-black/40 backdrop-blur-2xs"
+                    onClick={() => {
+                      setIsToolbarModalOpen(false);
+                      setIsReorderDragMode(false);
+                      setWiggleCardIdx(null);
+                      setDragOverIdx(null);
+                    }}
+                  />
+                  <div className="fixed top-24 right-2 sm:right-6 z-50 w-auto sm:w-96 max-w-[calc(100vw-24px)] rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 shadow-2xl p-4 space-y-3 text-xs text-slate-100 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="flex justify-between items-center pb-2.5 border-b border-slate-800">
+                      <h4 className="font-bold text-white text-xs flex items-center gap-2">
+                        <span>⚙ 뷰어 툴바 순서 및 사용자 설정</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-medium ${
+                          isReorderDragMode ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-sky-500/20 text-sky-400'
+                        }`}>
+                          {isReorderDragMode ? '🔄 드래그 이동모드' : '길게 눌러 이동'}
+                        </span>
+                      </h4>
                       <button
-                        key={`${item.id}-${idx}`}
+                        type="button"
                         onClick={() => {
-                          setCurrentTool(item.id);
-                          const kind = mapToolIdToKind(item.id);
-                          setToolStyleState((prev) => ({
-                            ...prev,
-                            toolKind: kind,
-                          }));
+                          setIsToolbarModalOpen(false);
+                          setIsReorderDragMode(false);
+                          setWiggleCardIdx(null);
+                          setDragOverIdx(null);
                         }}
-                        title={`${item.name} (${viewerConfig.shortcuts[item.id] || item.defaultKey})`}
-                        className={`shrink-0 h-8 w-8 min-w-[32px] rounded-lg flex items-center justify-center text-sm transition-all relative cursor-pointer ${
-                          currentTool === item.id
-                            ? 'bg-sky-600 text-white shadow-md shadow-sky-600/50 ring-2 ring-sky-400/50'
-                            : 'bg-slate-900/80 text-slate-300 hover:bg-slate-800 hover:text-white'
+                        className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] bg-slate-950/80 p-2 rounded-lg border border-slate-800 text-slate-300">
+                      <span className="truncate">
+                        {isReorderDragMode
+                          ? '선택된 카드를 드래그하여 가이드라인 위치에 놓으세요.'
+                          : '카드를 0.4초 길게 누르면 해당 카드만 흔들림과 함께 이동모드로 전환됩니다.'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsReorderDragMode(!isReorderDragMode);
+                          if (isReorderDragMode) {
+                            setWiggleCardIdx(null);
+                            setDragOverIdx(null);
+                          }
+                        }}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors shrink-0 ml-2 cursor-pointer ${
+                          isReorderDragMode
+                            ? 'bg-amber-500 text-slate-950 border-amber-400'
+                            : 'bg-slate-800 text-slate-300 border-slate-700 hover:text-white'
                         }`}
                       >
-                        <span>{item.icon}</span>
+                        {isReorderDragMode ? '완료' : '순서 변경'}
                       </button>
-                    ))}
-                  </HorizontalSlideContainer>
-                </div>
+                    </div>
 
-                {/* 중앙/우측 분기: [스타일 팝오버 트리거 버튼 🎛️] + [Undo/Redo] + 배율 */}
-                <div className="flex items-center gap-1.5 shrink-0 relative">
-                  {/* [핵심 벤치마킹] Xodo 스타일(도구 상세속성) 팝오버 트리거 버튼 */}
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setIsStylePopoverOpen(!isStylePopoverOpen)}
-                      className={`h-8 px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                        isStylePopoverOpen
-                          ? 'bg-sky-600 text-white border-sky-400 shadow-md ring-2 ring-sky-500/50'
-                          : 'bg-slate-900 hover:bg-slate-800 text-slate-200 border-slate-700/80'
-                      }`}
-                      title="도구 상세속성(스타일, 획, 불투명도, 프리셋) 팔레트 열기"
-                    >
-                      {/* 현재 선택 색상 미니 원형 칩 */}
-                      <span
-                        className="w-3.5 h-3.5 rounded-full border border-white/50 shadow-xs"
-                        style={{ backgroundColor: toolStyleState.color }}
-                      />
-                      <span className="hidden sm:inline text-[11px]">스타일</span>
-                    </button>
+                    {/* 도구 목록 카드들 (선택 카드만 롱프레스 위글 & 가이드라인 DnD) */}
+                    <div className="space-y-1.5 max-h-64 overflow-y-auto text-xs pr-1">
+                      {activeTools.map((item, idx) => {
+                        const isWiggling = wiggleCardIdx === idx;
+                        const isDropTarget = dragOverIdx === idx && draggedToolIdx !== null && draggedToolIdx !== idx;
 
-                    {/* [피드백 05 반영] Xodo 스타일 팝오버 컴포넌트 마운트 (모바일 모드 우측 잘림 원천 방지) */}
-                    <ToolStylePopover
-                      isOpen={isStylePopoverOpen}
-                      onClose={() => setIsStylePopoverOpen(false)}
-                      toolName={registry.getAllTools().find((t) => t.id === currentTool)?.name || currentTool}
-                      styleState={toolStyleState}
-                      onChangeStyle={handleUpdateToolStyle}
-                      isMobile={isMobileMode}
-                    />
+                        return (
+                          <div key={`${item.id}-${idx}`} className="relative">
+                            {/* 드래그 시 삽입 배치될 위치 가이드라인 표시 */}
+                            {isDropTarget && (
+                              <div
+                                onDragOver={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  e.dataTransfer.dropEffect = 'move';
+                                  if (dragOverIdx !== idx) setDragOverIdx(idx);
+                                }}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  const sourceIdx = draggedToolIdx !== null ? draggedToolIdx : parseInt(e.dataTransfer.getData('text/plain'), 10);
+                                  if (!isNaN(sourceIdx) && sourceIdx !== idx) {
+                                    handleMoveTool(activeGroup, sourceIdx, idx);
+                                    showToast(`[${item.name}] 도구 순서가 변경되었습니다.`, 'success');
+                                  }
+                                  setDraggedToolIdx(null);
+                                  setDragOverIdx(null);
+                                  setWiggleCardIdx(null);
+                                }}
+                                className="my-1.5 py-1 px-1 flex items-center gap-1.5 transition-all animate-pulse bg-sky-950/40 rounded-lg border border-sky-400/40"
+                              >
+                                <div className="w-2 h-2 rounded-full bg-sky-400 shadow-sm shadow-sky-400 ring-2 ring-sky-300/40 shrink-0"></div>
+                                <div className="h-0.5 flex-1 bg-gradient-to-r from-sky-400 via-indigo-400 to-sky-400 rounded-full shadow-sm shadow-sky-400/50"></div>
+                                <span className="text-[9px] font-mono font-bold text-sky-300 bg-sky-950/95 px-2 py-0.5 rounded border border-sky-400/60 shadow-xs shrink-0">
+                                  📍 이곳에 배치 (삽입 위치)
+                                </span>
+                                <div className="h-0.5 flex-1 bg-gradient-to-r from-sky-400 via-indigo-400 to-sky-400 rounded-full shadow-sm shadow-sky-400/50"></div>
+                                <div className="w-2 h-2 rounded-full bg-sky-400 shadow-sm shadow-sky-400 ring-2 ring-sky-300/40 shrink-0"></div>
+                              </div>
+                            )}
+
+                            <div
+                              draggable={true}
+                              onDragStart={(e) => {
+                                setDraggedToolIdx(idx);
+                                setWiggleCardIdx(idx);
+                                setIsReorderDragMode(true);
+                                e.dataTransfer.setData('text/plain', String(idx));
+                                e.dataTransfer.effectAllowed = 'move';
+                              }}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                e.dataTransfer.dropEffect = 'move';
+                                if (dragOverIdx !== idx) setDragOverIdx(idx);
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const sourceIdx = draggedToolIdx !== null ? draggedToolIdx : parseInt(e.dataTransfer.getData('text/plain'), 10);
+                                if (!isNaN(sourceIdx) && sourceIdx !== idx) {
+                                  handleMoveTool(activeGroup, sourceIdx, idx);
+                                  showToast(`[${item.name}] 도구 순서가 변경되었습니다.`, 'success');
+                                }
+                                setDraggedToolIdx(null);
+                                setDragOverIdx(null);
+                                setWiggleCardIdx(null);
+                              }}
+                              onDragEnd={() => {
+                                setDraggedToolIdx(null);
+                                setDragOverIdx(null);
+                                setWiggleCardIdx(null);
+                              }}
+                              onMouseDown={() => {
+                                longPressTimerRef.current = setTimeout(() => {
+                                  setIsReorderDragMode(true);
+                                  setWiggleCardIdx(idx);
+                                  showToast(`[${item.name}] 이동 모드 활성화 (드래그하여 위치 변경)`, 'info');
+                                }, 400);
+                              }}
+                              onMouseUp={() => {
+                                if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+                              }}
+                              onMouseLeave={() => {
+                                if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+                              }}
+                              onTouchStart={() => {
+                                longPressTimerRef.current = setTimeout(() => {
+                                  setIsReorderDragMode(true);
+                                  setWiggleCardIdx(idx);
+                                }, 400);
+                              }}
+                              onTouchEnd={() => {
+                                if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+                              }}
+                              className={`p-2 rounded-xl border flex items-center justify-between transition-all select-none ${
+                                isWiggling
+                                  ? 'animate-card-wiggle border-amber-400 bg-amber-950/40 cursor-grab active:cursor-grabbing shadow-lg ring-2 ring-amber-400/40'
+                                  : isDropTarget
+                                  ? 'border-sky-400/80 bg-sky-950/30'
+                                  : 'bg-slate-950/90 border-slate-800 hover:border-slate-700'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 truncate flex-1 min-w-0">
+                                <GripVertical className="w-4 h-4 text-slate-500 hover:text-sky-400 cursor-grab active:cursor-grabbing shrink-0" />
+                                <span className="text-slate-500 font-mono text-[11px] w-4">{idx + 1}</span>
+                                <span className="text-base shrink-0">{item.icon}</span>
+                                <div className="truncate">
+                                  <div className="text-slate-200 font-medium truncate flex items-center gap-1.5">
+                                    <span>{item.name}</span>
+                                    {isWiggling && (
+                                      <span className="text-[10px] text-amber-300 font-mono font-bold animate-pulse">선택됨</span>
+                                    )}
+                                  </div>
+                                  <div className="text-[10px] text-amber-300/80 font-mono">
+                                    단축키: {viewerConfig.shortcuts[item.id] || item.defaultKey}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1 shrink-0 ml-2">
+                                {idx > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMoveTool(activeGroup, idx, idx - 1);
+                                    }}
+                                    className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[10px] cursor-pointer"
+                                    title="위로 이동"
+                                  >
+                                    ▲
+                                  </button>
+                                )}
+                                {idx < activeTools.length - 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMoveTool(activeGroup, idx, idx + 1);
+                                    }}
+                                    className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[10px] cursor-pointer"
+                                    title="아래로 이동"
+                                  >
+                                    ▼
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveToolFromGroup(activeGroup, idx);
+                                  }}
+                                  className="p-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded text-[10px] cursor-pointer"
+                                  title="툴바에서 숨기기"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex justify-between items-center pt-2 border-t border-slate-800 text-[11px]">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolbarModalOpen(false);
+                          setSelectedProg('PG-USR-09');
+                          setSettingsTab('groups');
+                        }}
+                        className="text-sky-400 hover:underline text-[10px]"
+                      >
+                        + 다른 도구 추가 ➔
+                      </button>
+                      <div className="flex gap-1.5">
+                        <button
+                          type="button"
+                          onClick={handleResetConfig}
+                          className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[10px] cursor-pointer"
+                        >
+                          초기화
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolbarModalOpen(false);
+                            setIsReorderDragMode(false);
+                            setWiggleCardIdx(null);
+                            setDragOverIdx(null);
+                          }}
+                          className="px-3 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded font-bold text-[10px] cursor-pointer"
+                        >
+                          완료
+                        </button>
+                      </div>
+                    </div>
                   </div>
-
-                  <div className="w-px h-4 bg-slate-800 mx-0.5" />
-
-                  {/* 실행취소 (Undo) */}
-                  <button
-                    type="button"
-                    onClick={handleUndoAnnotation}
-                    disabled={undoStack.length === 0}
-                    className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
-                      undoStack.length > 0
-                        ? 'bg-slate-900 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:text-white'
-                        : 'bg-slate-950 text-slate-600 border-slate-800/60 cursor-not-allowed opacity-50'
-                    }`}
-                    title={`실행취소 (Ctrl + Z)${undoStack.length > 0 ? ` [${undoStack.length}단계 가능]` : ' (취소할 작업 없음)'}`}
-                  >
-                    <Undo2 className="w-4 h-4 stroke-[2]" />
-                  </button>
-
-                  {/* 다시실행 (Redo) */}
-                  <button
-                    type="button"
-                    onClick={handleRedoAnnotation}
-                    disabled={redoStack.length === 0}
-                    className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
-                      redoStack.length > 0
-                        ? 'bg-slate-900 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:text-white'
-                        : 'bg-slate-950 text-slate-600 border-slate-800/60 cursor-not-allowed'
-                    }`}
-                    title={`다시실행 (Ctrl + Y)${redoStack.length > 0 ? ` [${redoStack.length}단계 가능]` : ' (다시 실행할 작업 없음)'}`}
-                  >
-                    <Redo2 className="w-4 h-4 stroke-[2]" />
-                  </button>
-
-                  <div className="w-px h-4 bg-slate-800 mx-0.5" />
-
-                  {/* 배율 조절 드롭다운 (100% ∨) */}
-                  <div className="flex items-center rounded-lg bg-slate-900 border border-slate-800 p-0.5 text-xs font-mono">
-                    <button
-                      type="button"
-                      onClick={() => setViewerScale((s) => Math.max(0.5, parseFloat((s - 0.1).toFixed(1))))}
-                      className="px-1.5 py-0.5 text-slate-400 hover:text-white cursor-pointer"
-                      title="축소"
-                    >
-                      -
-                    </button>
-                    <span className="px-1 font-bold text-sky-400">{Math.round(viewerScale * 100)}%</span>
-                    <button
-                      type="button"
-                      onClick={() => setViewerScale((s) => Math.min(3.0, parseFloat((s + 0.1).toFixed(1))))}
-                      className="px-1.5 py-0.5 text-slate-400 hover:text-white cursor-pointer"
-                      title="확대"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              </div>
+                </>
+              )}
             </div>
 
-            {/* PG-USR-06 주석 패널 통합 렌더러 (상단배치 / 좌측배치 100% 동일 로직 공유 및 단일 진실 공급원) */}
-            {(() => null)()}
-            {/* 5. [피드백 1, 2, 3 반영] 가로 모드(horizontal)일 때 상단 위아래 배치 드로어 */}
-            {tabOrientation === 'horizontal' && isTabDrawerVisible && (
+            {/* [전체화면 래퍼] 주석영역 & 문서영역 전체화면 채우기 & 복구 */}
+            <div className={isViewerFullscreen ? 'fixed inset-0 z-50 bg-slate-950 p-2 sm:p-3 overflow-hidden flex flex-col space-y-2 animate-in fade-in duration-150' : 'space-y-2.5'}>
+              {/* PG-USR-06 주석 패널 통합 렌더러 (상단배치 / 좌측배치 100% 동일 로직 공유 및 단일 진실 공급원) */}
+              {(() => null)()}
+              {/* 5. [피드백 1, 2, 3 반영] 가로 모드(horizontal)일 때 상단 위아래 배치 드로어 (젠 모드 시 숨김) */}
+              {effectiveTabOrientation === 'horizontal' && isTabDrawerVisible && !isImmersiveZenMode && (
               <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2 animate-in slide-in-from-top-2 duration-150 shadow-md">
                 <div className="border-b border-slate-800 pb-2 space-y-2 md:space-y-0 md:flex md:items-center md:justify-between">
                   {/* [피드백 1 반영] 모바일 모드 및 협소 화면: 탭 밑으로 높이설정이 가는 어색함 해소 ➔ 상단 1단에 높이설정 + 전환/닫기 우선 배치 */}
@@ -4453,15 +5174,17 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                         </button>
                       )}
 
-                      {/* [피드백 08 반영] 가로세로 전환버튼 및 닫기버튼 아이콘 크기·스타일 100% 일체화 (w-7 h-7, w-4 h-4) */}
-                      <button
-                        type="button"
-                        onClick={() => handleSwitchOrientation('vertical')}
-                        className="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-sky-400 border border-slate-800 hover:border-sky-500/50 transition-colors cursor-pointer flex items-center justify-center shadow-2xs shrink-0"
-                        title="세로 모드(좌측 패널)로 배치 전환"
-                      >
-                        <PanelLeft className="w-4 h-4 stroke-[2]" />
-                      </button>
+                      {/* [요구사항 2] 가로세로 전환 버튼: 모바일 모드에서는 숨김, 데스크톱 복귀 시 노출 */}
+                      {!isMobileMode && (
+                        <button
+                          type="button"
+                          onClick={() => handleSwitchOrientation('vertical')}
+                          className="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-sky-400 border border-slate-800 hover:border-sky-500/50 transition-colors cursor-pointer flex items-center justify-center shadow-2xs shrink-0"
+                          title="세로 모드(좌측 패널)로 배치 전환"
+                        >
+                          <PanelLeft className="w-4 h-4 stroke-[2]" />
+                        </button>
+                      )}
 
                       <button
                         type="button"
@@ -4525,9 +5248,9 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
             )}
 
             {/* 6. 메인 워크스페이스: [세로 모드일 때 좌측 패널 + 드래그 리사이저 분할바 + 고성능 가상 캔버스 뷰포트] */}
-            <div className={`flex flex-col ${tabOrientation === 'vertical' && isTabDrawerVisible ? 'md:flex-row' : ''} gap-0 min-h-[480px] relative`}>
-              {/* [피드백 C, D 반영] 세로 모드(vertical)일 때 문서영역 좌측에 나란히 배치되는 세로 사이드 패널 */}
-              {tabOrientation === 'vertical' && isTabDrawerVisible && (
+            <div className={`flex flex-col ${effectiveTabOrientation === 'vertical' && isTabDrawerVisible && !isImmersiveZenMode ? 'md:flex-row' : ''} gap-0 min-h-[480px] flex-1 relative`}>
+              {/* [피드백 C, D 반영] 세로 모드(vertical)일 때 문서영역 좌측에 나란히 배치되는 세로 사이드 패널 (젠 모드 시 숨김) */}
+              {effectiveTabOrientation === 'vertical' && isTabDrawerVisible && !isImmersiveZenMode && (
                 <>
                   <div
                     style={{ width: isMobileMode ? '100%' : `${viewerSidebarWidth}px` }}
@@ -4552,15 +5275,17 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                         </div>
 
                         <div className="flex items-center gap-1.5 ml-auto">
-                          {/* [피드백 08 반영] 레이아웃 모드 전환 버튼: 세로 ➔ 가로 (w-7 h-7, w-4 h-4 통일) */}
-                          <button
-                            type="button"
-                            onClick={() => handleSwitchOrientation('horizontal')}
-                            className="w-7 h-7 rounded-lg bg-sky-950/70 hover:bg-sky-900 text-sky-400 border border-sky-500/50 hover:border-sky-400 cursor-pointer transition-colors flex items-center justify-center shadow-2xs shrink-0"
-                            title="가로 모드(상단 서랍)로 배치 전환"
-                          >
-                            <PanelTop className="w-4 h-4 stroke-[2]" />
-                          </button>
+                          {/* [요구사항 2] 가로세로 전환 버튼: 모바일 모드에서는 숨김, 데스크톱 복귀 시 노출 */}
+                          {!isMobileMode && (
+                            <button
+                              type="button"
+                              onClick={() => handleSwitchOrientation('horizontal')}
+                              className="w-7 h-7 rounded-lg bg-sky-950/70 hover:bg-sky-900 text-sky-400 border border-sky-500/50 hover:border-sky-400 cursor-pointer transition-colors flex items-center justify-center shadow-2xs shrink-0"
+                              title="가로 모드(상단 서랍)로 배치 전환"
+                            >
+                              <PanelTop className="w-4 h-4 stroke-[2]" />
+                            </button>
+                          )}
                           {/* 닫기 버튼: 전환버튼과 동일 규격 및 Lucide X 아이콘 적용 */}
                           <button
                             type="button"
@@ -4645,101 +5370,164 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
 
               {/* 중앙 대용량 가상 뷰포트 캔버스 영역 (60fps 가상 스크롤러 & LRU 메모리가드 연동) */}
               <div
-                className="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-col justify-between relative overflow-hidden shadow-inner min-w-0"
+                className={`flex-1 bg-slate-950 border border-slate-800 rounded-xl ${isViewerFullscreen ? 'p-1.5 sm:p-2.5 h-full' : 'p-3'} flex flex-col justify-between relative overflow-hidden shadow-inner min-w-0`}
               >
-                {/* 캔버스 상단 가상화 뷰어 상태 배너 & OCR 선택 툴팁 */}
-                <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-slate-900/90 border border-slate-800 rounded-lg text-xs mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-400 font-bold flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                      60fps 가상 렌더러
-                    </span>
-                    <span className="text-slate-500 font-mono text-[10px]">
-                      | LRU 캐시: {viewerCurrentPage}/{activeViewingDoc?.totalPages || 800}P (메모리 2.1MB 절약)
-                    </span>
-                  </div>
+                {/* 캔버스 상단 가상화 뷰어 상태 배너 & OCR 선택 툴팁 (몰입형 독서 시 숨김) */}
+                {!isImmersiveZenMode && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-slate-900/90 border border-slate-800 rounded-lg text-xs mb-2 transition-all animate-in fade-in duration-100">
+                    <div className="flex items-center gap-2">
+                      <span className="text-emerald-400 font-bold flex items-center gap-1" title="60fps 가상 렌더러 동작 중">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        {!isMobileMode && <span>60fps 가상 렌더러</span>}
+                      </span>
+                      {!isMobileMode && (
+                        <span className="text-slate-500 font-mono text-[10px]">
+                          | LRU 캐시: {viewerCurrentPage}/{activeViewingDoc?.totalPages || 800}P (메모리 2.1MB 절약)
+                        </span>
+                      )}
+                    </div>
 
-                  {/* OCR 텍스트 퀵 액션 및 바운딩 박스 상태 */}
-                  <div className="flex items-center gap-1.5 text-[11px]">
-                    <span className="text-slate-400 text-[10px] hidden sm:inline">OCR 텍스트 레이어:</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const pageSample = `[purePDFrend p.${viewerCurrentPage}] 제 ${Math.floor(viewerCurrentPage / 10) + 1}장. 대용량 전자책 아카이빙 및 가상 렌더링 - 투명 텍스트 레이어(Searchable PDF)가 스캔 이미지 하단에 정확히 정렬되어 단어 검색과 텍스트 복사를 완벽히 지원한다.`;
-                        navigator.clipboard?.writeText?.(pageSample);
-                        showToast(`제 ${viewerCurrentPage}쪽 본문 전체 텍스트가 클립보드에 복사되었습니다.`, 'info');
-                      }}
-                      className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] cursor-pointer"
-                    >
-                      전체복사
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        // OCR 바운딩 박스 전체를 형광펜 주석으로 일괄 변환 생성
-                        const newAnn: CanvasVectorAnnotation = {
-                          id: `ann-ocr-${Date.now()}`,
-                          page: viewerCurrentPage,
-                          toolKind: 'highlighter',
-                          name: `OCR 형광펜 #${vectorAnnotations.length + 1}`,
-                          author: 'jkok2j2m',
-                          text: `제 ${viewerCurrentPage}쪽 Searchable PDF 핵심 문장`,
-                          color: '#facc15',
-                          strokeWidth: 12,
-                          opacity: 50,
-                          date: '방금 전',
-                          tags: ['OCR', 'Searchable PDF'],
-                          isAiGenerated: true,
-                          confidence: 0.98,
-                        };
-                        pushAnnotationHistory([...vectorAnnotations, newAnn]);
-                        setSelectedVectorId(newAnn.id);
-                        setPulseAnnotationId(newAnn.id);
-                        setTimeout(() => setPulseAnnotationId(null), 1800);
-                        setAnnotFilterTypes((prev) => new Set([...prev, 'markup']));
-                        showToast(`제 ${viewerCurrentPage}페이지에 OCR 바운딩 박스 형광펜 주석이 자동 생성되었습니다.`, 'success');
-                      }}
-                      className="px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 text-[10px] font-bold cursor-pointer flex items-center gap-1"
-                    >
-                      <Sparkles className="w-3 h-3 text-yellow-400" />
-                      <span>+ OCR 형광펜</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newAnn: CanvasVectorAnnotation = {
-                          id: `ann-ocr-note-${Date.now()}`,
-                          page: viewerCurrentPage,
-                          toolKind: 'text',
-                          name: `OCR 메모 #${vectorAnnotations.length + 1}`,
-                          author: 'jkok2j2m',
-                          text: `제 ${viewerCurrentPage}페이지 OCR 인식 구역 발췌 메모`,
-                          color: '#38bdf8',
-                          strokeWidth: 1,
-                          opacity: 100,
-                          fontSize: 13,
-                          date: '방금 전',
-                          tags: ['OCR', '메모'],
-                          isAiGenerated: true,
-                          confidence: 0.96,
-                        };
-                        pushAnnotationHistory([...vectorAnnotations, newAnn]);
-                        setSelectedVectorId(newAnn.id);
-                        setPulseAnnotationId(newAnn.id);
-                        setTimeout(() => setPulseAnnotationId(null), 1800);
-                        setAnnotFilterTypes((prev) => new Set([...prev, 'text']));
-                        showToast(`제 ${viewerCurrentPage}페이지에 OCR 텍스트 기반 주석 메모가 등록되었습니다.`, 'success');
-                      }}
-                      className="px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 hover:bg-sky-500/30 text-[10px] font-bold cursor-pointer"
-                    >
-                      + OCR 메모
-                    </button>
+                    {/* OCR 텍스트 퀵 액션 및 바운딩 박스 상태 & 전체화면/복구 토글 */}
+                    <div className="flex items-center gap-1.5 text-[11px]">
+                      <span className="text-slate-400 text-[10px] hidden sm:inline">OCR:</span>
+                      {/* [요청 7.1] OCR 텍스트 퀵 액션: 모바일 모드 시 아이콘만 표시 */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const pageSample = `[purePDFrend p.${viewerCurrentPage}] 제 ${Math.floor(viewerCurrentPage / 10) + 1}장. 대용량 전자책 아카이빙 및 가상 렌더링 - 투명 텍스트 레이어(Searchable PDF)가 스캔 이미지 하단에 정확히 정렬되어 단어 검색과 텍스트 복사를 완벽히 지원한다.`;
+                          navigator.clipboard?.writeText?.(pageSample);
+                          showToast(`제 ${viewerCurrentPage}쪽 본문 전체 텍스트가 클립보드에 복사되었습니다.`, 'info');
+                        }}
+                        className={`rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] cursor-pointer flex items-center justify-center ${
+                          isMobileMode ? 'p-1.5' : 'px-2 py-0.5'
+                        }`}
+                        title="제 쪽 본문 전체 텍스트 클립보드 복사"
+                      >
+                        {isMobileMode ? <Copy className="w-3.5 h-3.5" /> : '전체복사'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // OCR 바운딩 박스 전체를 형광펜 주석으로 일괄 변환 생성
+                          const newAnn: CanvasVectorAnnotation = {
+                            id: `ann-ocr-${Date.now()}`,
+                            page: viewerCurrentPage,
+                            toolKind: 'highlighter',
+                            name: `OCR 형광펜 #${vectorAnnotations.length + 1}`,
+                            author: 'jkok2j2m',
+                            text: `제 ${viewerCurrentPage}쪽 Searchable PDF 핵심 문장`,
+                            color: '#facc15',
+                            strokeWidth: 12,
+                            opacity: 50,
+                            date: '방금 전',
+                            tags: ['OCR', 'Searchable PDF'],
+                            isAiGenerated: true,
+                            confidence: 0.98,
+                          };
+                          pushAnnotationHistory([...vectorAnnotations, newAnn]);
+                          setSelectedVectorId(newAnn.id);
+                          setPulseAnnotationId(newAnn.id);
+                          setTimeout(() => setPulseAnnotationId(null), 1800);
+                          setAnnotFilterTypes((prev) => new Set([...prev, 'markup']));
+                          showToast(`제 ${viewerCurrentPage}페이지에 OCR 바운딩 박스 형광펜 주석이 자동 생성되었습니다.`, 'success');
+                        }}
+                        className={`rounded bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 text-[10px] font-bold cursor-pointer flex items-center justify-center gap-1 ${
+                          isMobileMode ? 'p-1.5' : 'px-2 py-0.5'
+                        }`}
+                        title="OCR 형광펜 주석 생성"
+                      >
+                        {isMobileMode ? (
+                          <Highlighter className="w-3.5 h-3.5 text-yellow-400" />
+                        ) : (
+                          <>
+                            <Sparkles className="w-3 h-3 text-yellow-400" />
+                            <span>+ 형광펜</span>
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newAnn: CanvasVectorAnnotation = {
+                            id: `ann-ocr-note-${Date.now()}`,
+                            page: viewerCurrentPage,
+                            toolKind: 'text',
+                            name: `OCR 메모 #${vectorAnnotations.length + 1}`,
+                            author: 'jkok2j2m',
+                            text: `제 ${viewerCurrentPage}페이지 OCR 인식 구역 발췌 메모`,
+                            color: '#38bdf8',
+                            strokeWidth: 1,
+                            opacity: 100,
+                            fontSize: 13,
+                            date: '방금 전',
+                            tags: ['OCR', '메모'],
+                            isAiGenerated: true,
+                            confidence: 0.96,
+                          };
+                          pushAnnotationHistory([...vectorAnnotations, newAnn]);
+                          setSelectedVectorId(newAnn.id);
+                          setPulseAnnotationId(newAnn.id);
+                          setTimeout(() => setPulseAnnotationId(null), 1800);
+                          setAnnotFilterTypes((prev) => new Set([...prev, 'text']));
+                          showToast(`제 ${viewerCurrentPage}페이지에 OCR 텍스트 기반 주석 메모가 등록되었습니다.`, 'success');
+                        }}
+                        className={`rounded bg-sky-500/20 text-sky-300 hover:bg-sky-500/30 text-[10px] font-bold cursor-pointer flex items-center justify-center ${
+                          isMobileMode ? 'p-1.5' : 'px-2 py-0.5'
+                        }`}
+                        title="OCR 메모 생성"
+                      >
+                        {isMobileMode ? <FileText className="w-3.5 h-3.5 text-sky-400" /> : '+ 메모'}
+                      </button>
+
+                      {/* [요구사항 1] 주석영역 & 문서영역 전체화면 채우기 / 복구 토글 버튼 */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextState = !isViewerFullscreen;
+                          setIsViewerFullscreen(nextState);
+                          if (!nextState) setIsImmersiveZenMode(false);
+                          showToast(
+                            nextState
+                              ? '🖥️ 주석·문서영역 전체화면 모드 (문서를 클릭하면 상/하단 도구를 숨길 수 있습니다. ESC로 복구)'
+                              : '↩️ 일반 화면으로 복구되었습니다.',
+                            'info'
+                          );
+                        }}
+                        className={`rounded text-[10px] font-bold cursor-pointer flex items-center justify-center gap-1 transition-all ${
+                          isViewerFullscreen
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-400/60 hover:bg-amber-500/30 shadow-xs'
+                            : 'bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 hover:border-sky-500'
+                        } ${isMobileMode ? 'p-1.5' : 'px-2 py-0.5'}`}
+                        title={isViewerFullscreen ? '화면 복구 (ESC)' : '주석·문서영역 전체화면'}
+                      >
+                        {isViewerFullscreen ? (
+                          <>
+                            <Minimize2 className="w-3.5 h-3.5 text-amber-400" />
+                            {!isMobileMode && <span>복구</span>}
+                          </>
+                        ) : (
+                          <>
+                            <Maximize2 className="w-3.5 h-3.5 text-sky-400" />
+                            {!isMobileMode && <span>전체화면</span>}
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* 실제 도서 본문 렌더링 캔버스 (확대/회전/Searchable PDF 하이라이트 반영 + [0021-01] 좌/우 여백 클릭 페이지 이동) */}
                 <div
                   onClick={(e) => {
+                    // 전체화면 모드 시 문서 영역 클릭하면 상/하단 제거(몰입형 Zen) 또는 재표시 토글
+                    if (isViewerFullscreen) {
+                      const target = e.target as HTMLElement;
+                      if (target.closest('button') || target.closest('input') || target.closest('select')) {
+                        return;
+                      }
+                      setIsImmersiveZenMode((prev) => !prev);
+                      return;
+                    }
                     if (!navigateOnMarginClick) return;
                     const target = e.target as HTMLElement;
                     // 페이지 카드 내부 클릭이거나 버튼, 입력창, 팝오버 클릭이면 무시
@@ -4854,12 +5642,24 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                   </div>
 
                   <div
+                    onClick={(e) => {
+                      // 전체화면 모드 시 본문 카드 클릭으로 상단/하단 숨김(젠 모드) 토글
+                      if (isViewerFullscreen) {
+                        const target = e.target as HTMLElement;
+                        if (target.closest('button') || target.closest('input') || target.closest('select')) {
+                          return;
+                        }
+                        setIsImmersiveZenMode((prev) => !prev);
+                      }
+                    }}
                     style={{
                       transform: `scale(${viewerScale}) rotate(${viewerRotation}deg)`,
                       transformOrigin: 'center center',
                       transition: 'transform 0.15s ease-out',
                     }}
-                    className="document-page-card w-full max-w-xl bg-white text-slate-900 rounded-lg p-6 sm:p-8 shadow-2xl space-y-4 select-text relative border border-slate-300 cursor-default"
+                    className={`document-page-card w-full max-w-xl bg-white text-slate-900 rounded-lg p-6 sm:p-8 shadow-2xl space-y-4 select-text relative border border-slate-300 ${
+                      isViewerFullscreen ? 'cursor-pointer' : 'cursor-default'
+                    }`}
                   >
                     {/* 상단 헤더 쪽수 표시 */}
                     <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono border-b border-slate-200 pb-2">
@@ -4965,6 +5765,13 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                                         title={`클릭하여 ${markup.name} 관리 팝오버 열기`}
                                       >
                                         {markup.text || markup.name}
+                                        {/* [협업 기능] 작성자 라벨 표시 */}
+                                        {showAuthorLabels && markup.author && (
+                                          <span className="ml-1 inline-flex items-center gap-0.5 text-[9px] px-1 py-0.2 rounded-full bg-slate-900/90 text-sky-300 font-mono border border-sky-500/40 shadow-xs align-middle font-normal">
+                                            <span>🙂</span>
+                                            <span>{markup.author}</span>
+                                          </span>
+                                        )}
                                       </span>
 
                                       {/* 터치 핸들러 시각적 점프 표시기 (블루 핸들러 ● --- ●) */}
@@ -5510,12 +6317,13 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                   </div>
                 </div>
 
-                {/* 캔버스 하단 플로팅 컨트롤 (빠른 페이지 넘김 & [0021-01] 인라인 쪽수/배율 직접수정 + 여백클릭 토글) */}
-                <div className="mt-2 pt-2 border-t border-slate-800 flex flex-wrap justify-between items-center text-xs text-slate-400 gap-2">
+                {/* 캔버스 하단 플로팅 컨트롤 (빠른 페이지 넘김 & [0021-01] 인라인 쪽수/배율 직접수정 + 여백클릭 토글) (젠 모드 시 숨김) */}
+                {!isImmersiveZenMode && (
+                  <div className="mt-2 pt-2 border-t border-slate-800 flex flex-wrap justify-between items-center text-xs text-slate-400 gap-2 transition-all animate-in fade-in duration-100">
                   <div className="flex items-center gap-2 flex-wrap">
                     {/* 1. 열람 쪽수 인라인 수정 필드 */}
                     <div className="flex items-center gap-1 font-mono text-slate-300">
-                      <span>열람 쪽수:</span>
+                      {!isMobileMode && <span>열람 쪽수:</span>}
                       {isEditingBottomPage ? (
                         <input
                           type="number"
@@ -5562,14 +6370,14 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                           {viewerCurrentPage} ✏️
                         </button>
                       )}
-                      <span>/ {activeViewingDoc?.totalPages || 800} 페이지</span>
+                      <span>/ {activeViewingDoc?.totalPages || 800}{!isMobileMode && ' 페이지'}</span>
                     </div>
 
                     <span className="text-slate-600">|</span>
 
                     {/* [피드백 03 반영] 배율 선택목록과 직접입력을 단일 통합 콤보박스(Unified Zoom Combobox)로 일체화 (더블클릭 선택 & 포커스아웃 자동적용) */}
                     <div className="flex items-center gap-1.5 text-[11px] text-slate-300">
-                      <span>배율:</span>
+                      {!isMobileMode && <span>배율:</span>}
                       <div className="relative inline-flex items-center">
                         <div className="relative flex items-center">
                           <input
@@ -5677,25 +6485,32 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
 
                     <span className="text-slate-600">|</span>
 
-                    {/* 3. 여백 클릭 이동 토글 칩 */}
+                    {/* [요청 7.1] 3. 여백 클릭 이동 토글 칩: 모바일 모드 시 아이콘만 표시 */}
                     <button
                       type="button"
                       onClick={() => {
                         setNavigateOnMarginClick(!navigateOnMarginClick);
                         showToast(`여백 클릭 페이지 이동: ${!navigateOnMarginClick ? '활성화' : '해제'}`, 'info');
                       }}
-                      className={`px-2 py-0.5 rounded text-[10px] font-medium border cursor-pointer transition-colors ${
+                      className={`rounded text-[10px] font-medium border cursor-pointer transition-colors flex items-center justify-center ${
+                        isMobileMode ? 'p-1.5' : 'px-2 py-0.5'
+                      } ${
                         navigateOnMarginClick
                           ? 'bg-sky-500/20 text-sky-400 border-sky-500/40'
                           : 'bg-slate-900 text-slate-500 border-slate-800'
                       }`}
-                      title="문서 좌/우 빈 여백 클릭 시 이전/다음 페이지 이동 토글"
+                      title={`문서 좌/우 빈 여백 클릭 시 이전/다음 페이지 이동 토글 (${navigateOnMarginClick ? 'ON' : 'OFF'})`}
                     >
-                      여백클릭 이동: {navigateOnMarginClick ? 'ON' : 'OFF'}
+                      {isMobileMode ? (
+                        <MousePointerClick className="w-3.5 h-3.5" />
+                      ) : (
+                        `여백클릭 이동: ${navigateOnMarginClick ? 'ON' : 'OFF'}`
+                      )}
                     </button>
                   </div>
 
                   <div className="flex items-center gap-1.5">
+                    {/* [요청 7.1] 이전 쪽: 모바일 모드 시 아이콘만 표시 */}
                     <button
                       type="button"
                       onClick={() => {
@@ -5703,10 +6518,15 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                         setViewerCurrentPage(next);
                         setViewerJumpInput(String(next));
                       }}
-                      className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-medium cursor-pointer"
+                      className={`rounded bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-medium cursor-pointer flex items-center justify-center ${
+                        isMobileMode ? 'p-1.5' : 'px-2.5 py-1'
+                      }`}
+                      title="이전 쪽"
                     >
-                      ◀ 이전 쪽
+                      {isMobileMode ? <ChevronLeft className="w-4 h-4" /> : '◀ 이전 쪽'}
                     </button>
+
+                    {/* [요청 7.1] 다음 쪽: 모바일 모드 시 아이콘만 표시 */}
                     <button
                       type="button"
                       onClick={() => {
@@ -5715,14 +6535,35 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
                         setViewerCurrentPage(next);
                         setViewerJumpInput(String(next));
                       }}
-                      className="px-2.5 py-1 rounded bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold cursor-pointer"
+                      className={`rounded bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold cursor-pointer flex items-center justify-center ${
+                        isMobileMode ? 'p-1.5' : 'px-2.5 py-1'
+                      }`}
+                      title="다음 쪽"
                     >
-                      다음 쪽 ▶
+                      {isMobileMode ? <ChevronRight className="w-4 h-4" /> : '다음 쪽 ▶'}
                     </button>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* [전체화면 복구 플로팅 버튼] 전체화면 중 상/하단 숨김 여부와 무관하게 언제든 복구 가능 */}
+              {isViewerFullscreen && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsViewerFullscreen(false);
+                    setIsImmersiveZenMode(false);
+                    showToast('↩️ 일반 화면으로 복구되었습니다.', 'info');
+                  }}
+                  className="absolute top-3 right-3 z-40 p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80 shadow-2xl backdrop-blur-md transition-all cursor-pointer group"
+                  title="전체화면 종료 및 복구 (ESC)"
+                >
+                  <Minimize2 className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+                </button>
+              )}
             </div>
+          </div>
+        </div>
 
             {/* 비차단 인앱 토스트 피드백 */}
             {viewerToast && (
@@ -6875,116 +7716,1214 @@ export function UserWireframes({ isMobileMode = false }: UserWireframesProps) {
           </div>
         )}
 
-        {/* PG-USR-07: 문서공유 및 협업작업뷰 (공유권한/동시접속자/실시간활동피드) */}
+        {/* PG-USR-07: 문서공유 및 협업작업 관리 대시보드 (공유관리/사용관리 2대 탭, 필터, 팝업 연동) */}
         {selectedProg === 'PG-USR-07' && (
           <div className="space-y-4 text-xs">
-            {/* 상단 공유 설정 바 */}
-            <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-800">
+            {/* 상단 통계 위젯 & 신규 링크 등록 액션 바 */}
+            <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl shadow-xl space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
                 <div>
-                  <h4 className="font-bold text-white text-sm">🔗 문서 공유 링크 및 접근 권한 설정</h4>
-                  <p className="text-[11px] text-slate-400 mt-0.5">대상 문서: ISO 32000-2 표준 가이드북 (840쪽)</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🔗</span>
+                    <h3 className="font-bold text-white text-base">문서공유 및 협업작업 관리 센터</h3>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-mono border border-sky-500/30">
+                      PG-USR-07
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    발급된 공유 링크의 권한 및 유효기간을 통제하고, 실시간 동시 열람 협업자의 작업현황을 한눈에 모니터링합니다.
+                  </p>
                 </div>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono">
-                  실시간 협업 가동중
-                </span>
-              </div>
 
-              <div className="flex flex-wrap sm:flex-nowrap gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  value="https://purepdfrend.io/share/DOC-9821-X3A"
-                  className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sky-300 font-mono text-xs select-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => alert('공유 링크가 클립보드에 복사되었습니다.')}
-                  className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-bold shrink-0 transition-colors"
-                >
-                  링크 복사
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-                <div className="p-2.5 bg-slate-900 rounded-lg border border-slate-800">
-                  <span className="text-slate-400 block text-[11px] mb-1">열람 권한</span>
-                  <select className="w-full bg-slate-950 border border-slate-700 rounded p-1 text-slate-200 text-xs">
-                    <option>열람 및 주석달기 허용 (기본)</option>
-                    <option>읽기 전용 (주석 불가)</option>
-                    <option>공동 편집자 (완전 권한)</option>
-                  </select>
-                </div>
-                <div className="p-2.5 bg-slate-900 rounded-lg border border-slate-800">
-                  <span className="text-slate-400 block text-[11px] mb-1">유효 기간</span>
-                  <select className="w-full bg-slate-950 border border-slate-700 rounded p-1 text-slate-200 text-xs">
-                    <option>7일 후 만료</option>
-                    <option>30일 후 만료</option>
-                    <option>무제한 (상시 유지)</option>
-                  </select>
-                </div>
-                <div className="p-2.5 bg-slate-900 rounded-lg border border-slate-800">
-                  <span className="text-slate-400 block text-[11px] mb-1">보안 암호 설정</span>
-                  <input
-                    type="password"
-                    placeholder="비밀번호 미설정 (공개)"
-                    className="w-full bg-slate-950 border border-slate-700 rounded p-1 text-slate-200 text-xs"
-                  />
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingShareLink(null);
+                      setShareFormTargetKind('file');
+                      setShareFormTargetDocTitle('ISO 32000-2 표준 가이드북');
+                      setShareFormPermission('reviewer');
+                      setShareFormPeriodKind('7d');
+                      setShareFormIsPublicRead(true);
+                      setShareFormPassword('');
+                      setIsShareCreateModalOpen(true);
+                    }}
+                    className="px-3.5 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-sky-600/20 transition-all cursor-pointer hover:scale-102"
+                  >
+                    <span>+</span>
+                    <span>새 공유링크 등록</span>
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* 동시 접속자 목록 & 실시간 활동 피드 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                  <span className="font-bold text-white text-sm">👥 현재 동시 열람 협업자 (3명)</span>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            {/* 다차원 검색/필터 바 (정책 03-14 준수: 모바일 자동 래핑 및 가로스크롤 차단) */}
+            <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* [요청 3] 탭 불필요 -> 검색조건에 공유구분 항목 추가 */}
+                <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 text-[11px]">
+                  <span className="text-slate-400 shrink-0">공유구분:</span>
+                  <select
+                    value={shareOwnershipFilter}
+                    onChange={(e) => setShareOwnershipFilter(e.target.value as any)}
+                    className="bg-slate-900 text-slate-200 font-medium focus:outline-hidden cursor-pointer"
+                  >
+                    <option value="all" className="bg-slate-900 text-slate-200">전체 구분</option>
+                    <option value="provided" className="bg-slate-900 text-slate-200">📤 내가 발급한 공유</option>
+                    <option value="participated" className="bg-slate-900 text-slate-200">📥 내가 초대받은 문서</option>
+                  </select>
                 </div>
+
+                {/* 1. 공유대상 구분 */}
+                <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 text-[11px]">
+                  <span className="text-slate-400 shrink-0">대상:</span>
+                  <select
+                    value={shareScopeFilter}
+                    onChange={(e) => setShareScopeFilter(e.target.value as any)}
+                    className="bg-slate-900 text-slate-200 font-medium focus:outline-hidden cursor-pointer"
+                  >
+                    <option value="all" className="bg-slate-900 text-slate-200">전체 대상</option>
+                    <option value="file" className="bg-slate-900 text-slate-200">📄 단일 문서</option>
+                    <option value="category" className="bg-slate-900 text-slate-200">📁 카테고리/폴더</option>
+                  </select>
+                </div>
+
+                {/* 2. 권한 필터 */}
+                <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 text-[11px]">
+                  <span className="text-slate-400 shrink-0">권한:</span>
+                  <select
+                    value={shareRoleFilter}
+                    onChange={(e) => setShareRoleFilter(e.target.value as any)}
+                    className="bg-slate-900 text-slate-200 font-medium focus:outline-hidden cursor-pointer"
+                  >
+                    <option value="all" className="bg-slate-900 text-slate-200">전체 권한</option>
+                    <option value="viewer" className="bg-slate-900 text-slate-200">읽기 전용</option>
+                    <option value="reviewer" className="bg-slate-900 text-slate-200">주석 작성 허용</option>
+                    <option value="editor" className="bg-slate-900 text-slate-200">공동 편집자</option>
+                  </select>
+                </div>
+
+                {/* 3. 기간 필터 */}
+                <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 text-[11px]">
+                  <span className="text-slate-400 shrink-0">기간:</span>
+                  <select
+                    value={sharePeriodFilter}
+                    onChange={(e) => setSharePeriodFilter(e.target.value as any)}
+                    className="bg-slate-900 text-slate-200 font-medium focus:outline-hidden cursor-pointer"
+                  >
+                    <option value="all" className="bg-slate-900 text-slate-200">전체 기간</option>
+                    <option value="valid" className="bg-slate-900 text-slate-200">유효함 (정상)</option>
+                    <option value="expiring" className="bg-slate-900 text-slate-200">7일 이내 만료임박</option>
+                    <option value="expired" className="bg-slate-900 text-slate-200">만료됨</option>
+                    <option value="unlimited" className="bg-slate-900 text-slate-200">무제한</option>
+                  </select>
+                </div>
+
+                {/* 4. 상태 필터 */}
+                <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 text-[11px]">
+                  <span className="text-slate-400 shrink-0">상태:</span>
+                  <select
+                    value={shareStatusFilter}
+                    onChange={(e) => setShareStatusFilter(e.target.value as any)}
+                    className="bg-slate-900 text-slate-200 font-medium focus:outline-hidden cursor-pointer"
+                  >
+                    <option value="all" className="bg-slate-900 text-slate-200">전체 상태</option>
+                    <option value="active" className="bg-slate-900 text-slate-200">활성중</option>
+                    <option value="unused" className="bg-slate-900 text-slate-200">미사용 (0명 접속)</option>
+                    <option value="revoked" className="bg-slate-900 text-slate-200">회수완료</option>
+                  </select>
+                </div>
+
+                {/* 5. [요청 4.3] 게스트열람여부 체크박스 추가 */}
+                <label className="flex items-center gap-1.5 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800 text-[11px] text-slate-300 cursor-pointer hover:border-slate-700 select-none">
+                  <input
+                    type="checkbox"
+                    checked={sharePublicGuestFilter}
+                    onChange={(e) => setSharePublicGuestFilter(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded text-sky-500 focus:ring-0 cursor-pointer accent-sky-500"
+                  />
+                  <span>게스트열람 허용</span>
+                </label>
+
+                {/* 6. 텍스트 검색 인풋 */}
+                <div className="flex-1 min-w-[180px] relative">
+                  <input
+                    type="text"
+                    value={shareSearchQuery}
+                    onChange={(e) => setShareSearchQuery(e.target.value)}
+                    placeholder="문서명, 소유자명 검색..."
+                    className="w-full pl-8 pr-3 py-1 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 text-xs focus:outline-hidden focus:border-sky-500"
+                  />
+                  <span className="absolute left-2.5 top-1.5 text-slate-500 text-xs">🔍</span>
+                  {shareSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setShareSearchQuery('')}
+                      className="absolute right-2 top-1 text-slate-500 hover:text-slate-300 text-xs"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {(shareOwnershipFilter !== 'all' ||
+                  shareScopeFilter !== 'all' ||
+                  shareRoleFilter !== 'all' ||
+                  sharePeriodFilter !== 'all' ||
+                  shareStatusFilter !== 'all' ||
+                  sharePublicGuestFilter ||
+                  shareSearchQuery) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShareOwnershipFilter('all');
+                      setShareScopeFilter('all');
+                      setShareRoleFilter('all');
+                      setSharePeriodFilter('all');
+                      setShareStatusFilter('all');
+                      setSharePublicGuestFilter(false);
+                      setShareSearchQuery('');
+                    }}
+                    className="px-2 py-1 text-[11px] text-sky-400 hover:underline cursor-pointer"
+                  >
+                    초기화
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* 필터링된 공유 문서 목록 렌더링 */}
+            {(() => {
+              const currentList = shareLinksList
+                .filter((item) => {
+                  if (shareOwnershipFilter === 'all') return true;
+                  return shareOwnershipFilter === 'provided' ? item.myRole === 'owner' : item.myRole === 'invited';
+                })
+                .filter((item) => (shareScopeFilter === 'all' ? true : item.targetKind === shareScopeFilter))
+                .filter((item) => (shareRoleFilter === 'all' ? true : item.permission === shareRoleFilter))
+                .filter((item) => (sharePublicGuestFilter ? item.isPublicRead : true))
+                .filter((item) => {
+                  if (sharePeriodFilter === 'all') return true;
+                  if (sharePeriodFilter === 'unlimited') return item.periodKind === 'unlimited';
+                  if (sharePeriodFilter === 'expired') return item.isExpired;
+                  if (sharePeriodFilter === 'valid') return !item.isExpired && !item.isRevoked;
+                  if (sharePeriodFilter === 'expiring') return item.expireDateText.includes('D-');
+                  return true;
+                })
+                .filter((item) => {
+                  if (shareStatusFilter === 'all') return true;
+                  if (shareStatusFilter === 'revoked') return item.isRevoked;
+                  if (shareStatusFilter === 'unused') return item.activeCollaboratorCount === 0;
+                  if (shareStatusFilter === 'active') return !item.isRevoked && !item.isExpired;
+                  return true;
+                })
+                .filter((item) => {
+                  if (!shareSearchQuery.trim()) return true;
+                  const q = shareSearchQuery.toLowerCase();
+                  return (
+                    item.targetName.toLowerCase().includes(q) ||
+                    item.ownerName.toLowerCase().includes(q) ||
+                    item.docId.toLowerCase().includes(q)
+                  );
+                });
+
+              if (currentList.length === 0) {
+                return (
+                  <div className="p-8 bg-slate-950 border border-slate-800 rounded-2xl text-center space-y-2">
+                    <span className="text-3xl block">📭</span>
+                    <p className="text-slate-300 font-bold text-sm">조건과 일치하는 공유 문서가 없습니다.</p>
+                    <p className="text-slate-500 text-xs">검색 조건을 변경하거나 새 공유 링크를 등록해보세요.</p>
+                  </div>
+                );
+              }
+
+              return (
                 <div className="space-y-2">
-                  {[
-                    { name: '홍길동 (나)', role: '문서 소유자', page: 'p.12 열람중', color: 'border-sky-500' },
-                    { name: '김철수 책임', role: '주석 검토자', page: 'p.14 형광펜 작성중', color: 'border-emerald-500' },
-                    { name: '이영희 매니저', role: '단순 열람자', page: 'p.4 목차 탐색중', color: 'border-amber-500' },
-                  ].map((user) => (
-                    <div key={user.name} className="flex items-center justify-between p-2.5 bg-slate-900 rounded-lg border border-slate-800">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-7 h-7 rounded-full bg-slate-800 border-2 ${user.color} flex items-center justify-center font-bold text-[10px]`}>
-                          {user.name.slice(0, 1)}
-                        </div>
-                        <div>
-                          <div className="text-slate-200 font-medium">{user.name}</div>
-                          <div className="text-[10px] text-slate-500">{user.role}</div>
+                  {currentList.map((item) => {
+                    const isOwner = item.myRole === 'owner';
+
+                    return (
+                      <div
+                        key={item.id}
+                        className={`p-3.5 bg-slate-950 border rounded-xl transition-all ${
+                          item.isRevoked
+                            ? 'border-rose-900/40 bg-rose-950/10 opacity-75'
+                            : item.isExpired
+                            ? 'border-amber-900/40 bg-amber-950/10'
+                            : 'border-slate-800/80 hover:border-slate-700 bg-slate-950'
+                        }`}
+                      >
+                        {/* [요청 4] 모바일 모드 전환 시 정보/버튼 줄바꿈 분리 처리 */}
+                        <div className={`flex ${isMobileMode ? 'flex-col gap-2.5' : 'flex-wrap md:flex-nowrap items-start md:items-center justify-between gap-3'}`}>
+                          {/* 상단/좌측: 문서 및 대상 정보 */}
+                          <div className="space-y-1.5 flex-1 min-w-[240px]">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {/* 대상 구분 뱃지 */}
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                  item.targetKind === 'category'
+                                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                                    : item.targetKind === 'version'
+                                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                    : 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+                                }`}
+                              >
+                                {item.targetKind === 'category'
+                                  ? '📁 카테고리'
+                                  : item.targetKind === 'version'
+                                  ? '🏷️ 특정버전'
+                                  : '📄 단일문서'}
+                              </span>
+
+                              {/* 문서 제목 및 버전 */}
+                              <h4 className="font-bold text-white text-sm hover:text-sky-300 transition-colors">
+                                {item.targetName}
+                              </h4>
+                              <span className="text-[10px] text-slate-500 font-mono">
+                                ({item.docVersion}, {item.totalPages}쪽)
+                              </span>
+
+                              {/* 보안 암호 설정 뱃지 */}
+                              {item.hasPassword && (
+                                <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 font-mono">
+                                  🔒 암호보호
+                                </span>
+                              )}
+
+                              {/* 공개 읽기 허용 뱃지 */}
+                              {item.isPublicRead && (
+                                <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 font-mono">
+                                  🌐 게스트열람 허용
+                                </span>
+                              )}
+                            </div>
+
+                            {/* 부가 메타 행: 소유자, 권한, 유효기간, 최근활동 */}
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-400">
+                              <span>
+                                <strong className="text-slate-500">소유자:</strong>{' '}
+                                <span className="text-slate-300">{item.ownerName}</span>
+                              </span>
+
+                              {/* 부여된 권한 */}
+                              <span>
+                                <strong className="text-slate-500">권한:</strong>{' '}
+                                <span
+                                  className={`font-semibold ${
+                                    item.permission === 'editor'
+                                      ? 'text-purple-400'
+                                      : item.permission === 'reviewer'
+                                      ? 'text-sky-400'
+                                      : 'text-slate-300'
+                                  }`}
+                                >
+                                  {item.permission === 'editor'
+                                    ? '공동 편집자'
+                                    : item.permission === 'reviewer'
+                                    ? '검토자(주석달기)'
+                                    : '읽기 전용'}
+                                </span>
+                              </span>
+
+                              {/* 유효기간 */}
+                              <span>
+                                <strong className="text-slate-500">유효기간:</strong>{' '}
+                                <span
+                                  className={`font-mono font-medium ${
+                                    item.isRevoked
+                                      ? 'text-rose-400'
+                                      : item.isExpired
+                                      ? 'text-amber-400'
+                                      : 'text-slate-300'
+                                  }`}
+                                >
+                                  {item.expireDateText}
+                                </span>
+                              </span>
+
+                              {/* [요청 4.4] 실시간 협업 인원 및 최종 사용시간 (예: 4분 전) */}
+                              {item.activeCollaboratorCount > 0 ? (
+                                <span className="flex items-center gap-1 text-emerald-400 font-semibold">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                                  동시 열람 {item.activeCollaboratorCount}명{' '}
+                                  <span className="text-[10px] text-emerald-300/80 font-normal">
+                                    (최종{' '}
+                                    {item.recentActivityText.includes('취소선')
+                                      ? '4분 전'
+                                      : item.recentActivityText.includes('형광펜')
+                                      ? '방금 전'
+                                      : '10분 전'}
+                                    )
+                                  </span>
+                                </span>
+                              ) : (
+                                <span className="text-slate-500 font-normal">
+                                  동시 열람 0명 <span className="text-[10px] text-slate-600">(최종 2일 전)</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* 하단/우측: 액션 버튼 그룹 (모바일은 줄바꿈 및 전체 너비 정렬) */}
+                          <div className={`flex flex-wrap items-center gap-1.5 shrink-0 ${isMobileMode ? 'w-full pt-2 border-t border-slate-800/80 justify-end' : 'self-end md:self-center'}`}>
+                            {/* [👥 협업현황 팝업 열기] */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedCollabDocId(item.id);
+                                setIsCollabStatusModalOpen(true);
+                              }}
+                              className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-sky-400 border border-sky-500/40 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                              title="실시간 작업자 및 시간대별 활동피드 팝업 열기"
+                            >
+                              <span>👥</span>
+                              <span>협업현황</span>
+                              {item.activeCollaboratorCount > 0 && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 ml-0.5 animate-pulse" />
+                              )}
+                            </button>
+
+                            {/* 제공자(소유자) 관점 액션 */}
+                            {isOwner && (
+                              <>
+                                {/* 링크 복사 */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(item.shareUrl);
+                                    showToast(`🔗 [${item.targetName}] 공유 링크가 복사되었습니다.`, 'success');
+                                  }}
+                                  className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 rounded-lg text-xs font-medium cursor-pointer"
+                                  title="공유 링크 복사"
+                                >
+                                  링크복사
+                                </button>
+
+                                {/* 수정 팝업 */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingShareLink(item);
+                                    setShareFormTargetKind(item.targetKind);
+                                    setShareFormTargetDocTitle(item.targetName);
+                                    setShareFormPermission(item.permission);
+                                    setShareFormPeriodKind(item.periodKind);
+                                    setShareFormIsPublicRead(item.isPublicRead);
+                                    setIsShareCreateModalOpen(true);
+                                  }}
+                                  className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 rounded-lg text-xs font-medium cursor-pointer"
+                                  title="공유 설정 수정"
+                                >
+                                  수정
+                                </button>
+
+                                {/* 공유 회수 (Revoke) */}
+                                {!item.isRevoked ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setShareLinksList((prev) =>
+                                        prev.map((l) =>
+                                          l.id === item.id
+                                            ? {
+                                                ...l,
+                                                isRevoked: true,
+                                                expireDateText: '권한 회수됨 (소유자)',
+                                                activeCollaboratorCount: 0,
+                                              }
+                                            : l
+                                        )
+                                      );
+                                      showToast(`🚫 [${item.targetName}] 공유 권한이 즉시 회수되었습니다.`, 'warn');
+                                    }}
+                                    className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg text-xs font-medium cursor-pointer"
+                                    title="공유 링크 회수 (참여자 접근 즉시 차단)"
+                                  >
+                                    회수
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setShareLinksList((prev) =>
+                                        prev.map((l) =>
+                                          l.id === item.id
+                                            ? {
+                                                ...l,
+                                                isRevoked: false,
+                                                expireDateText: '2026-10-15 (D-12)',
+                                              }
+                                            : l
+                                        )
+                                      );
+                                      showToast(`✓ [${item.targetName}] 공유가 다시 활성화되었습니다.`, 'success');
+                                    }}
+                                    className="px-2.5 py-1.5 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 rounded-lg text-xs font-medium cursor-pointer"
+                                    title="공유 재활성화"
+                                  >
+                                    재발급
+                                  </button>
+                                )}
+                              </>
+                            )}
+
+                            {/* 참여자 관점 액션 */}
+                            {!isOwner && (
+                              <>
+                                {!item.isExpired && !item.isRevoked ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      handleOpenDocInViewer(item.docId, item.targetName, item.totalPages, item.ownerName, 1);
+                                      showToast(`📖 [${item.targetName}] 문서 뷰어로 전환되었습니다.`, 'info');
+                                    }}
+                                    className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-xs"
+                                  >
+                                    뷰어 열기
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      showToast(
+                                        `📩 소유자(${item.ownerName})에게 공유 기간 연장 요청이 발송되었습니다.`,
+                                        'info'
+                                      );
+                                    }}
+                                    className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-bold cursor-pointer"
+                                  >
+                                    공유 재요청
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      <span className="text-[11px] text-sky-400 font-mono">{user.page}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
-              </div>
-
-              <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                  <span className="font-bold text-white text-sm">⚡ 실시간 주석 & 협업 활동 피드</span>
-                  <span className="text-[10px] text-slate-500 font-mono">LIVE FEED</span>
-                </div>
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1 no-scrollbar">
-                  {[
-                    { time: '방금 전', text: '김철수 책임님이 14페이지에 취소선 주석을 등록했습니다.' },
-                    { time: '2분 전', text: '이영희 매니저님이 문서 공유 링크로 입장했습니다.' },
-                    { time: '5분 전', text: '홍길동님이 12페이지에 스탬프(승인완료)를 날인했습니다.' },
-                    { time: '11분 전', text: '자동 저장: 오프라인 큐가 클라우드 스토리지와 동기화되었습니다.' },
-                  ].map((log, idx) => (
-                    <div key={idx} className="p-2 bg-slate-900/80 rounded border border-slate-800/80 flex items-start gap-2">
-                      <span className="text-[10px] text-slate-500 font-mono shrink-0 mt-0.5">{log.time}</span>
-                      <span className="text-slate-300 text-[11px]">{log.text}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+              );
+            })()}
           </div>
         )}
+
+        {/* ========================================================================= */}
+        {/* [모달 1] 신규 공유링크 등록 / 수정 레이어 팝업 (서재, 뷰어, 공유관리 공통 호출) */}
+        {/* ========================================================================= */}
+            {isShareCreateModalOpen && (
+              <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">🔗</span>
+                      <h4 className="font-bold text-white text-sm">
+                        {editingShareLink ? '문서 공유 링크 속성 수정' : '신규 문서 공유 링크 생성'}
+                      </h4>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsShareCreateModalOpen(false)}
+                      className="text-slate-400 hover:text-white cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className="space-y-3 text-xs max-h-[70vh] overflow-y-auto pr-1">
+                    {/* 1. 공유 대상 유형 선택 (특정 버전 버튼 삭제, 단일문서/카테고리 2분할) */}
+                    <div>
+                      <label className="text-slate-400 block text-[11px] mb-1 font-medium">공유 대상 단위</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { id: 'file', label: '📄 단일 문서', desc: '해당 문서 전체 버전' },
+                          { id: 'category', label: '📁 카테고리', desc: '하위 문서 일괄 공유' },
+                        ].map((kind) => (
+                          <button
+                            key={kind.id}
+                            type="button"
+                            onClick={() => {
+                              setShareFormTargetKind(kind.id as any);
+                              setShareFormTargetDocTitle(
+                                kind.id === 'file' ? CANDIDATE_DOCS[0] : CANDIDATE_CATEGORIES[0]
+                              );
+                              setIsDocSearchDropdownOpen(false);
+                            }}
+                            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                              shareFormTargetKind === kind.id
+                                ? 'bg-sky-600/20 border-sky-500 text-sky-200 ring-1 ring-sky-500/50'
+                                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            <div className="font-bold text-xs">{kind.label}</div>
+                            <div className="text-[10px] text-slate-500 mt-0.5">{kind.desc}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* [요청 4.2] 대상 선택 (like 검색 & 돋보기 찾기 버튼 & 서치목록 드롭다운) */}
+                    <div className="relative">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-slate-400 block text-[11px] font-medium">대상 선택</label>
+                        <span className="text-[10px] text-sky-400 font-mono">
+                          {shareFormTargetKind === 'file' ? '보유 문서 검색' : '카테고리 검색'}
+                        </span>
+                      </div>
+
+                      <div className="relative flex items-center">
+                        <input
+                          type="text"
+                          value={shareFormTargetDocTitle}
+                          onChange={(e) => {
+                            setShareFormTargetDocTitle(e.target.value);
+                            setIsDocSearchDropdownOpen(true);
+                          }}
+                          onFocus={() => setIsDocSearchDropdownOpen(true)}
+                          placeholder={
+                            shareFormTargetKind === 'file'
+                              ? '공유할 문서명을 검색하세요...'
+                              : '공유할 카테고리명을 검색하세요...'
+                          }
+                          className="w-full pl-3 pr-10 py-2 bg-slate-950 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-hidden focus:border-sky-500 font-medium"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setIsDocSearchDropdownOpen(!isDocSearchDropdownOpen)}
+                          className="absolute right-1.5 p-1 rounded-md bg-slate-800 hover:bg-sky-600 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                          title="대상 검색 목록 열기"
+                        >
+                          <Search className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {/* 서치목록 (Like 검색 결과 드롭다운) */}
+                      {isDocSearchDropdownOpen && (
+                        <div className="absolute z-30 left-0 right-0 top-full mt-1 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden max-h-48 overflow-y-auto text-xs animate-in fade-in zoom-in-95 duration-100">
+                          <div className="p-2 border-b border-slate-800 text-[10px] text-slate-400 font-mono flex items-center justify-between bg-slate-950/80">
+                            <span>
+                              {shareFormTargetKind === 'file' ? '📄 보유 문서 목록' : '📁 카테고리 목록'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setIsDocSearchDropdownOpen(false)}
+                              className="text-slate-400 hover:text-white"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                          {(() => {
+                            const candidates =
+                              shareFormTargetKind === 'file' ? CANDIDATE_DOCS : CANDIDATE_CATEGORIES;
+                            const filtered = candidates.filter((item) =>
+                              item.toLowerCase().includes(shareFormTargetDocTitle.toLowerCase())
+                            );
+
+                            if (filtered.length === 0) {
+                              return (
+                                <div className="p-3 text-center text-slate-500 text-[11px]">
+                                  일치하는 대상이 없습니다.
+                                </div>
+                              );
+                            }
+
+                            return filtered.map((item) => (
+                              <div
+                                key={item}
+                                onClick={() => {
+                                  setShareFormTargetDocTitle(item);
+                                  setIsDocSearchDropdownOpen(false);
+                                }}
+                                className="p-2.5 hover:bg-sky-600/20 text-slate-200 hover:text-sky-300 border-b border-slate-800/40 last:border-b-0 cursor-pointer transition-colors flex items-center gap-2"
+                              >
+                                <span className="text-slate-500">
+                                  {shareFormTargetKind === 'file' ? '📄' : '📁'}
+                                </span>
+                                <span className="truncate flex-1 font-medium">{item}</span>
+                                {shareFormTargetDocTitle === item && (
+                                  <span className="text-sky-400 font-bold text-xs">✓</span>
+                                )}
+                              </div>
+                            ));
+                          })()}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 2. 공유 권한 프리셋 선택 */}
+                    <div>
+                      <label className="text-slate-400 block text-[11px] mb-1 font-medium">
+                        부여 권한 (Permission Level)
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: 'viewer', label: '열람자 (Viewer)', desc: '읽기 전용 (주석 불가)' },
+                          { id: 'reviewer', label: '검토자 (Reviewer)', desc: '댓글 + 자기 주석 편집' },
+                          { id: 'editor', label: '편집자 (Editor)', desc: '전체 주석/버전 편집' },
+                        ].map((perm) => (
+                          <button
+                            key={perm.id}
+                            type="button"
+                            onClick={() => setShareFormPermission(perm.id as any)}
+                            className={`p-2 rounded-xl border text-left transition-all cursor-pointer ${
+                              shareFormPermission === perm.id
+                                ? 'bg-sky-600/20 border-sky-500 text-sky-200 ring-1 ring-sky-500/50'
+                                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            <div className="font-bold text-xs">{perm.label}</div>
+                            <div className="text-[10px] text-slate-500 mt-0.5">{perm.desc}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 3. 공유 기간 설정 */}
+                    <div>
+                      <label className="text-slate-400 block text-[11px] mb-1 font-medium">공유 유효 기간</label>
+                      <select
+                        value={shareFormPeriodKind}
+                        onChange={(e) => setShareFormPeriodKind(e.target.value as any)}
+                        className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-slate-200 text-xs cursor-pointer"
+                      >
+                        <option value="1d">24시간 (1일 후 자동 만료)</option>
+                        <option value="7d">7일간 유효 (기본 권장)</option>
+                        <option value="30d">30일간 유효 (장기 프로젝트)</option>
+                        <option value="unlimited">무제한 (상시 유지)</option>
+                      </select>
+                    </div>
+
+                    {/* 4. 게스트 공개읽기 & 비밀번호 설정 */}
+                    <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-slate-200 font-bold block text-xs">🌐 비로그인 게스트 열람 허용</span>
+                          <span className="text-[10px] text-slate-400">
+                            로그인 없이도 공개 링크로 문서를 열람할 수 있습니다.
+                          </span>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={shareFormIsPublicRead}
+                          onChange={(e) => setShareFormIsPublicRead(e.target.checked)}
+                          className="w-4 h-4 accent-sky-500 cursor-pointer"
+                        />
+                      </div>
+
+                      {/* [요청 2.1] 보안 비밀번호 설정: 타이틀/입력필드 여백 확보 및 비밀번호 확인필드 추가 */}
+                      <div className="pt-3 border-t border-slate-800 space-y-2.5">
+                        <label className="text-slate-300 block text-[11px] font-semibold">
+                          🔒 보안 비밀번호 설정 (선택사항)
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          <div>
+                            <span className="text-[10px] text-slate-400 block mb-1">비밀번호</span>
+                            <input
+                              type="password"
+                              value={shareFormPassword}
+                              onChange={(e) => setShareFormPassword(e.target.value)}
+                              placeholder="미설정 시 링크만으로 접근 가능"
+                              className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-xs font-mono focus:outline-hidden focus:border-sky-500"
+                            />
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-400 block mb-1">비밀번호 확인</span>
+                            <input
+                              type="password"
+                              value={shareFormPasswordConfirm}
+                              onChange={(e) => setShareFormPasswordConfirm(e.target.value)}
+                              placeholder="비밀번호 확인 입력"
+                              className={`w-full px-3 py-1.5 bg-slate-900 border rounded-lg text-slate-200 text-xs font-mono focus:outline-hidden ${
+                                shareFormPassword && shareFormPasswordConfirm && shareFormPassword !== shareFormPasswordConfirm
+                                  ? 'border-rose-500 focus:border-rose-500'
+                                  : 'border-slate-700 focus:border-sky-500'
+                              }`}
+                            />
+                          </div>
+                        </div>
+                        {shareFormPassword && shareFormPasswordConfirm && shareFormPassword !== shareFormPasswordConfirm && (
+                          <p className="text-[10px] text-rose-400 font-medium">
+                            ⚠️ 비밀번호와 비밀번호 확인이 일치하지 않습니다.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsShareCreateModalOpen(false);
+                        setShareFormPasswordConfirm('');
+                      }}
+                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold cursor-pointer"
+                    >
+                      취소
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (shareFormPassword && shareFormPassword !== shareFormPasswordConfirm) {
+                          showToast('⚠️ 비밀번호와 비밀번호 확인이 일치하지 않습니다.', 'warn');
+                          return;
+                        }
+                        if (editingShareLink) {
+                          setShareLinksList((prev) =>
+                            prev.map((l) =>
+                              l.id === editingShareLink.id
+                                ? {
+                                    ...l,
+                                    targetKind: shareFormTargetKind,
+                                    targetName: shareFormTargetDocTitle,
+                                    permission: shareFormPermission,
+                                    periodKind: shareFormPeriodKind,
+                                    isPublicRead: shareFormIsPublicRead,
+                                    hasPassword: !!shareFormPassword,
+                                    updatedAt: '방금 전',
+                                  }
+                                : l
+                            )
+                          );
+                          showToast('✓ 공유 링크 설정이 성공적으로 갱신되었습니다.', 'success');
+                        } else {
+                          const newLink = {
+                            id: `link-${Date.now()}`,
+                            myRole: 'owner',
+                            targetKind: shareFormTargetKind,
+                            targetName: shareFormTargetDocTitle,
+                            docId: `DOC-${Math.floor(1000 + Math.random() * 9000)}`,
+                            docVersion: 'v1.0',
+                            totalPages: 120,
+                            ownerName: '홍길동 (나)',
+                            permission: shareFormPermission,
+                            periodKind: shareFormPeriodKind,
+                            expireDateText:
+                              shareFormPeriodKind === 'unlimited'
+                                ? '무제한 (상시 유지)'
+                                : shareFormPeriodKind === '1d'
+                                ? '24시간 후 만료'
+                                : '7일 후 만료',
+                            isExpired: false,
+                            isRevoked: false,
+                            isPublicRead: shareFormIsPublicRead,
+                            hasPassword: !!shareFormPassword,
+                            shareUrl: `https://purepdfrend.io/share/DOC-${Date.now().toString(36).toUpperCase()}`,
+                            createdAt: '방금 전',
+                            updatedAt: '방금 전',
+                            activeCollaboratorCount: 0,
+                            recentActivityText: '공유 링크가 신규 발급되었습니다.',
+                          };
+                          setShareLinksList([newLink, ...shareLinksList]);
+                          showToast('🎉 신규 문서 공유 링크가 성공적으로 생성되었습니다!', 'success');
+                        }
+                        setIsShareCreateModalOpen(false);
+                      }}
+                      className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold cursor-pointer shadow-lg shadow-sky-600/30"
+                    >
+                      {editingShareLink ? '수정 완료' : '공유링크 발급'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ========================================================================= */}
+            {/* [모달 2] 문서작업현황 팝업 (Collaboration Studio Modal - 상세 작업자 & 활동피드) */}
+            {/* ========================================================================= */}
+            {isCollabStatusModalOpen && (
+              <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
+                <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-3xl w-full p-5 sm:p-6 pb-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 flex flex-col max-h-[88vh]">
+                  {/* 상단 헤더: 대상 문서 메타 정보 */}
+                  {(() => {
+                    const doc = shareLinksList.find((l) => l.id === selectedCollabDocId) || shareLinksList[0];
+
+                    return (
+                      <>
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-base">👥</span>
+                              <h3 className="font-bold text-white text-sm sm:text-base">{doc.targetName}</h3>
+                              <span className="text-[10px] px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono">
+                                {doc.docVersion}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                              소유자: <strong className="text-slate-200">{doc.ownerName}</strong> | 총 {doc.totalPages}쪽 | 권한: {doc.permission} | 유효기간: {doc.expireDateText}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setIsCollabStatusModalOpen(false)}
+                            className="text-slate-400 hover:text-white cursor-pointer text-sm p-1"
+                          >
+                            ✕
+                          </button>
+                        </div>
+
+                        {/* 공유 링크 복사 바 */}
+                        <div className="flex gap-2 p-2 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+                          <input
+                            type="text"
+                            readOnly
+                            value={doc.shareUrl}
+                            className="flex-1 bg-transparent px-2 text-sky-400 font-mono select-all focus:outline-hidden text-xs"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(doc.shareUrl);
+                              showToast('공유 링크가 클립보드에 복사되었습니다.', 'success');
+                            }}
+                            className="px-3 py-1 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg cursor-pointer shrink-0 transition-colors"
+                          >
+                            링크 복사
+                          </button>
+                        </div>
+
+                        {/* 본문 2단 구성: [좌측: 실시간 작업자 목록] vs [우측: 4단계 시간 그루핑 활동피드] */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 overflow-hidden min-h-[300px]">
+                          {/* 1. 작업자 목록 (작업자 선택 시 우측 피드 필터 연동) */}
+                          <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 flex flex-col">
+                            <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
+                              <div className="flex items-center gap-2">
+                                <label className="flex items-center gap-1.5 text-xs font-bold text-white cursor-pointer select-none">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      collaboratorsList.length > 0 &&
+                                      selectedRevokeUserIds.length === collaboratorsList.length
+                                    }
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedRevokeUserIds(collaboratorsList.map((u) => u.userId));
+                                      } else {
+                                        setSelectedRevokeUserIds([]);
+                                      }
+                                    }}
+                                    className="w-3.5 h-3.5 accent-rose-500 cursor-pointer"
+                                    title="전체 작업자 선택"
+                                  />
+                                  <span>참여 작업자 ({collaboratorsList.length}명)</span>
+                                </label>
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                              </div>
+                              {selectedCollaboratorUserId && (
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedCollaboratorUserId(null)}
+                                  className="text-[10px] text-sky-400 hover:underline"
+                                >
+                                  전체 피드 보기
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="space-y-1.5 overflow-y-auto flex-1 pr-1">
+                              {collaboratorsList.map((user) => {
+                                const isSelected = selectedCollaboratorUserId === user.userId;
+
+                                return (
+                                  <div
+                                    key={user.userId}
+                                    onClick={() => setSelectedCollaboratorUserId(isSelected ? null : user.userId)}
+                                    className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                                      isSelected
+                                        ? 'bg-sky-600/20 border-sky-400 shadow-md ring-1 ring-sky-400/50'
+                                        : 'bg-slate-900/80 hover:bg-slate-900 border-slate-800'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2.5">
+                                      {/* [요청 4.1] 참여작업자 카드 이미지 앞 체크박스 */}
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedRevokeUserIds.includes(user.userId)}
+                                        onClick={(e) => e.stopPropagation()}
+                                        onChange={(e) => {
+                                          e.stopPropagation();
+                                          setSelectedRevokeUserIds((prev) =>
+                                            prev.includes(user.userId)
+                                              ? prev.filter((id) => id !== user.userId)
+                                              : [...prev, user.userId]
+                                          );
+                                        }}
+                                        className="w-3.5 h-3.5 accent-rose-500 cursor-pointer shrink-0"
+                                        title={`${user.name} 공유 권한 회수 선택`}
+                                      />
+                                      <div
+                                        className={`w-7 h-7 rounded-full bg-slate-800 border-2 ${user.colorBorder} flex items-center justify-center font-bold text-white text-[11px] relative shrink-0`}
+                                      >
+                                        <span>{user.avatarLetter}</span>
+                                        {/* 실시간 상태 점 */}
+                                        <span
+                                          className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-slate-900 ${
+                                            user.status === 'active'
+                                              ? 'bg-emerald-400 animate-pulse'
+                                              : user.status === 'idle'
+                                              ? 'bg-amber-400'
+                                              : 'bg-slate-500'
+                                          }`}
+                                        />
+                                      </div>
+
+                                      <div>
+                                        <div className="text-slate-200 font-bold text-xs flex items-center gap-1.5">
+                                          <span>{user.name}</span>
+                                          <span className="text-[10px] text-slate-500 font-normal">
+                                            ({user.roleTitle})
+                                          </span>
+                                        </div>
+                                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                                          {user.currentActionText}
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* 현재 페이지 즉시 점프 버튼 */}
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setViewerCurrentPage(user.currentPage);
+                                        setActiveViewingDoc({
+                                          id: doc.docId,
+                                          title: doc.targetName,
+                                          author: doc.ownerName,
+                                          publisher: '엔터프라이즈 아카이빙 출판부',
+                                          categoryId: 'cat-shared',
+                                          categoryPath: '공유 문서함 > 협업 문서',
+                                          lastCategory: '협업 문서',
+                                          totalPages: doc.totalPages,
+                                          readPages: user.currentPage,
+                                          progressPercent: Math.round(((user.currentPage || 1) / (doc.totalPages || 1)) * 100),
+                                          lastReadAt: '방금 전',
+                                          rawDate: doc.createdAt,
+                                          status: 'OCR완료',
+                                          security: '대외비',
+                                          docType: doc.myRole === 'owner' ? '내가 공유한 문서' : '공유받은 문서',
+                                          version: 'v2.1',
+                                          fileSize: '18.4 MB',
+                                          round: '1회독',
+                                          coverBg: 'from-sky-600 to-indigo-900',
+                                          accentColor: 'sky',
+                                        });
+                                        setIsCollabStatusModalOpen(false);
+                                        setSelectedProg('PG-USR-06');
+                                        showToast(
+                                          `🚀 [${user.name}]님이 열람 중인 ${user.currentPage}페이지로 점프했습니다!`,
+                                          'success'
+                                        );
+                                      }}
+                                      className="px-2 py-1 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 font-bold rounded-lg text-[10px] font-mono cursor-pointer transition-colors shrink-0"
+                                      title="이 작업자가 보고 있는 페이지로 즉시 이동"
+                                    >
+                                      p.{user.currentPage} ➔
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* 2. 4단계 시간 그루핑 활동 피드 */}
+                          <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2 flex flex-col">
+                            <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
+                              <span className="font-bold text-white text-xs">
+                                ⚡ 활동 타임라인{' '}
+                                {selectedCollaboratorUserId && (
+                                  <span className="text-sky-400 font-normal">
+                                    (
+                                    {
+                                      collaboratorsList.find((c) => c.userId === selectedCollaboratorUserId)?.name
+                                    }{' '}
+                                    필터중)
+                                  </span>
+                                )}
+                              </span>
+                              <span className="text-[10px] text-slate-500 font-mono">4단계 시간 그루핑</span>
+                            </div>
+
+                            <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+                              {[
+                                { key: 'just_now', title: '── 방금 전 ──', badgeBg: 'bg-emerald-500/20 text-emerald-300' },
+                                { key: '10m_ago', title: '── 10분 전 ──', badgeBg: 'bg-sky-500/20 text-sky-300' },
+                                { key: '7d_ago', title: '── 7일 전 ──', badgeBg: 'bg-indigo-500/20 text-indigo-300' },
+                                { key: 'long_ago', title: '── 오래 전 ──', badgeBg: 'bg-slate-800 text-slate-400' },
+                              ].map((grp) => {
+                                const logs = activityLogsList
+                                  .filter((l) => l.timeCategory === grp.key)
+                                  .filter((l) =>
+                                    selectedCollaboratorUserId
+                                      ? l.authorName.includes(
+                                          collaboratorsList.find((c) => c.userId === selectedCollaboratorUserId)?.name.slice(0, 2) || ''
+                                        )
+                                      : true
+                                  );
+
+                                if (logs.length === 0) return null;
+
+                                return (
+                                  <div key={grp.key} className="space-y-1.5">
+                                    <div className="text-[10px] font-bold text-slate-500 font-mono text-center">
+                                      {grp.title}
+                                    </div>
+                                    {logs.map((log) => (
+                                      <div
+                                        key={log.id}
+                                        onClick={() => {
+                                          if (log.targetPage) {
+                                            setViewerCurrentPage(log.targetPage);
+                                            if (log.annotationId) {
+                                              setPulseAnnotationId(log.annotationId);
+                                              setTimeout(() => setPulseAnnotationId(null), 2000);
+                                            }
+                                            setActiveViewingDoc({
+                                              id: doc.docId,
+                                              title: doc.targetName,
+                                              author: doc.ownerName,
+                                              publisher: '엔터프라이즈 아카이빙 출판부',
+                                              categoryId: 'cat-shared',
+                                              categoryPath: '공유 문서함 > 협업 문서',
+                                              lastCategory: '협업 문서',
+                                              totalPages: doc.totalPages,
+                                              readPages: log.targetPage || 1,
+                                              progressPercent: Math.round(((log.targetPage || 1) / (doc.totalPages || 1)) * 100),
+                                              lastReadAt: '방금 전',
+                                              rawDate: doc.createdAt,
+                                              status: 'OCR완료',
+                                              security: '대외비',
+                                              docType: doc.myRole === 'owner' ? '내가 공유한 문서' : '공유받은 문서',
+                                              version: 'v2.1',
+                                              fileSize: '18.4 MB',
+                                              round: '1회독',
+                                              coverBg: 'from-sky-600 to-indigo-900',
+                                              accentColor: 'sky',
+                                            });
+                                            setIsCollabStatusModalOpen(false);
+                                            setSelectedProg('PG-USR-06');
+                                            showToast(
+                                              `🔍 ${log.targetPage}페이지 해당 작업 주석으로 이동했습니다.`,
+                                              'info'
+                                            );
+                                          }
+                                        }}
+                                        className={`p-2 rounded-lg bg-slate-900/80 border border-slate-800/80 flex items-start gap-2 transition-all ${
+                                          log.targetPage ? 'hover:border-sky-500/50 cursor-pointer' : ''
+                                        }`}
+                                      >
+                                        <span className="text-[10px] text-slate-500 font-mono shrink-0 mt-0.5">
+                                          {log.timeText}
+                                        </span>
+                                        <div className="flex-1 text-[11px] text-slate-300">
+                                          <strong className="text-white font-medium">{log.authorName}:</strong>{' '}
+                                          {log.actionText}
+                                        </div>
+                                        {log.targetPage && (
+                                          <span className="text-[9px] px-1 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono shrink-0">
+                                            p.{log.targetPage}
+                                          </span>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 하단 제어 액션 (여백 확보 및 뷰어 내 팝업 시 열기 버튼 조건부 숨김) */}
+                        <div className="flex flex-wrap items-center justify-between gap-3 mt-5 pt-3.5 pb-1 border-t border-slate-800/80">
+                          {selectedProg !== 'PG-USR-06' ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveViewingDoc({
+                                  id: doc.docId,
+                                  title: doc.targetName,
+                                  author: doc.ownerName,
+                                  publisher: '엔터프라이즈 아카이빙 출판부',
+                                  categoryId: 'cat-shared',
+                                  categoryPath: '공유 문서함 > 협업 문서',
+                                  lastCategory: '협업 문서',
+                                  totalPages: doc.totalPages,
+                                  readPages: 1,
+                                  progressPercent: Math.round((1 / (doc.totalPages || 1)) * 100),
+                                  lastReadAt: '방금 전',
+                                  rawDate: doc.createdAt,
+                                  status: 'OCR완료',
+                                  security: '대외비',
+                                  docType: doc.myRole === 'owner' ? '내가 공유한 문서' : '공유받은 문서',
+                                  version: 'v2.1',
+                                  fileSize: '18.4 MB',
+                                  round: '1회독',
+                                  coverBg: 'from-sky-600 to-indigo-900',
+                                  accentColor: 'sky',
+                                });
+                                setIsCollabStatusModalOpen(false);
+                                setSelectedProg('PG-USR-06');
+                                showToast(`📖 [${doc.targetName}] 문서 뷰어로 전환되었습니다.`, 'info');
+                              }}
+                              className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold cursor-pointer shadow-lg shadow-sky-600/30 transition-all flex items-center gap-1.5"
+                            >
+                              <span>📖</span>
+                              <span>이 문서 뷰어(PG-USR-06)에서 열기</span>
+                            </button>
+                          ) : (
+                            <div className="text-[11px] text-slate-500 font-mono">
+                              💡 현재 뷰어에서 열려있는 문서의 실시간 협업 세션입니다.
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-2">
+                            {doc.myRole === 'owner' && !doc.isRevoked && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (selectedRevokeUserIds.length > 0) {
+                                    setCollaboratorsList((prev) =>
+                                      prev.filter((u) => !selectedRevokeUserIds.includes(u.userId))
+                                    );
+                                    showToast(
+                                      `🚫 선택한 ${selectedRevokeUserIds.length}명의 작업자 공유 권한이 회수되었습니다.`,
+                                      'warn'
+                                    );
+                                    setSelectedRevokeUserIds([]);
+                                  } else {
+                                    setShareLinksList((prev) =>
+                                      prev.map((l) =>
+                                        l.id === doc.id
+                                          ? { ...l, isRevoked: true, expireDateText: '권한 회수됨' }
+                                          : l
+                                      )
+                                    );
+                                    setIsCollabStatusModalOpen(false);
+                                    showToast('🚫 문서 공유가 즉시 전체 회수되었습니다.', 'warn');
+                                  }
+                                }}
+                                className="px-3.5 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-xl text-xs font-semibold cursor-pointer transition-colors"
+                              >
+                                {selectedRevokeUserIds.length > 0
+                                  ? `🚫 선택 ${selectedRevokeUserIds.length}명 권한 회수`
+                                  : '🚫 공유 즉시 회수'}
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setIsCollabStatusModalOpen(false)}
+                              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium cursor-pointer"
+                            >
+                              닫기
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
 
         {/* [공통 모달 1] 더 많은 프리셋 선택 모달 (PG-USR-02 및 PG-USR-04 공통 지원) */}
         {isPresetModalOpen && (

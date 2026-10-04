@@ -17,7 +17,6 @@ import {
   ArrowDown,
   Trash2,
   Users,
-  EyeOff,
   SlidersHorizontal,
   Download,
   X,
@@ -35,6 +34,9 @@ import {
   ChevronsRight,
   PanelLeftClose,
   PanelLeftOpen,
+  Share2,
+  CheckCheck,
+  BookOpen,
 } from 'lucide-react';
 import { ImageEditLayerModal, ImageCropSettings, ImageStandardizeSettings } from './ImageEditLayerModal';
 
@@ -75,6 +77,7 @@ export interface DocumentItem {
 interface DocumentLibraryViewerProps {
   userEmail?: string;
   onOpenViewer?: (docId: string, doc?: DocumentItem) => void;
+  onRequestShare?: (targetKind: 'file' | 'category', targetName: string, docId?: string) => void;
   isMobileMode?: boolean;
   className?: string;
 }
@@ -82,9 +85,20 @@ interface DocumentLibraryViewerProps {
 export function DocumentLibraryViewer({
   userEmail = 'jkok2j2m@gmail.com',
   onOpenViewer,
+  onRequestShare,
   isMobileMode = false,
   className = '',
 }: DocumentLibraryViewerProps) {
+  // 카테고리 공유 모드 및 선택 상태
+  const [isCategoryShareMode, setIsCategoryShareMode] = useState(false);
+  const [selectedShareCatIds, setSelectedShareCatIds] = useState<string[]>([]);
+
+  const toggleShareCatId = (catId: string, _catName: string) => {
+    setSelectedShareCatIds((prev) => {
+      const exists = prev.includes(catId);
+      return exists ? prev.filter((id) => id !== catId) : [...prev, catId];
+    });
+  };
   // ==========================================
   // 1. 카테고리 트리 상태 관리
   // ==========================================
@@ -120,7 +134,7 @@ export function DocumentLibraryViewer({
 
   // 4. 트리 / 경로 아이콘 뷰 모드
   const [treeViewMode, setTreeViewMode] = useState<'tree' | 'path'>('tree');
-  const [hideSharedFolders, setHideSharedFolders] = useState<boolean>(false);
+  const hideSharedFolders = false; // [요청 5] 공유문서 숨기기 체크박스 제거에 따른 기본값 유지
 
   // [요청 1.3] 도서카테고리 통합 접힘 상태 (모바일: 위로접기 / 데스크톱: 왼쪽으로접기 상호 현행화)
   const [isCategoryCollapsed, setIsCategoryCollapsed] = useState(false);
@@ -540,6 +554,13 @@ export function DocumentLibraryViewer({
   };
 
   const handleNodeClick = (nodeId: string | null) => {
+    if (isCategoryShareMode) {
+      if (nodeId) {
+        const cat = categories.find((c) => c.id === nodeId);
+        toggleShareCatId(nodeId, cat?.name || '');
+      }
+      return;
+    }
     if (isEditCategoryMode) {
       setSelectedEditNodeId(nodeId);
       if (isSyncSelectionWithList) {
@@ -933,7 +954,20 @@ export function DocumentLibraryViewer({
             )}
           </div>
 
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+            {isCategoryShareMode && (
+              <input
+                type="checkbox"
+                checked={selectedShareCatIds.includes(node.id)}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  toggleShareCatId(node.id, node.name);
+                }}
+                className="w-3.5 h-3.5 accent-sky-500 cursor-pointer mr-0.5"
+                title={`${node.name} 카테고리 공유 선택`}
+              />
+            )}
             <span className="text-[10px] text-slate-400 font-mono bg-slate-950/80 px-1.5 py-0.2 rounded border border-slate-800/80">
               {docCount}
             </span>
@@ -1304,6 +1338,45 @@ export function DocumentLibraryViewer({
                 </div>
 
                 <div className="flex items-center gap-1">
+                  {/* [요청 5.1 & 5.2] 공유아이콘을 뷰어아이콘 앞에 배치 (클릭 시 완료아이콘으로 교체, 선택 후 완료 시 팝업) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isCategoryShareMode) {
+                        setIsCategoryShareMode(true);
+                        setSelectedShareCatIds([]);
+                      } else {
+                        // 5.4 카테고리 목록의 체크박스 선택 후 완료버튼 클릭 시
+                        // 5.5 선택된 카테고리 대상으로 공유문서 생성 팝업 표시
+                        const selectedNames = categories
+                          .filter((c) => selectedShareCatIds.includes(c.id))
+                          .map((c) => c.name);
+                        if (selectedNames.length === 0) {
+                          showCatNotice('⚠️ 공유할 카테고리를 체크박스로 1개 이상 선택해 주세요.');
+                          return;
+                        }
+                        const targetName = selectedNames.join(', ');
+                        if (onRequestShare) {
+                          onRequestShare('category', targetName);
+                        }
+                        setIsCategoryShareMode(false);
+                        setSelectedShareCatIds([]);
+                      }
+                    }}
+                    className={`p-1 rounded-md transition-all cursor-pointer ${
+                      isCategoryShareMode
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-xs'
+                        : 'text-slate-400 hover:text-sky-300 hover:bg-slate-900'
+                    }`}
+                    title={isCategoryShareMode ? '선택 완료 (공유등록 팝업 열기)' : '카테고리 공유 선택 모드'}
+                  >
+                    {isCategoryShareMode ? (
+                      <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : (
+                      <Share2 className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+
                   {/* [요청 4] 트리, 경로 아이콘으로 변경 */}
                   <div className="flex rounded-md bg-slate-900 p-0.5 border border-slate-800">
                     <button
@@ -1380,23 +1453,7 @@ export function DocumentLibraryViewer({
 
               {/* 카테고리 본문 */}
               <>
-                  <div className="flex items-center justify-between px-2 py-1.5 bg-slate-900/60 border border-slate-800/80 rounded-lg">
-                    <label className="flex items-center gap-2 cursor-pointer text-slate-300 text-[11px]">
-                      <input
-                        type="checkbox"
-                        checked={hideSharedFolders}
-                        onChange={(e) => setHideSharedFolders(e.target.checked)}
-                        className="rounded border-slate-700 text-sky-600 focus:ring-sky-500 bg-slate-800 cursor-pointer"
-                      />
-                      <span className="flex items-center gap-1">
-                        <EyeOff className="w-3 h-3 text-slate-400" />
-                        <span>공유문서 숨기기</span>
-                      </span>
-                    </label>
-                    <span className="text-[10px] text-indigo-400 font-mono">
-                      {categories.filter((c) => c.isShared).length}개 공유함
-                    </span>
-                  </div>
+                  {/* [요청 5] 공유문서 숨기기 체크박스 삭제됨 */}
 
                   {/* 카테고리 본문: [트리 모드] vs [1. 경로(Path) 단일행 전체 path 뷰] */}
                   <div className="space-y-1 max-h-[460px] overflow-y-auto pr-1 scrollbar-thin">
@@ -1444,9 +1501,24 @@ export function DocumentLibraryViewer({
                                 <Route className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                                 <span className="truncate text-[11px]">{item.fullPath}</span>
                               </div>
-                              <span className="text-[10px] text-slate-400 font-mono ml-1.5 shrink-0 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
-                                {item.docCount}
-                              </span>
+                              <div className="flex items-center gap-1 shrink-0 ml-1.5" onClick={(e) => e.stopPropagation()}>
+                                {isCategoryShareMode && (
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedShareCatIds.includes(item.id)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      toggleShareCatId(item.id, item.fullPath);
+                                    }}
+                                    className="w-3.5 h-3.5 accent-sky-500 cursor-pointer mr-0.5"
+                                    title={`${item.fullPath} 카테고리 공유 선택`}
+                                  />
+                                )}
+                                <span className="text-[10px] text-slate-400 font-mono bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
+                                  {item.docCount}
+                                </span>
+                              </div>
                             </div>
                           );
                         })}
@@ -1862,28 +1934,60 @@ export function DocumentLibraryViewer({
                   </div>
 
                   <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveDownloadDoc(doc);
-                      }}
-                      className="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800 text-[10px] flex items-center gap-1 cursor-pointer transition-colors"
-                    >
-                      <Download className="w-3 h-3" />
-                      <span>4종 다운로드</span>
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      {/* [요청 6] 모바일 모드인 경우 버튼을 아이콘으로 교체: 다운로드 */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveDownloadDoc(doc);
+                        }}
+                        className={`rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800 text-[10px] flex items-center gap-1 cursor-pointer transition-colors ${
+                          isMobileMode ? 'p-1.5' : 'px-2 py-1'
+                        }`}
+                        title="다운로드"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        {!isMobileMode && <span>다운로드</span>}
+                      </button>
 
+                      {/* [요청 6] 모바일 모드인 경우 버튼을 아이콘으로 교체: 공유 */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onRequestShare) onRequestShare('file', doc.title, doc.id);
+                        }}
+                        className={`rounded bg-slate-900 hover:bg-sky-600/30 text-slate-300 hover:text-sky-300 border border-slate-800 text-[10px] flex items-center gap-1 cursor-pointer transition-colors ${
+                          isMobileMode ? 'p-1.5' : 'px-2 py-1'
+                        }`}
+                        title="이 문서 공유하기"
+                      >
+                        <Share2 className="w-3.5 h-3.5 text-sky-400" />
+                        {!isMobileMode && <span>공유</span>}
+                      </button>
+                    </div>
+
+                    {/* [요청 6] 모바일 모드인 경우 버튼을 아이콘으로 교체: 뷰어로 열기 */}
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         if (onOpenViewer) onOpenViewer(doc.id, doc);
                       }}
-                      className="px-2.5 py-1 rounded-lg bg-sky-600/20 hover:bg-sky-600 text-sky-300 hover:text-white border border-sky-500/40 text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                      className={`rounded-lg bg-sky-600/20 hover:bg-sky-600 text-sky-300 hover:text-white border border-sky-500/40 text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                        isMobileMode ? 'p-1.5' : 'px-2.5 py-1'
+                      }`}
+                      title="뷰어로 열기"
                     >
-                      <span>뷰어로 열기</span>
-                      <span>➔</span>
+                      {isMobileMode ? (
+                        <BookOpen className="w-3.5 h-3.5" />
+                      ) : (
+                        <>
+                          <span>뷰어로 열기</span>
+                          <span>➔</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -1943,17 +2047,30 @@ export function DocumentLibraryViewer({
                         </td>
                         <td className="p-3 font-mono text-slate-400">{doc.lastReadAt}</td>
                         <td className="p-3 text-center">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveDownloadDoc(doc);
-                            }}
-                            className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white"
-                            title="4종 다운로드"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveDownloadDoc(doc);
+                              }}
+                              className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white"
+                              title="4종 다운로드"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (onRequestShare) onRequestShare('file', doc.title, doc.id);
+                              }}
+                              className="p-1 rounded hover:bg-slate-800 text-sky-400 hover:text-sky-300"
+                              title="문서 공유하기"
+                            >
+                              <Share2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

@@ -1,0 +1,186 @@
+{
+  "sessions": [
+    {
+      "session_id": "SESSION-0023",
+      "session_name": "[0023] PG-USR-03 홈 대시보드 헤더 간소화 및 7대 PDF 도구 퀵 액션 연동",
+      "work_group": "purePDFrend",
+      "ai_agent": "gemini",
+      "ai_model": "models/gemini-3.8-flash",
+      "status_cd": "진행중",
+      "started_at": "2026-10-03T11:35:14.625Z",
+      "ended_at": null,
+      "doc_payload": {
+        "objective": "PG-USR-03 홈 대시보드 헤더 간소화, 7대 PDF 핵심 도구 퀵 액션 카드 및 다이렉트 화면 전환 연계, 드래그앤드롭 파일 즉시 도구 연동, 최근 작업 문서 이어보기, 반응형 모바일/데스크톱 최적화",
+        "issue_number": 61,
+        "branch": "task/0023_01_홈대시보드_7대도구연동_Gemini",
+        "base_sha": "2b9f6da61feb267e83de4e90e5f8b6ea48bea4d8",
+        "operator_account": "jkok2j2m",
+        "user_email": "jkok2j2m@gmail.com",
+        "reference_docs": [
+          "docs/06.기획/06-03_PG_USR_03_홈대시보드_헤더간소화_및_7대PDF도구_전용작업화면_기획서.md",
+          "docs/05.설계/05-22_화면프로그램ID체계표_및_정보구조_IA_설계서.md",
+          "docs/03.정책/03-13_UIUX_통일성_및_모바일반응형_디자인시스템_운영정책.md",
+          "docs/03.정책/03-14_모바일반응형_카드전환_및_가로스크롤_원천방지_디자인가이드.md",
+          "docs/17.참고/261010_xodo분석/xodo_screen_review_analysis.md"
+        ]
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 1,
+      "operator_account": "jkok2j2m",
+      "user_email": "jkok2j2m@gmail.com"
+    },
+    {
+      "session_id": "SESSION-0020",
+      "session_name": "[0020] PG-USR-06 고성능 가상 스크롤 PDF 전용 뷰어 연동 및 독서/서지 툴바 UI 고도화",
+      "work_group": "purePDFrend",
+      "ai_agent": "gemini",
+      "ai_model": "models/gemini-3.8-flash",
+      "status_cd": "완료",
+      "started_at": "2026-10-01T10:41:37.747Z",
+      "ended_at": "2026-10-02T12:44:42.369Z",
+      "doc_payload": {
+        "objective": "PG-USR-05 문서관리 라이브러리에서 책/문서 클릭 시 PG-USR-06 PDF 전용 뷰어로 부드러운 화면 전환, 800쪽 이상 대용량 문서를 위한 60fps 가상 스크롤러(Virtualizer) 및 LRU 페이지 메모리 가드 연동, 전용 상단 툴바(줌, 회전, 쪽이동, Searchable PDF 검색), 독서진행도/서지정보 연계",
+        "issue_number": 49,
+        "branch": "task/0020_01_가상스크롤뷰어연동_툴바고도화_Gemini",
+        "base_sha": "753fda5943ef83f1fdc66de8252add5196dd4cb9",
+        "operator_account": "jkok2j2m",
+        "user_email": "jkok2j2m@gmail.com",
+        "reference_docs": [
+          "docs/13.회고/13-15_SESSION-261001-0019_세션종합_KPT_회고록.md",
+          "docs/05.설계/05-22_화면프로그램ID체계표_및_정보구조_IA_설계서.md",
+          "docs/10.리뷰/260924_026_800쪽_대용량_가상뷰어_메모리가드_및_로컬실행환경_보완_리뷰.md",
+          "docs/05.설계/05-12_800쪽_대용량_가상화_뷰어_및_메모리가드_설계.md",
+          "docs/03.정책/03-13_UIUX_통일성_및_모바일반응형_디자인시스템_운영정책.md",
+          "docs/03.정책/03-14_모바일반응형_카드전환_및_가로스크롤_원천방지_디자인가이드.md"
+        ]
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 1,
+      "operator_account": "jkok2j2m",
+      "user_email": "jkok2j2m@gmail.com",
+      "updated_at": "2026-10-02T12:44:42.369Z"
+    },
+    {
+      "session_id": "SESSION-0019",
+      "session_name": "[0019] 문서관리 라이브러리(PG-USR-05) UI/UX 고도화 및 DB 인프라 정돈",
+      "work_group": "purePDFrend",
+      "ai_agent": "gemini",
+      "ai_model": "models/gemini-3.8-flash",
+      "status_cd": "완료",
+      "started_at": "2026-09-30T13:32:49.024Z",
+      "ended_at": "2026-10-01T10:29:38.860Z",
+      "doc_payload": {
+        "objective": "문서관리 라이브러리(PG-USR-05) UI/UX 고도화, 8대 상세 검색 필터 바, 카드 뷰 vs 테이블 뷰 전환 및 정책 03-14(모바일 카드 자동전환)/정책 03-18(컬럼 리사이징/정렬분리) 완벽 구현, 신규 문서 등록(PDF/이미지 DnD), 4종 다운로드 모달, 주석(.json/.xfdf) 불러오기/내보내기 및 뷰어(PG-USR-06) 연결",
+        "issue_number": 44,
+        "branch": "task/0019_01_문서관리라이브러리_Gemini",
+        "base_sha": "194fa806e1fa74bbb11d8e352afac4a20509eddd",
+        "operator_account": "jkok2j2m",
+        "user_email": "jkok2j2m@gmail.com",
+        "reference_docs": [
+          "docs/13.회고/13-14_SESSION-260930-0018_세션종합_KPT_회고록.md",
+          "docs/05.설계/05-22_화면프로그램ID체계표_및_정보구조_IA_설계서.md",
+          "docs/06.기획/06-04_차세대_서비스_백로그_기획서_클라우드스토리지_OCR과금_GitHub연계.md",
+          "docs/03.정책/03-13_UIUX_통일성_및_모바일반응형_디자인시스템_운영정책.md",
+          "docs/03.정책/03-14_모바일반응형_카드전환_및_가로스크롤_원천방지_디자인가이드.md",
+          "docs/03.정책/03-18_목록헤더_너비조절_및_정렬버튼_분리_UI정책.md"
+        ]
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 2,
+      "operator_account": "jkok2j2m",
+      "user_email": "jkok2j2m@gmail.com"
+    },
+    {
+      "session_id": "SESSION-0018",
+      "session_name": "[0018] 사용자관리 동선통합, 적응형 쿼터예측 및 대화턴 무손실 영속화",
+      "work_group": "purePDFrend",
+      "ai_agent": "gemini",
+      "ai_model": "models/gemini-3.8-flash",
+      "status_cd": "완료",
+      "started_at": "2026-09-28T23:04:59.210Z",
+      "ended_at": "2026-09-30T13:20:00.000Z",
+      "doc_payload": {
+        "objective": "사용자관리(PG-USR-04) 프로필 크롭 연동, 360px 모바일 방어, 인라인 정보수정 모드, 시스템 정책 연동 이메일·2FA 옵션화 및 비상 복구코드 10개 관리, KST 16:00 슬라이딩 윈도우 적응형 쿼터 예측 API, AI Studio 2대 고유 에러 분류 전략, SESSION-0018 전체 대화 턴 원본 프롬프트 및 Markdown 전문 100% 무손실 영속화",
+        "issue_number": 39,
+        "branch": "task/0018_01_가상화뷰어최적화_사용자대시보드연동_Gemini",
+        "base_sha": "1cf983977e751f94258569cea19f32eca7351190",
+        "operator_account": "jkok2j2m",
+        "user_email": "jkok2j2m@gmail.com",
+        "retrospective_doc": "docs/13.회고/13-14_SESSION-260930-0018_세션종합_KPT_회고록.md",
+        "reference_docs": [
+          "docs/13.회고/13-13_SESSION-260928-0017_세션종합_KPT_회고록.md",
+          "docs/06.기획/06-03_PG-USR-03_사용자대시보드.md",
+          "docs/05.설계/05-02_가상스크롤_뷰어_아키텍처_설계서.md"
+        ]
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 2,
+      "operator_account": "jkok2j2m",
+      "user_email": "jkok2j2m@gmail.com"
+    },
+    {
+      "session_id": "SESSION-0017",
+      "session_name": "[0017] 와이어프레임 기획서 분석 및 WireframeStudio 프로토타입 연동",
+      "work_group": "purePDFrend",
+      "ai_agent": "gemini",
+      "ai_model": "models/gemini-3.8-flash",
+      "status_cd": "완료",
+      "started_at": "2026-09-27T15:25:00.000Z",
+      "ended_at": "2026-09-28T22:16:55.957Z",
+      "doc_payload": {
+        "objective": "원격 dev 최신 소스 동기화, 작업그래프 필터 무결성 보정, README 복구, WireframeStudio 25개 프로토타입 연동",
+        "branch": "task/0017_01_와이어프레임_프로토타입_Gemini",
+        "operator_account": "jkoogit",
+        "user_email": "jkoogit@gmail.com",
+        "linked_from_session": "SESSION-0016"
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 2,
+      "operator_account": "jkoogit",
+      "user_email": "jkoogit@gmail.com"
+    },
+    {
+      "session_id": "SESSION-0016",
+      "session_name": "[0016]0015_토큰소진_연계작업_UI정책_및_긴급백업복구",
+      "work_group": "purePDFrend",
+      "ai_agent": "gemini",
+      "ai_model": "models/gemini-3.7-flash",
+      "status_cd": "완료",
+      "started_at": "2026-09-27T12:14:29.614Z",
+      "ended_at": "2026-09-27T13:43:25.800Z",
+      "doc_payload": {
+        "objective": "0015 토큰소진 연계작업(전수 목록 UI정책 일괄적용), 비-LLM 긴급소스 백업 복구, 와이어프레임 분석",
+        "issue_number": 28,
+        "branch": "task/0016_01_UI정책_긴급백업복구_Gemini",
+        "operator_account": "jkoogit",
+        "user_email": "jkoogit@gmail.com",
+        "linked_from_session": "SESSION-0015",
+        "linked_operator": "jkok2j2m"
+      },
+      "created_sys": "agent-harness",
+      "created_by": "system",
+      "updated_sys": "agent-harness",
+      "updated_by": "system",
+      "version": 2,
+      "operator_account": "jkoogit",
+      "user_email": "jkoogit@gmail.com"
+    }
+  ],
+  "tasks": [],
+  "loops": []
+}

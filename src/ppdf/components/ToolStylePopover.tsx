@@ -44,13 +44,12 @@ export interface ToolStyleState {
   presets: StylePreset[];
 }
 
-export interface ToolStylePopoverProps {
+interface ToolStylePopoverProps {
   isOpen: boolean;
   onClose: () => void;
   toolName?: string;
   styleState: ToolStyleState;
   onChangeStyle: (updated: Partial<ToolStyleState>) => void;
-  align?: 'left' | 'right';
   isMobile?: boolean;
 }
 
@@ -68,8 +67,6 @@ export const ToolStylePopover: React.FC<ToolStylePopoverProps> = ({
   toolName = '펜',
   styleState,
   onChangeStyle,
-  align = 'right',
-  isMobile = false,
 }) => {
   // 팝오버 내부 네비게이션: 'main' (스타일 메인) | 'color' (선/텍스트 색상) | 'fillColor' (채우기 색상)
   const [subView, setSubView] = useState<'main' | 'color' | 'fillColor'>('main');
@@ -88,17 +85,11 @@ export const ToolStylePopover: React.FC<ToolStylePopoverProps> = ({
   const activeColorTarget = subView === 'fillColor' ? 'fill' : 'stroke';
   const activeColorValue = activeColorTarget === 'fill' ? (styleState.fillColor || 'transparent') : styleState.color;
 
-  const alignClass = align === 'right' ? 'sm:right-0' : 'sm:left-0';
-
-  // [피드백 05 반영] 모바일 모드 및 좁은 화면에서 우측 잘림 원천 방지
-  // 모바일 모드일 때는 fixed inset-x-2 w-auto max-w-[calc(100vw-16px)] sm:max-w-[340px] mx-auto 로 화면크기에 완벽 피팅
-  const positionClasses = isMobile
-    ? 'fixed top-14 inset-x-2 z-50 w-auto max-w-[calc(100vw-16px)] sm:max-w-[340px] mx-auto'
-    : `fixed sm:absolute top-14 sm:top-12 inset-x-2 sm:inset-x-auto ${alignClass} z-50 w-auto sm:w-84 max-w-[calc(100vw-16px)] sm:max-w-[340px] mx-auto sm:mx-0`;
-
   return (
-    <div className={`${positionClasses} rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 shadow-2xl text-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150`}>
-      {/* 1단계 메인 뷰: 도구별 맞춤 스타일 제어 */}
+    <>
+      <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-2xs" onClick={onClose} />
+      <div className="fixed top-24 right-2 sm:right-6 z-50 w-80 sm:w-84 max-w-[calc(100vw-24px)] max-h-[85vh] overflow-y-auto rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 shadow-2xl text-slate-100 animate-in fade-in zoom-in-95 duration-150">
+        {/* 1단계 메인 뷰: 도구별 맞춤 스타일 제어 */}
       {subView === 'main' && (
         <div className="p-4 space-y-4">
           {/* 헤더: 타이틀 + 도구명 배지 + 닫기 */}
@@ -594,5 +585,6 @@ export const ToolStylePopover: React.FC<ToolStylePopoverProps> = ({
         </div>
       )}
     </div>
+    </>
   );
 };

@@ -19,6 +19,8 @@ export function HorizontalSlideContainer({
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeftState, setScrollLeftState] = useState(0);
   const [hasMoved, setHasMoved] = useState(false);
 
   // 스크롤 위치 및 스크롤 가능 여부 계산
@@ -36,6 +38,8 @@ export function HorizontalSlideContainer({
     const el = scrollRef.current;
     if (!el || !wheelEnabled) return;
 
+    let snapTimeout: ReturnType<typeof setTimeout> | null = null;
+
     const onWheel = (e: WheelEvent) => {
       // 1. 해당 영역에 마우스가 있으면 페이지 세로 스크롤을 무조건 차단하여 우선권 확보
       e.preventDefault();
@@ -43,15 +47,22 @@ export function HorizontalSlideContainer({
 
       const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
       if (delta !== 0) {
-        // 즉각적이고 끊김 없는 가로 스크롤 이동 (중간 멈춤 및 스냅 충돌 원천 제거)
-        el.scrollLeft += delta * 1.15;
+        // 부드러운 스크롤 이동
+        el.scrollLeft += delta * 1.1;
         updateScrollState();
+
+        // 휠 중단 시 가장 가까운 슬라이드 요소로 마그네틱 흡착 복원
+        if (snapTimeout) clearTimeout(snapTimeout);
+        snapTimeout = setTimeout(() => {
+          updateScrollState();
+        }, 120);
       }
     };
 
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => {
       el.removeEventListener('wheel', onWheel);
+      if (snapTimeout) clearTimeout(snapTimeout);
     };
   }, [wheelEnabled, updateScrollState]);
 
@@ -88,42 +99,34 @@ export function HorizontalSlideContainer({
     });
   };
 
-  // 마우스 드래그 투 스크롤 (Drag-to-Scroll) - window 레벨 이벤트로 중간 이탈 및 끊김 원천 방지
-  const isDraggingRef = useRef(false);
-  const startXRef = useRef(0);
-  const scrollLeftRef = useRef(0);
-
+  // 마우스 드래그 투 스크롤 (Drag-to-Scroll)
   const handleMouseDown = (e: React.MouseEvent) => {
     const el = scrollRef.current;
     if (!el) return;
 
-    isDraggingRef.current = true;
     setIsDragging(true);
     setHasMoved(false);
-    startXRef.current = e.pageX - el.offsetLeft;
-    scrollLeftRef.current = el.scrollLeft;
+    setStartX(e.pageX - el.offsetLeft);
+    setScrollLeftState(el.scrollLeft);
+  };
 
-    const onMouseMove = (moveEv: MouseEvent) => {
-      if (!isDraggingRef.current || !scrollRef.current) return;
-      const targetEl = scrollRef.current;
-      const x = moveEv.pageX - targetEl.offsetLeft;
-      const walk = (x - startXRef.current) * 1.2;
-      if (Math.abs(walk) > 4) {
-        setHasMoved(true);
-      }
-      targetEl.scrollLeft = scrollLeftRef.current - walk;
-      updateScrollState();
-    };
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    const el = scrollRef.current;
+    if (!el) return;
 
-    const onMouseUp = () => {
-      isDraggingRef.current = false;
-      setIsDragging(false);
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-    };
+    e.preventDefault();
+    const x = e.pageX - el.offsetLeft;
+    const walk = (x - startX) * 1.2;
+    if (Math.abs(walk) > 4) {
+      setHasMoved(true);
+    }
+    el.scrollLeft = scrollLeftState - walk;
+    updateScrollState();
+  };
 
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
+  const handleMouseUpOrLeave = () => {
+    setIsDragging(false);
   };
 
   // 드래그 중 내부 버튼 클릭 오동작 방지
@@ -143,7 +146,7 @@ export function HorizontalSlideContainer({
           <button
             type="button"
             onClick={() => handleScroll('left')}
-            className="pointer-events-auto h-8 w-8 min-w-[32px] sm:h-9 sm:w-9 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700/80 shadow-lg flex items-center justify-center transition-all focus:outline-none focus:ring-2 focus:ring-sky-500 active:scale-95 cursor-pointer"
+            className="pointer-events-auto h-8 w-8 min-w-[32px] sm:h-9 sm:w-9 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700/80 shadow-lg flex items-center justify-center transition-all focus:outline-none focus:ring-2 focus:ring-sky-500 active:scale-95"
             aria-label="왼쪽으로 스크롤"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -153,13 +156,16 @@ export function HorizontalSlideContainer({
         </div>
       )}
 
-      {/* 가로 스크롤 컨테이너 (스냅 충돌 없는 무결점 60fps 부드러운 스크롤 트랙) */}
+      {/* 가로 스크롤 컨테이너 */}
       <div
         ref={scrollRef}
         onScroll={updateScrollState}
         onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUpOrLeave}
+        onMouseLeave={handleMouseUpOrLeave}
         onClickCapture={handleClickCapture}
-        className={`flex items-center gap-2 overflow-x-auto select-none no-scrollbar py-1 px-0.5 scroll-auto ${
+        className={`flex items-center gap-2 overflow-x-auto select-none no-scrollbar scroll-smooth snap-x snap-mandatory py-1 px-0.5 ${
           isDragging ? 'cursor-grabbing' : 'cursor-grab sm:cursor-default'
         }`}
         style={{
@@ -171,7 +177,7 @@ export function HorizontalSlideContainer({
         {React.Children.map(children, (child) => {
           if (!React.isValidElement(child)) return child;
           return React.cloneElement(child as React.ReactElement<{ className?: string }>, {
-            className: `${(child.props as { className?: string }).className || ''} shrink-0`,
+            className: `${(child.props as { className?: string }).className || ''} snap-start shrink-0`,
           });
         })}
       </div>
@@ -182,7 +188,7 @@ export function HorizontalSlideContainer({
           <button
             type="button"
             onClick={() => handleScroll('right')}
-            className="pointer-events-auto h-8 w-8 min-w-[32px] sm:h-9 sm:w-9 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700/80 shadow-lg flex items-center justify-center transition-all focus:outline-none focus:ring-2 focus:ring-sky-500 active:scale-95 cursor-pointer"
+            className="pointer-events-auto h-8 w-8 min-w-[32px] sm:h-9 sm:w-9 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700/80 shadow-lg flex items-center justify-center transition-all focus:outline-none focus:ring-2 focus:ring-sky-500 active:scale-95"
             aria-label="오른쪽으로 스크롤"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

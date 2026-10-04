@@ -4,7 +4,7 @@ import fs from 'fs';
 import crypto from 'crypto';
 import https from 'https';
 import { createServer as createViteServer } from 'vite';
-import { TokenQuotaDetectionService, TurnTraceService } from './src/aiagent/domain/token-quota';
+import { TokenQuotaDetectionService } from './src/aiagent/domain/token-quota';
 import { GovernanceIdGenerator } from './src/aiagent/domain/governance/GovernanceIdGenerator';
 
 const app = express();
@@ -1361,14 +1361,14 @@ app.post('/api/agent/trace/turn', async (req, res) => {
     const {
       trace_id,
       session_id = activeSessionId,
-      task_id,
+      task_id = activeTaskId,
       loop_id = null,
       step_index,
       turn_number,
       agent_name = 'gemini',
       model_name = 'models/gemini-3.8-flash',
-      operator_account = 'jkoogit',
-      user_email = 'jkoogit@gmail.com',
+      operator_account = 'jkok2j2m',
+      user_email = 'jkok2j2m@gmail.com',
       user_prompt,
       agent_response,
       response_summary = '',
@@ -1377,10 +1377,10 @@ app.post('/api/agent/trace/turn', async (req, res) => {
       total_tokens = 0,
     } = req.body;
 
-    if (!session_id) {
+    if (!session_id || !task_id) {
       return res.status(400).json({
         success: false,
-        error: 'session_id는 필수 파라미터이며, 활성 세션이 존재해야 합니다.',
+        error: 'session_id와 task_id는 필수 파라미터이며, 활성 세션/태스크가 존재해야 합니다.',
       });
     }
 
@@ -1396,19 +1396,11 @@ app.post('/api/agent/trace/turn', async (req, res) => {
       });
     }
 
-    // Normalize task_id (falls back to active task or TASK-FREE for general conversation)
-    const finalTaskId = TurnTraceService.normalizeTaskId(task_id, activeTaskId);
-
-    // Extract summary without LLM cost if omitted
-    const finalSummary = response_summary && String(response_summary).trim()
-      ? String(response_summary).trim()
-      : TurnTraceService.extractResponseSummary(String(agent_response || ''));
-
     const calculatedStep = Number(turn_number || step_index) || ((store.traces || []).filter((t) => t.session_id === session_id).length + 1);
-    const finalTraceId = trace_id || GovernanceIdGenerator.generateHierarchicalTraceId(session_id, finalTaskId, loop_id, calculatedStep);
+    const finalTraceId = trace_id || GovernanceIdGenerator.generateHierarchicalTraceId(session_id, task_id, loop_id, calculatedStep);
     const escapedPrompt = String(user_prompt || '').replace(/'/g, "''");
     const escapedResponse = String(agent_response || '').replace(/'/g, "''");
-    const escapedSummary = finalSummary.replace(/'/g, "''");
+    const escapedSummary = String(response_summary || '').replace(/'/g, "''");
     const safeLoopId = loop_id ? `'${String(loop_id).replace(/'/g, "''")}'` : 'NULL';
 
     // 1. Save to Local Fallback Store
@@ -1416,7 +1408,7 @@ app.post('/api/agent/trace/turn', async (req, res) => {
     const traceRecord = {
       trace_id: finalTraceId,
       session_id,
-      task_id: finalTaskId,
+      task_id,
       loop_id,
       step_index: calculatedStep,
       agent_name,
@@ -1425,7 +1417,7 @@ app.post('/api/agent/trace/turn', async (req, res) => {
       user_email,
       user_prompt,
       agent_response,
-      response_summary: finalSummary,
+      response_summary,
       prompt_tokens: Number(prompt_tokens),
       completion_tokens: Number(completion_tokens),
       total_tokens: Number(total_tokens) || Number(prompt_tokens) + Number(completion_tokens),
@@ -1444,9 +1436,9 @@ app.post('/api/agent/trace/turn', async (req, res) => {
     let dbRecord: any = null;
     let dbError: string | null = null;
 
-    const safeOperator = String(operator_account || 'jkoogit').replace(/'/g, "''");
-    const safeAgentAccount = String(req.body.agent_account || user_email || 'jkoogit@gmail.com').replace(/'/g, "''");
-    const safeUserEmail = String(user_email || req.body.agent_account || 'jkoogit@gmail.com').replace(/'/g, "''");
+    const safeOperator = String(operator_account || 'jkok2j2m').replace(/'/g, "''");
+    const safeAgentAccount = String(req.body.agent_account || user_email || 'jkok2j2m@gmail.com').replace(/'/g, "''");
+    const safeUserEmail = String(user_email || req.body.agent_account || 'jkok2j2m@gmail.com').replace(/'/g, "''");
 
     try {
       const sql = `
@@ -1457,9 +1449,9 @@ app.post('/api/agent/trace/turn', async (req, res) => {
         ) VALUES (
           '${finalTraceId}',
           '${session_id}',
-          '${finalTaskId}',
+          '${task_id}',
           ${safeLoopId},
-          ${calculatedStep},
+          ${Number(step_index) || 1},
           '${agent_name}',
           '${model_name}',
           '${safeOperator}',
@@ -1502,85 +1494,13 @@ app.post('/api/agent/trace/turn', async (req, res) => {
 
     res.json({
       success: true,
-      message: `대화 턴(#${calculatedStep}) 기록이 저장되었습니다.`,
+      message: `대화 턴(#${step_index}) 기록이 저장되었습니다.`,
       traceId: finalTraceId,
       verified: dbVerified,
       dbError,
       dbRecord: dbRecord || traceRecord,
       savedToLocal: true,
       source: dbVerified ? 'REMOTE_DB' : 'LOCAL_FALLBACK',
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// 4.2 Reconcile Local Traces with Remote DB (Bulk Sync Fail-Safe)
-app.post('/api/agent/trace/reconcile', async (req, res) => {
-  try {
-    const { session_id } = req.body;
-    const store = getLocalStore();
-    const targetSessionId = session_id || store.sessions?.[0]?.session_id;
-
-    if (!targetSessionId) {
-      return res.status(400).json({ success: false, error: '세션 ID가 지정되지 않았습니다.' });
-    }
-
-    const localTraces = (store.traces || []).filter(
-      (t) => t.session_id === targetSessionId &&
-             !isQuotaLimitError(t.user_prompt) &&
-             !isQuotaLimitError(t.agent_response)
-    );
-
-    let existingTraceIds = new Set<string>();
-    try {
-      const qRes: any = await executeSql(
-        `SELECT trace_id FROM aiagent.agent_conversation_trace WHERE session_id = '${targetSessionId.replace(/'/g, "''")}';`
-      );
-      if (qRes && qRes.rows) {
-        existingTraceIds = new Set(qRes.rows.map((r: any) => r.trace_id));
-      }
-    } catch (e: any) {
-      return res.status(500).json({ success: false, error: `원격 DB 연결 실패: ${e.message}` });
-    }
-
-    const missingTraces = localTraces.filter((t) => !existingTraceIds.has(t.trace_id));
-    let insertedCount = 0;
-
-    for (const tr of missingTraces) {
-      const escapedPrompt = String(tr.user_prompt || '').replace(/'/g, "''");
-      const escapedResponse = String(tr.agent_response || '').replace(/'/g, "''");
-      const finalSummary = tr.response_summary || TurnTraceService.extractResponseSummary(tr.agent_response);
-      const escapedSummary = finalSummary.replace(/'/g, "''");
-      const safeLoopId = tr.loop_id ? `'${String(tr.loop_id).replace(/'/g, "''")}'` : 'NULL';
-
-      const insertSql = `
-        INSERT INTO aiagent.agent_conversation_trace (
-          trace_id, session_id, task_id, loop_id, step_index, agent_name, model_name,
-          operator_account, agent_account, user_email,
-          user_prompt, agent_response, response_summary, prompt_tokens, completion_tokens, total_tokens, created_at
-        ) VALUES (
-          '${tr.trace_id}', '${tr.session_id}', '${tr.task_id}', ${safeLoopId},
-          ${Number(tr.step_index) || 1}, '${tr.agent_name || 'gemini'}', '${tr.model_name || 'models/gemini-3.8-flash'}',
-          '${String(tr.operator_account || 'jkoogit').replace(/'/g, "''")}', 'purePDFrend-agent', '${String(tr.user_email || 'jkoogit@gmail.com').replace(/'/g, "''")}',
-          '${escapedPrompt}', '${escapedResponse}', '${escapedSummary}',
-          ${Number(tr.prompt_tokens) || 0}, ${Number(tr.completion_tokens) || 0}, ${Number(tr.total_tokens) || 0},
-          '${tr.created_at || new Date().toISOString()}'
-        ) ON CONFLICT (trace_id) DO NOTHING;
-      `;
-      const insRes: any = await executeSql(insertSql);
-      if (insRes && insRes.rowCount) {
-        insertedCount += insRes.rowCount;
-      }
-    }
-
-    res.json({
-      success: true,
-      message: `세션(${targetSessionId}) 대화 턴 정합성 보정이 완료되었습니다.`,
-      totalLocal: localTraces.length,
-      existingRemote: existingTraceIds.size,
-      missingCount: missingTraces.length,
-      insertedCount,
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
