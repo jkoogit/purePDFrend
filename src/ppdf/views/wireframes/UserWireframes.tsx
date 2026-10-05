@@ -44,7 +44,7 @@ export const USER_PROGRAMS = [
   { id: 'PG-USR-05', name: '문서관리 (라이브러리)', desc: '8대 상세필터, 문서등록(PDF/이미지), 4종 다운로드 모달, 주석 내보내기/불러오기' },
   { id: 'PG-USR-06', name: '문서뷰어 & 주석스튜디오', desc: '단일줄 툴바+가로 슬라이더, 툴바 순서설정 팝업, 8대 모드, 3단계 주석 이벤트' },
   { id: 'PG-USR-07', name: '문서공유 및 협업작업뷰', desc: '공유권한(읽기/열람자쓰기/관리자) 설정, 동시접속자 목록, 실시간 이벤트 피드' },
-  { id: 'PG-USR-08', name: '오프라인 모드 & 충돌머지', desc: '오프라인 감지, 수동 즉시재연결 버튼, 로컬 큐, Last-Write-Wins & diff 머지' },
+  { id: 'PG-USR-08', name: '오프라인 작업 정리', desc: '리소스모드·문서모드 작업문서 정리, 충돌 머지(한쪽 반영/스마트병합), 히든주석 추적' },
   { id: 'PG-USR-09', name: '정밀 사용자 환경설정', desc: '단축키설정(PC/태블릿), 도구그룹설정(그룹간 중복허용/초기화), 뷰어/테마옵션' },
 ];
 
@@ -765,9 +765,94 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false }: UserW
     { id: 'toc-18', title: '부록: 표준 식별자 및 거버넌스 규약', page: 750, level: 1 },
   ]);
 
-  // PG-USR-08 Offline state
+  // PG-USR-08 Offline state (작업 문서 단위 관리)
   const [isOfflineSimulated, setIsOfflineSimulated] = useState(true);
   const [isDiffModalOpen, setIsDiffModalOpen] = useState(false);
+  const [selectedConflictDoc, setSelectedConflictDoc] = useState<any>(null);
+  const [offlineToast, setOfflineToast] = useState<string | null>(null);
+  const [offlineWorkDocs, setOfflineWorkDocs] = useState([
+    {
+      docId: 'DOC-0091',
+      docName: '2026_아키텍처_설계_표준서.pdf',
+      docVersion: 'v2.1',
+      workMode: '리소스모드',
+      offlineTime: '2026-10-05 14:05:00',
+      startTime: '14:10:12',
+      endTime: '14:18:22',
+      author: 'jkoogit@gmail.com',
+      cachedPages: 10,
+      totalPages: 120,
+      status: '충돌감지',
+      hasConflict: true,
+      offlineChangeDesc: 'p.14 주석 2건 (형광펜 주황색, "낙관적 락 충돌 검토" 메모)',
+      externalChangeDesc: 'p.14 주석 (클라우드 OCR 텍스트 레이어 교정 v2.1, 수정자: reviewer@pdfrend.com)',
+      hiddenMetadata: null
+    },
+    {
+      docId: 'DOC-0094',
+      docName: '한국근현대사_사료집_발췌본.pdf',
+      docVersion: 'v1.0',
+      workMode: '문서모드',
+      offlineTime: '2026-10-05 13:30:00',
+      startTime: '13:35:10',
+      endTime: '13:52:00',
+      author: 'jkoogit@gmail.com',
+      cachedPages: null,
+      totalPages: 85,
+      status: '온라인등록대기',
+      hasConflict: false,
+      offlineChangeDesc: '로컬 독립 PDF 파일 열람 및 주석 5건 작성',
+      externalChangeDesc: null,
+      hiddenMetadata: {
+        startTime: '2026-10-05 13:35:10',
+        updateTime: '2026-10-05 13:48:20',
+        modifier: 'jkoogit@gmail.com',
+        docNo: 'DOC-0094',
+        docTitle: '한국근현대사_사료집_발췌본.pdf',
+        docVersion: 'v1.0',
+        endTime: '2026-10-05 13:52:00',
+        annotationCount: 5,
+        targetSystem: 'purePDFrend Production'
+      }
+    },
+    {
+      docId: 'DOC-0088',
+      docName: 'purePDFrend_API_개발가이드.pdf',
+      docVersion: 'v3.0',
+      workMode: '리소스모드',
+      offlineTime: '2026-10-05 14:15:00',
+      startTime: '14:16:00',
+      endTime: '14:20:00',
+      author: 'jkoogit@gmail.com',
+      cachedPages: 25,
+      totalPages: 40,
+      status: '바로머지가능',
+      hasConflict: false,
+      offlineChangeDesc: 'p.3~5 북마크 순서 변경 및 목차 보정',
+      externalChangeDesc: null,
+      hiddenMetadata: null
+    }
+  ]);
+
+  // PG-USR-08 Search Filter states
+  const [filterDocId, setFilterDocId] = useState('');
+  const [filterDocTitle, setFilterDocTitle] = useState('');
+  const [filterStatus, setFilterStatus] = useState('ALL');
+  const [filterWorkMode, setFilterWorkMode] = useState('ALL');
+  const [filterTimeFrom, setFilterTimeFrom] = useState('');
+  const [filterTimeTo, setFilterTimeTo] = useState('');
+  const [filterAuthor, setFilterAuthor] = useState('');
+
+  const filteredOfflineDocs = offlineWorkDocs.filter(doc => {
+    if (filterDocId && !doc.docId.toLowerCase().includes(filterDocId.toLowerCase())) return false;
+    if (filterDocTitle && !doc.docName.toLowerCase().includes(filterDocTitle.toLowerCase())) return false;
+    if (filterStatus !== 'ALL' && doc.status !== filterStatus) return false;
+    if (filterWorkMode !== 'ALL' && doc.workMode !== filterWorkMode) return false;
+    if (filterAuthor && !doc.author.toLowerCase().includes(filterAuthor.toLowerCase())) return false;
+    if (filterTimeFrom && doc.offlineTime.slice(0, 10) < filterTimeFrom) return false;
+    if (filterTimeTo && doc.offlineTime.slice(0, 10) > filterTimeTo) return false;
+    return true;
+  });
 
   // PG-USR-09 Settings state
   const [settingsTab, setSettingsTab] = useState<'general' | 'shortcuts' | 'groups'>('groups');
@@ -6590,97 +6675,594 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false }: UserW
           </div>
         )}
 
-        {/* PG-USR-08: 오프라인 모드 & 충돌머지 (수동 즉시재연결 버튼 + diff 미리보기) */}
+        {/* PG-USR-08: 오프라인 작업 정리 (리소스모드·문서모드 작업문서 정리, 충돌 머지, 히든주석 추적) */}
         {selectedProg === 'PG-USR-08' && (
           <div className="space-y-4 text-xs">
-            {/* 오프라인 감지 상태바 및 수동 재연결 버튼 (ERR-05 보완) */}
-            <div className={`p-3 rounded-xl flex flex-wrap items-center justify-between gap-3 ${
+            {/* 오프라인 토스트 알림 */}
+            {offlineToast && (
+              <div className="p-3 bg-indigo-600 text-white rounded-xl shadow-lg flex items-center justify-between transition-all animate-fade-in font-medium">
+                <div className="flex items-center gap-2">
+                  <span>⚡</span>
+                  <span>{offlineToast}</span>
+                </div>
+                <button onClick={() => setOfflineToast(null)} className="text-white/80 hover:text-white text-xs">✕</button>
+              </div>
+            )}
+
+            {/* 1. 네트워크 감지 상태바 및 수동 재연결 제어기 */}
+            <div className={`p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-lg transition-all ${
               isOfflineSimulated
                 ? 'bg-amber-500/10 border border-amber-500/30 text-amber-300'
                 : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
             }`}>
-              <div className="flex items-center gap-2">
-                <span className="text-base">{isOfflineSimulated ? '📡' : '🌐'}</span>
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 ${
+                  isOfflineSimulated ? 'bg-amber-500/20' : 'bg-emerald-500/20'
+                }`}>
+                  {isOfflineSimulated ? '📡' : '🌐'}
+                </div>
                 <div>
-                  <span className="font-bold">
-                    {isOfflineSimulated ? '현재 네트워크가 오프라인 상태입니다' : '현재 온라인 네트워크에 정상 연결되었습니다'}
-                  </span>
-                  <p className={`text-[11px] ${isOfflineSimulated ? 'text-amber-400/80' : 'text-emerald-400/80'}`}>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm">
+                      {isOfflineSimulated ? '네트워크 오프라인 상태 (로컬 단독 실행 중)' : '네트워크 온라인 연결 정상 (실시간 동기화)'}
+                    </span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold ${
+                      isOfflineSimulated ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                    }`}>
+                      {isOfflineSimulated ? 'OFFLINE_CACHE_ACTIVE' : 'ONLINE_SYNC_LIVE'}
+                    </span>
+                  </div>
+                  <p className={`text-[11px] mt-0.5 ${isOfflineSimulated ? 'text-amber-400/80' : 'text-emerald-400/80'}`}>
                     {isOfflineSimulated
-                      ? '로컬 뷰어 작업(주석 이벤트 소싱)은 중단 없이 유지되며, 재연결 시 안전하게 동기화됩니다.'
-                      : '모든 로컬 주석 및 변경 내역이 실시간 동기화됩니다.'}
+                      ? '오프라인 중 작업된 문서는 안전하게 로컬에 격리 보관되며, 온라인 복구 시 "오프라인 작업 정리" 대상 목록으로 취합됩니다.'
+                      : '온라인 상태입니다. 오프라인 중 진행된 작업문서의 충돌 여부를 검토하고 서버 정본에 안전하게 머지하세요.'}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setIsOfflineSimulated(!isOfflineSimulated)}
-                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[11px]"
+                  onClick={() => {
+                    const next = !isOfflineSimulated;
+                    setIsOfflineSimulated(next);
+                    setOfflineToast(next ? '📡 오프라인 모드로 전환되었습니다. 로컬 캐시 격리 활성화' : '🌐 온라인 모드로 복귀되었습니다. 오프라인 작업문서 현행화 대기');
+                  }}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold border border-slate-700 transition"
                 >
-                  {isOfflineSimulated ? '온라인 전환' : '오프라인 전환'}
+                  {isOfflineSimulated ? '🌐 온라인 전환' : '📡 오프라인 전환'}
                 </button>
                 <button
-                  onClick={() => setIsDiffModalOpen(true)}
-                  className="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded font-semibold flex items-center gap-1 shadow"
+                  onClick={() => {
+                    setOfflineToast('🔄 오프라인 작업문서 3건의 원격 상태를 조회하여 동기화 및 충돌을 분석 중입니다...');
+                  }}
+                  className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-semibold flex items-center gap-1.5 shadow-md transition active:scale-95"
                 >
                   <span>🔄</span>
-                  <span>지금 다시 연결 (수동)</span>
+                  <span>작업목록 새로고침</span>
                 </button>
               </div>
             </div>
 
-            {/* 오프라인 로컬 이벤트 큐 현황 */}
-            <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="font-semibold text-slate-200">📦 로컬 이벤트 소싱 큐 (IndexedDB 대기열: 3건)</span>
-                <span className="text-[11px] text-emerald-400 font-mono">Draft Quarantine 보호 중</span>
-              </div>
-              <div className="space-y-2 font-mono text-[11px]">
-                <div className="p-2 bg-slate-900 rounded flex justify-between items-center text-slate-300">
-                  <span>1. [2026-09-27 06:40:12] ADD_ANNOTATION (p.14 형광펜)</span>
-                  <span className="text-amber-400">로컬 대기</span>
+            {/* 2. 오프라인 작업문서 검색 및 상세 필터 */}
+            <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-2xl space-y-2.5 shadow-md">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                {/* 1) 문서 ID */}
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1 font-medium whitespace-nowrap">문서 ID</label>
+                  <input
+                    type="text"
+                    value={filterDocId}
+                    onChange={(e) => setFilterDocId(e.target.value)}
+                    placeholder="예: DOC-0091"
+                    className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 text-xs font-mono placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
+                  />
                 </div>
-                <div className="p-2 bg-slate-900 rounded flex justify-between items-center text-slate-300">
-                  <span>2. [2026-09-27 06:41:05] UPDATE_COMMENT (p.14 메모 추가)</span>
-                  <span className="text-amber-400">로컬 대기</span>
+
+                {/* 2) 문서 제목 */}
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1 font-medium whitespace-nowrap">문서제목</label>
+                  <input
+                    type="text"
+                    value={filterDocTitle}
+                    onChange={(e) => setFilterDocTitle(e.target.value)}
+                    placeholder="문서제목 검색"
+                    className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 text-xs placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                {/* 3) 상태 선택목록 */}
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1 font-medium whitespace-nowrap">상태</label>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="ALL">전체 상태</option>
+                    <option value="충돌감지">⚠️ 충돌감지</option>
+                    <option value="바로머지가능">⚡ 바로머지가능</option>
+                    <option value="온라인등록대기">🔍 온라인등록대기</option>
+                    <option value="머지완료">✓ 머지완료</option>
+                  </select>
+                </div>
+
+                {/* 4) 작업유형 선택목록 */}
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1 font-medium whitespace-nowrap">작업유형</label>
+                  <select
+                    value={filterWorkMode}
+                    onChange={(e) => setFilterWorkMode(e.target.value)}
+                    className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="ALL">전체 작업유형</option>
+                    <option value="리소스모드">리소스모드</option>
+                    <option value="문서모드">문서모드</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1 items-end">
+                {/* 5) 오프라인시간 시작 */}
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1 font-medium whitespace-nowrap">오프라인시간 (시작)</label>
+                  <input
+                    type="date"
+                    value={filterTimeFrom}
+                    onChange={(e) => setFilterTimeFrom(e.target.value)}
+                    className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 text-xs font-mono focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                {/* 6) 오프라인시간 종료 */}
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1 font-medium whitespace-nowrap">오프라인시간 (종료)</label>
+                  <input
+                    type="date"
+                    value={filterTimeTo}
+                    onChange={(e) => setFilterTimeTo(e.target.value)}
+                    className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 text-xs font-mono focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                {/* 7) 작업자 검색 */}
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1 font-medium whitespace-nowrap">작업자</label>
+                  <input
+                    type="text"
+                    value={filterAuthor}
+                    onChange={(e) => setFilterAuthor(e.target.value)}
+                    placeholder="작업자 이메일/ID"
+                    className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 text-xs font-mono placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                {/* 8) 초기화 버튼 */}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilterDocId('');
+                      setFilterDocTitle('');
+                      setFilterStatus('ALL');
+                      setFilterWorkMode('ALL');
+                      setFilterTimeFrom('');
+                      setFilterTimeTo('');
+                      setFilterAuthor('');
+                    }}
+                    className="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold border border-slate-700 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <span>🔄</span>
+                    <span>필터 초기화</span>
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* 충돌 diff 머지 모달 */}
-            {isDiffModalOpen && (
-              <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-5 space-y-4 shadow-2xl">
-                  <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-                    <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                      <span>⚠️ 주석 충돌(Conflict) 해결 및 diff 머지</span>
-                      <span className="text-xs px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded font-mono">DOC-0091</span>
-                    </h3>
-                    <button onClick={() => setIsDiffModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+            {/* 3. 오프라인 작업 정리 문서 목록 (작업 단위 관리 - 건수만 표시) */}
+            <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-3 shadow-md">
+              <div className="flex justify-between items-center border-b border-slate-800/80 pb-3">
+                <span className="font-bold text-slate-200 text-xs flex items-center gap-2">
+                  <span>📂 오프라인 작업 문서 정리 목록</span>
+                  <span className="text-[10px] px-2 py-0.5 bg-indigo-500/20 text-indigo-300 rounded font-mono border border-indigo-500/30">
+                    총 {filteredOfflineDocs.length}건
+                  </span>
+                </span>
+              </div>
+
+              {/* 모바일 모드: 반응형 독립 카드 리스트 (Table-to-Card Pattern per Policy 03-14) */}
+              {isMobileMode ? (
+                <div className="space-y-3">
+                  {filteredOfflineDocs.length === 0 ? (
+                    <div className="p-8 text-center text-slate-500 font-sans bg-slate-900/40 rounded-xl border border-slate-800">
+                      조회된 결과가 없습니다.
+                    </div>
+                  ) : (
+                    filteredOfflineDocs.map((doc) => (
+                      <div
+                        key={doc.docId}
+                        className={`p-3.5 bg-slate-900/80 border rounded-xl space-y-2.5 transition shadow-sm ${
+                          doc.hasConflict ? 'border-amber-500/50 bg-amber-950/20' : 'border-slate-800'
+                        }`}
+                      >
+                        {/* 1행: 상단 식별 헤더 (문서 ID + 작업모드 + 상태 뱃지) */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-sky-400 font-mono text-xs">{doc.docId}</span>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap inline-block ${
+                              doc.workMode === '리소스모드'
+                                ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+                                : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            }`}>
+                              {doc.workMode}
+                            </span>
+                          </div>
+                          <div>
+                            {doc.status === '충돌감지' && (
+                              <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded text-[10px] font-bold whitespace-nowrap">
+                                ⚠️ 충돌감지
+                              </span>
+                            )}
+                            {doc.status === '바로머지가능' && (
+                              <span className="px-2 py-0.5 bg-sky-500/20 text-sky-300 border border-sky-500/30 rounded text-[10px] font-bold whitespace-nowrap">
+                                ⚡ 바로머지가능
+                              </span>
+                            )}
+                            {doc.status === '온라인등록대기' && (
+                              <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded text-[10px] font-bold whitespace-nowrap">
+                                🔍 등록대기
+                              </span>
+                            )}
+                            {doc.status === '머지완료' && (
+                              <span className="px-2 py-0.5 bg-slate-800 text-emerald-400 border border-emerald-500/30 rounded text-[10px] font-bold whitespace-nowrap">
+                                ✓ 머지완료
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 2행: 핵심 타이틀 (문서명 + 캐시범위 + 문서버전) */}
+                        <div className="flex items-start justify-between gap-2 border-t border-slate-800/60 pt-2">
+                          <div className="font-sans font-medium text-slate-200 text-xs leading-snug">
+                            {doc.docName}
+                            {doc.cachedPages && (
+                              <span className="ml-1.5 text-[10px] text-slate-400 font-mono">
+                                ({doc.cachedPages}p 캐시)
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[11px] text-slate-300 font-mono whitespace-nowrap shrink-0">{doc.docVersion}</span>
+                        </div>
+
+                        {/* 3행: 시간 이력 및 작업자 정보 */}
+                        <div className="grid grid-cols-1 gap-1 text-[11px] text-slate-400 font-mono bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/40">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500">⏱️ 오프라인시간</span>
+                            <span className="text-slate-300">{doc.offlineTime}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500">✏️ 작업시간</span>
+                            <span className="text-slate-300">{doc.startTime} ~ {doc.endTime}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500">👤 작업자</span>
+                            <span className="text-slate-300 truncate max-w-[180px]">{doc.author}</span>
+                          </div>
+                        </div>
+
+                        {/* 4행: 하단 모바일 원터치 액션 버튼 */}
+                        <div className="pt-1">
+                          {doc.status === '충돌감지' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedConflictDoc(doc);
+                                setIsDiffModalOpen(true);
+                              }}
+                              className="w-full py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-bold text-xs shadow flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
+                            >
+                              <span>⚠️</span>
+                              <span>주석 비교 & 충돌 머지</span>
+                            </button>
+                          )}
+                          {doc.status === '바로머지가능' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOfflineWorkDocs(prev => prev.map(d => d.docId === doc.docId ? { ...d, status: '머지완료' } : d));
+                                setOfflineToast(`✅ ${doc.docId} (${doc.docName}) 변경 내역이 충돌 없이 원격 서버에 즉시 머지되었습니다.`);
+                              }}
+                              className="w-full py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-bold text-xs shadow flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
+                            >
+                              <span>⚡</span>
+                              <span>원격 서버로 바로 머지</span>
+                            </button>
+                          )}
+                          {doc.status === '온라인등록대기' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedConflictDoc(doc);
+                                setIsDiffModalOpen(true);
+                              }}
+                              className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs shadow flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
+                            >
+                              <span>🔍</span>
+                              <span>히든주석 정본 등록</span>
+                            </button>
+                          )}
+                          {doc.status === '머지완료' && (
+                            <div className="w-full py-1.5 text-center bg-slate-800 text-emerald-400 rounded-lg text-xs font-bold font-mono">
+                              ✓ 클라우드 서버 머지 완료됨
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              ) : (
+                /* 데스크톱 모드: 표준 테이블 그리드 */
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left font-mono text-[11px] border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-800 text-slate-400 bg-slate-900/50">
+                        <th className="p-2.5 whitespace-nowrap">문서 ID</th>
+                        <th className="p-2.5 whitespace-nowrap">문서명</th>
+                        <th className="p-2.5 whitespace-nowrap leading-tight">문서<br />버전</th>
+                        <th className="p-2.5 whitespace-nowrap">작업모드</th>
+                        <th className="p-2.5 whitespace-nowrap leading-tight">오프라인<br />시간</th>
+                        <th className="p-2.5 whitespace-nowrap leading-tight">작업시작시간<br />(최초수정)</th>
+                        <th className="p-2.5 whitespace-nowrap leading-tight">작업종료시간<br />(저장)</th>
+                        <th className="p-2.5 whitespace-nowrap">작업자</th>
+                        <th className="p-2.5 text-center whitespace-nowrap">상태</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {filteredOfflineDocs.length === 0 ? (
+                        <tr>
+                          <td colSpan={9} className="p-8 text-center text-slate-500 font-sans">
+                            조회된 결과가 없습니다.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredOfflineDocs.map((doc) => (
+                          <tr
+                            key={doc.docId}
+                            className={`hover:bg-slate-900/40 transition ${
+                              doc.hasConflict ? 'bg-amber-950/10' : ''
+                            }`}
+                          >
+                            <td className="p-2.5 font-bold text-sky-400 whitespace-nowrap align-middle">{doc.docId}</td>
+                            <td className="p-2.5 font-sans font-medium text-slate-200 align-middle">
+                              {doc.docName}
+                              {doc.cachedPages && (
+                                <span className="ml-1.5 text-[10px] text-slate-500 font-mono">
+                                  ({doc.cachedPages}p 캐시)
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-2.5 text-slate-300 whitespace-nowrap align-middle">{doc.docVersion}</td>
+                            <td className="p-2.5 whitespace-nowrap align-middle">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap inline-block ${
+                                doc.workMode === '리소스모드'
+                                  ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+                                  : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                              }`}>
+                                {doc.workMode}
+                              </span>
+                            </td>
+                            <td className="p-2.5 text-slate-400 whitespace-nowrap align-middle">{doc.offlineTime}</td>
+                            <td className="p-2.5 text-slate-300 whitespace-nowrap align-middle">{doc.startTime}</td>
+                            <td className="p-2.5 text-slate-300 whitespace-nowrap align-middle">{doc.endTime}</td>
+                            <td className="p-2.5 text-slate-400 truncate max-w-[130px] whitespace-nowrap align-middle" title={doc.author}>{doc.author}</td>
+                            <td className="p-2.5 text-center whitespace-nowrap align-middle">
+                              {doc.status === '충돌감지' && (
+                                <button
+                                  onClick={() => {
+                                    setSelectedConflictDoc(doc);
+                                    setIsDiffModalOpen(true);
+                                  }}
+                                  className="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded font-bold text-[10px] shadow flex items-center gap-1 mx-auto whitespace-nowrap transition cursor-pointer"
+                                >
+                                  <span>⚠️</span>
+                                  <span>충돌 머지</span>
+                                </button>
+                              )}
+                              {doc.status === '바로머지가능' && (
+                                <button
+                                  onClick={() => {
+                                    setOfflineWorkDocs(prev => prev.map(d => d.docId === doc.docId ? { ...d, status: '머지완료' } : d));
+                                    setOfflineToast(`✅ ${doc.docId} (${doc.docName}) 변경 내역이 충돌 없이 원격 서버에 즉시 머지되었습니다.`);
+                                  }}
+                                  className="px-2.5 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded font-bold text-[10px] shadow flex items-center gap-1 mx-auto whitespace-nowrap transition cursor-pointer"
+                                >
+                                  <span>⚡</span>
+                                  <span>바로 머지</span>
+                                </button>
+                              )}
+                              {doc.status === '온라인등록대기' && (
+                                <button
+                                  onClick={() => {
+                                    setSelectedConflictDoc(doc);
+                                    setIsDiffModalOpen(true);
+                                  }}
+                                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-bold text-[10px] shadow flex items-center gap-1 mx-auto whitespace-nowrap transition cursor-pointer"
+                                >
+                                  <span>🔍</span>
+                                  <span>히든주석 등록</span>
+                                </button>
+                              )}
+                              {doc.status === '머지완료' && (
+                                <span className="px-2 py-0.5 bg-slate-800 text-emerald-400 rounded text-[10px] font-bold whitespace-nowrap">
+                                  ✓ 머지완료
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* 4. 작업 문서 충돌 머지 & 히든 주석 상세 검토 모달 */}
+            {isDiffModalOpen && selectedConflictDoc && (
+              <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full p-5 space-y-4 shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto">
+                  {/* 모달 헤더 */}
+                  <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+                    <div>
+                      <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                        <span>{selectedConflictDoc.workMode === '리소스모드' ? '⚠️ 리소스모드 주석 충돌 비교 & 머지' : '📑 문서모드 히든 주석 검증 & 서버 정본 등록'}</span>
+                        <span className="text-xs px-2 py-0.5 bg-indigo-500/20 text-indigo-300 rounded font-mono border border-indigo-500/30">
+                          {selectedConflictDoc.docId} ({selectedConflictDoc.docVersion})
+                        </span>
+                      </h3>
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        {selectedConflictDoc.workMode === '리소스모드'
+                          ? '오프라인 중 로컬에서 수정한 주석과 외부에서 원격 수정한 주석 간의 충돌을 비교하고 반영 방향을 결정합니다.'
+                          : '디바이스의 PDF 파일에 각인된 히든 주석 메타데이터를 검증하고 온라인 시스템 정본으로 안전하게 등록합니다.'}
+                      </p>
+                    </div>
+                    <button onClick={() => setIsDiffModalOpen(false)} className="text-slate-400 hover:text-white p-1 rounded">✕</button>
                   </div>
-                  <p className="text-xs text-slate-300">
-                    오프라인 작업 중 다른 사용자가 서버 문서를 수정하였습니다. 보존할 버전을 선택하거나 수동 diff를 병합하세요.
-                  </p>
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="p-3 bg-slate-950 border border-slate-800 rounded-lg space-y-1">
-                      <span className="text-indigo-400 font-semibold">내 로컬 오프라인 작업본</span>
-                      <div className="text-[11px] text-slate-400">최종수정: 06:41:05</div>
-                      <div className="text-[11px] text-slate-300 p-1.5 bg-slate-900 rounded mt-1 font-mono">
-                        + 주석 2건 추가 (형광펜, 메모)
+
+                  {/* 리소스 모드 충돌 시: 주석 양자 비교 카드 & 한쪽 반영 기능 */}
+                  {selectedConflictDoc.workMode === '리소스모드' && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        {/* 내 오프라인 작업내용 */}
+                        <div className="p-3.5 bg-indigo-950/20 border border-indigo-500/40 rounded-xl space-y-2">
+                          <div className="flex justify-between items-center border-b border-indigo-500/20 pb-1.5">
+                            <span className="text-indigo-400 font-bold flex items-center gap-1.5">
+                              <span>💻</span>
+                              <span>내 오프라인 작업내용 (Local)</span>
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono">저장: {selectedConflictDoc.endTime}</span>
+                          </div>
+                          <div className="p-2 bg-slate-900 rounded font-mono text-[11px] text-slate-200 space-y-1">
+                            <div className="text-amber-300 font-bold">• {selectedConflictDoc.offlineChangeDesc}</div>
+                            <div className="text-slate-400 text-[10px]">작업자: {selectedConflictDoc.author}</div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setOfflineWorkDocs(prev => prev.map(d => d.docId === selectedConflictDoc.docId ? { ...d, status: '머지완료', hasConflict: false } : d));
+                              setIsDiffModalOpen(false);
+                              setOfflineToast(`✅ [내 작업 반영] ${selectedConflictDoc.docId} 로컬 작업내용이 서버에 우선 반영(Local-Wins)되었습니다.`);
+                            }}
+                            className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold text-xs shadow transition active:scale-95 flex items-center justify-center gap-1"
+                          >
+                            <span>👉 내 오프라인 작업 100% 반영 (Local-Wins)</span>
+                          </button>
+                        </div>
+
+                        {/* 외부 작업내용 */}
+                        <div className="p-3.5 bg-emerald-950/20 border border-emerald-500/40 rounded-xl space-y-2">
+                          <div className="flex justify-between items-center border-b border-emerald-500/20 pb-1.5">
+                            <span className="text-emerald-400 font-bold flex items-center gap-1.5">
+                              <span>☁️</span>
+                              <span>외부 원격 작업내용 (Remote)</span>
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono">외부 저장: 14:14:00</span>
+                          </div>
+                          <div className="p-2 bg-slate-900 rounded font-mono text-[11px] text-slate-200 space-y-1">
+                            <div className="text-sky-300 font-bold">• {selectedConflictDoc.externalChangeDesc}</div>
+                            <div className="text-slate-400 text-[10px]">수정자: reviewer@pdfrend.com (동시 수정자)</div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setOfflineWorkDocs(prev => prev.map(d => d.docId === selectedConflictDoc.docId ? { ...d, status: '머지완료', hasConflict: false } : d));
+                              setIsDiffModalOpen(false);
+                              setOfflineToast(`✅ [외부 작업 반영] ${selectedConflictDoc.docId} 외부 원격본이 채택되고 내 작업본은 격리 백업되었습니다.`);
+                            }}
+                            className="w-full py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg font-bold text-xs shadow transition active:scale-95 flex items-center justify-center gap-1"
+                          >
+                            <span>👈 외부 원격 작업 100% 반영 (Remote-Wins)</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 스마트 양방향 병합 옵션 */}
+                      <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between gap-3">
+                        <div className="space-y-0.5">
+                          <span className="font-bold text-slate-200 text-xs flex items-center gap-1.5">
+                            <span>🌟</span>
+                            <span>양방향 스마트 병합 (Smart 3-Way Merge)</span>
+                          </span>
+                          <p className="text-[11px] text-slate-400">
+                            내 오프라인 형광펜/메모와 외부 OCR 레이어 교정본을 상호 보존하며 하나의 통합 주석으로 병합합니다.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setOfflineWorkDocs(prev => prev.map(d => d.docId === selectedConflictDoc.docId ? { ...d, status: '머지완료', hasConflict: false } : d));
+                            setIsDiffModalOpen(false);
+                            setOfflineToast(`🎉 [스마트 병합] ${selectedConflictDoc.docId} 로컬 주석과 원격 수정사항이 성공적으로 결합되었습니다.`);
+                          }}
+                          className="px-4 py-2 bg-indigo-700 hover:bg-indigo-600 text-white font-bold rounded-lg text-xs shrink-0 shadow transition"
+                        >
+                          양방향 스마트 병합 확정
+                        </button>
                       </div>
                     </div>
-                    <div className="p-3 bg-slate-950 border border-slate-800 rounded-lg space-y-1">
-                      <span className="text-emerald-400 font-semibold">원격 서버 최신본 (권장)</span>
-                      <div className="text-[11px] text-slate-400">최종수정: 06:40:50 (Last-Write)</div>
-                      <div className="text-[11px] text-slate-300 p-1.5 bg-slate-900 rounded mt-1 font-mono">
-                        + 텍스트 레이어 교정 v2.1
+                  )}
+
+                  {/* 문서 모드 등록 시: 히든 주석 메타데이터 확인 및 등록 */}
+                  {selectedConflictDoc.workMode === '문서모드' && selectedConflictDoc.hiddenMetadata && (
+                    <div className="space-y-3">
+                      <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+                        <span className="font-bold text-slate-200 text-xs flex items-center gap-1.5">
+                          <span>🔍</span>
+                          <span>PDF 파일 각인 히든 주석 (Hidden Annotation Metadata) 추출 결과</span>
+                        </span>
+                        <div className="grid grid-cols-2 gap-2 text-[11px] font-mono p-3 bg-slate-900 rounded-lg border border-slate-800/80">
+                          <div><span className="text-slate-500">문서번호:</span> <span className="text-sky-300 font-bold">{selectedConflictDoc.hiddenMetadata.docNo}</span></div>
+                          <div><span className="text-slate-500">문서버전:</span> <span className="text-slate-200">{selectedConflictDoc.hiddenMetadata.docVersion}</span></div>
+                          <div><span className="text-slate-500">작업시작:</span> <span className="text-slate-300">{selectedConflictDoc.hiddenMetadata.startTime}</span></div>
+                          <div><span className="text-slate-500">수정일시:</span> <span className="text-slate-300">{selectedConflictDoc.hiddenMetadata.updateTime}</span></div>
+                          <div><span className="text-slate-500">종료일시:</span> <span className="text-slate-300">{selectedConflictDoc.hiddenMetadata.endTime}</span></div>
+                          <div><span className="text-slate-500">수정자:</span> <span className="text-slate-300">{selectedConflictDoc.hiddenMetadata.modifier}</span></div>
+                          <div><span className="text-slate-500">생성주석:</span> <span className="text-emerald-400 font-bold">{selectedConflictDoc.hiddenMetadata.annotationCount}건</span></div>
+                          <div><span className="text-slate-500">대상시스템:</span> <span className="text-slate-300">{selectedConflictDoc.hiddenMetadata.targetSystem}</span></div>
+                        </div>
+                        <p className="text-[11px] text-slate-400">
+                          오프라인 환경에서 로컬 디바이스에 저장된 파일 내에 위 메타데이터가 보존되어 있으며, 온라인 연결 시 원격 라이브러리에 신규 정본으로 일괄 머지됩니다.
+                        </p>
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                        <button
+                          onClick={() => setIsDiffModalOpen(false)}
+                          className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"
+                        >
+                          취소
+                        </button>
+                        <button
+                          onClick={() => {
+                            setOfflineWorkDocs(prev => prev.map(d => d.docId === selectedConflictDoc.docId ? { ...d, status: '머지완료' } : d));
+                            setIsDiffModalOpen(false);
+                            setOfflineToast(`🎉 [정본 등록 완료] ${selectedConflictDoc.docId} 히든주석 및 로컬 작업내용이 클라우드 정본으로 등록되었습니다.`);
+                          }}
+                          className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs shadow transition"
+                        >
+                          ✓ 히든주석 검증 및 시스템 정본으로 머지 등록
+                        </button>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex justify-end gap-2 pt-2 border-t border-slate-800 text-xs">
-                    <button onClick={() => setIsDiffModalOpen(false)} className="px-3 py-1.5 bg-slate-800 text-slate-300 rounded">원격본 유지</button>
-                    <button onClick={() => setIsDiffModalOpen(false)} className="px-4 py-1.5 bg-indigo-600 text-white rounded font-medium">로컬 변경 스마트 병합(Merge)</button>
-                  </div>
+                  )}
+
+                  {/* 하단 닫기 (리소스 모드 전용) */}
+                  {selectedConflictDoc.workMode === '리소스모드' && (
+                    <div className="flex justify-end pt-2 border-t border-slate-800">
+                      <button
+                        onClick={() => setIsDiffModalOpen(false)}
+                        className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"
+                      >
+                        닫기
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
