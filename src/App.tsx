@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Navbar, ErrorBoundary, ScrollToTopFab } from './shared';
-import { ScenarioDesignView, OcrEngineManager, WireframeStudio } from './ppdf';
+import { OcrEngineManager, WireframeStudio } from './ppdf';
 import {
   WorkGraphViewer,
   TaskInfoManager,
@@ -209,12 +209,6 @@ export default function App() {
                 onUpdateSettings={handleUpdateSettings}
                 dbStatus={dbStatus}
               />
-            </div>
-          )}
-
-          {activeView === 'scenarios' && (
-            <div className="w-full space-y-4">
-              <ScenarioDesignView />
             </div>
           )}
 

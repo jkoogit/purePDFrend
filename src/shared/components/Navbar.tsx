@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { ScrollSnapCarousel } from './ScrollSnapCarousel';
 import { EmergencyRecoveryPanel } from '../../aiagent/components/EmergencyRecoveryPanel';
 import {
-  Layout,
   Settings,
   Database,
   CheckCircle2,
@@ -27,7 +26,7 @@ import {
 } from 'lucide-react';
 import { ActiveViewId, DomainGroupId } from '../../types';
 
-export type AppTab = 'agent' | 'scenarios' | 'system' | 'viewer' | 'ocr';
+export type AppTab = 'agent' | 'system' | 'viewer' | 'ocr';
 
 export interface DomainViewItem {
   id: ActiveViewId;
@@ -110,13 +109,6 @@ export const DOMAIN_GROUPS: {
         description: 'Tesseract vs Gemini 듀얼 엔진 설정',
         domain: 'studio',
         icon: Cpu,
-      },
-      {
-        id: 'scenarios',
-        label: '시나리오설계',
-        description: '도서 스캔본 PDF 변환/교정 워크플로우',
-        domain: 'studio',
-        icon: Layout,
       },
       {
         id: 'wireframes',
