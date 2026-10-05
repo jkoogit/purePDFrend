@@ -2,13 +2,13 @@
   "sessions": [
     {
       "session_id": "SESSION-0023",
-      "session_name": "[0023] PG-USR-07 문서공유 및 협업작업뷰 리뷰",
+      "session_name": "[0023] PG-USR-07 문서공유·협업작업뷰 고도화 및 대화턴 무손실 영속화 거버넌스 완결",
       "work_group": "purePDFrend",
       "ai_agent": "gemini",
       "ai_model": "models/gemini-3.8-flash",
-      "status_cd": "진행중",
+      "status_cd": "완료",
       "started_at": "2026-10-03T12:33:03.862Z",
-      "ended_at": null,
+      "ended_at": "2026-10-05T14:13:31.826Z",
       "doc_payload": {
         "objective": "PG-USR-07 문서공유 및 협업작업뷰 전수 분석 및 리뷰, 공유권한(열람/주석/편집) 통제, 유효기간, 실시간 동시접속자 목록 및 주석 활동 피드 연계, 뷰어(PG-USR-06) 상호 위치 점프(Follow/Jump) UX 고도화",
         "issue_number": 61,
@@ -28,7 +28,7 @@
       "created_by": "system",
       "updated_sys": "agent-harness",
       "updated_by": "system",
-      "version": 1,
+      "version": 3,
       "operator_account": "jkok2j2m",
       "user_email": "jkok2j2m@gmail.com"
     }
