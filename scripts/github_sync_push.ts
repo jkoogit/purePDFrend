@@ -4,6 +4,7 @@ import path from 'path';
 import https from 'https';
 import crypto from 'crypto';
 import { runComprehensiveServiceCheck } from './service_health_check';
+import { reconcileSessionTraces } from './reconcile_session_traces';
 
 const OWNER = 'jkoogit';
 const REPO = 'purePDFrend';
@@ -154,6 +155,15 @@ export async function syncAndPush(
   prTitle = prTitle || '[0016-01] 전수 목록 화면 UI 정책 일괄 적용 및 긴급 백업 복구';
 
   console.log(`=== Starting GitHub Sync & Push via Task Branch ('${taskBranch}') ===`);
+
+  // 0-A. Pre-reconciliation of All Session Conversation Turns (Fail-Safe)
+  console.log('0-A. Pre-reconciling all session conversation turns to remote DB...');
+  try {
+    const recon = await reconcileSessionTraces();
+    console.log(`✅ Session Traces Reconciled: ${recon.syncedCount || 0} turns synced.`);
+  } catch (e: any) {
+    console.warn('⚠️ Turn reconciliation notice:', e.message);
+  }
 
   // 0. Pre-flight Comprehensive Service Check
   console.log('0. Running Pre-flight Comprehensive Service Health Check...');

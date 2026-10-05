@@ -1384,8 +1384,14 @@ app.post('/api/agent/trace/turn', async (req, res) => {
       });
     }
 
+    const rawPrompt = user_prompt ?? req.body.prompt_text ?? '';
+    const rawResponse = agent_response ?? req.body.response_text ?? '';
+    const cleanPrompt = String(rawPrompt);
+    const cleanResponse = String(rawResponse);
+    const extractedSummary = response_summary || (cleanResponse.split('\n').find(l => l.trim().length > 0) || '').replace(/^#+\s*/, '').slice(0, 150);
+
     // 🛑 Policy 03-09 Rule: Exclude Quota / Token Limit Exceeded Error Turns
-    if (isQuotaLimitError(user_prompt) || isQuotaLimitError(agent_response) || isQuotaLimitError(response_summary)) {
+    if (isQuotaLimitError(cleanPrompt) || isQuotaLimitError(cleanResponse) || isQuotaLimitError(extractedSummary)) {
       console.log(`[Turn Trace Ignored] Quota / Token Limit error detected in step #${step_index}. Skipping persistence.`);
       return res.json({
         success: true,
@@ -1398,9 +1404,9 @@ app.post('/api/agent/trace/turn', async (req, res) => {
 
     const calculatedStep = Number(turn_number || step_index) || ((store.traces || []).filter((t) => t.session_id === session_id).length + 1);
     const finalTraceId = trace_id || GovernanceIdGenerator.generateHierarchicalTraceId(session_id, task_id, loop_id, calculatedStep);
-    const escapedPrompt = String(user_prompt || '').replace(/'/g, "''");
-    const escapedResponse = String(agent_response || '').replace(/'/g, "''");
-    const escapedSummary = String(response_summary || '').replace(/'/g, "''");
+    const escapedPrompt = cleanPrompt.replace(/'/g, "''");
+    const escapedResponse = cleanResponse.replace(/'/g, "''");
+    const escapedSummary = extractedSummary.replace(/'/g, "''");
     const safeLoopId = loop_id ? `'${String(loop_id).replace(/'/g, "''")}'` : 'NULL';
 
     // 1. Save to Local Fallback Store
@@ -1415,9 +1421,10 @@ app.post('/api/agent/trace/turn', async (req, res) => {
       model_name,
       operator_account,
       user_email,
-      user_prompt,
-      agent_response,
-      response_summary,
+      user_prompt: cleanPrompt,
+      prompt_text: cleanPrompt, // backward compatibility
+      agent_response: cleanResponse,
+      response_summary: extractedSummary,
       prompt_tokens: Number(prompt_tokens),
       completion_tokens: Number(completion_tokens),
       total_tokens: Number(total_tokens) || Number(prompt_tokens) + Number(completion_tokens),
@@ -1451,7 +1458,7 @@ app.post('/api/agent/trace/turn', async (req, res) => {
           '${session_id}',
           '${task_id}',
           ${safeLoopId},
-          ${Number(step_index) || 1},
+          ${calculatedStep},
           '${agent_name}',
           '${model_name}',
           '${safeOperator}',
@@ -1466,6 +1473,7 @@ app.post('/api/agent/trace/turn', async (req, res) => {
           now()
         )
         ON CONFLICT (trace_id) DO UPDATE SET
+          user_prompt = EXCLUDED.user_prompt,
           agent_response = EXCLUDED.agent_response,
           response_summary = EXCLUDED.response_summary,
           loop_id = EXCLUDED.loop_id,
@@ -1494,13 +1502,94 @@ app.post('/api/agent/trace/turn', async (req, res) => {
 
     res.json({
       success: true,
-      message: `대화 턴(#${step_index}) 기록이 저장되었습니다.`,
+      message: `대화 턴(#${calculatedStep}) 기록이 저장되었습니다.`,
       traceId: finalTraceId,
       verified: dbVerified,
       dbError,
       dbRecord: dbRecord || traceRecord,
       savedToLocal: true,
       source: dbVerified ? 'REMOTE_DB' : 'LOCAL_FALLBACK',
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 4.2 Conversation Turn Reconciliation API (태스크승급/정리 시 누적 대화턴 전수 INSERT Fail-Safe)
+app.post('/api/agent/trace/reconcile', async (req, res) => {
+  try {
+    const store = getLocalStore();
+    const targetSessionId = req.body.session_id || store.sessions?.[0]?.session_id;
+
+    if (!targetSessionId) {
+      return res.status(400).json({ success: false, error: '활성 세션 또는 session_id가 지정되어야 합니다.' });
+    }
+
+    const tracesToSync = (store.traces || []).filter((t: any) => t.session_id === targetSessionId);
+    let syncedCount = 0;
+    const errors: string[] = [];
+
+    for (const t of tracesToSync) {
+      if (isQuotaLimitError(t.user_prompt) || isQuotaLimitError(t.prompt_text) || isQuotaLimitError(t.agent_response)) {
+        continue;
+      }
+
+      const pText = String(t.user_prompt ?? t.prompt_text ?? '');
+      const rText = String(t.agent_response ?? '');
+      const sSummary = String(t.response_summary || (rText.split('\n')[0] || '').replace(/^#+\s*/, '')).slice(0, 150);
+
+      const escapedPrompt = pText.replace(/'/g, "''");
+      const escapedResponse = rText.replace(/'/g, "''");
+      const escapedSummary = sSummary.replace(/'/g, "''");
+      const safeLoopId = t.loop_id ? `'${String(t.loop_id).replace(/'/g, "''")}'` : 'NULL';
+
+      const upsertSql = `
+        INSERT INTO aiagent.agent_conversation_trace (
+          trace_id, session_id, task_id, loop_id, step_index, agent_name, model_name,
+          operator_account, agent_account, user_email,
+          user_prompt, agent_response, response_summary, prompt_tokens, completion_tokens, total_tokens, created_at
+        ) VALUES (
+          '${t.trace_id}',
+          '${t.session_id}',
+          '${t.task_id}',
+          ${safeLoopId},
+          ${Number(t.step_index) || 1},
+          '${t.agent_name || 'gemini'}',
+          '${t.model_name || 'models/gemini-3.8-flash'}',
+          '${t.operator_account || 'jkok2j2m'}',
+          '${t.user_email || 'jkok2j2m@gmail.com'}',
+          '${t.user_email || 'jkok2j2m@gmail.com'}',
+          '${escapedPrompt}',
+          '${escapedResponse}',
+          '${escapedSummary}',
+          ${Number(t.prompt_tokens) || 0},
+          ${Number(t.completion_tokens) || 0},
+          ${Number(t.total_tokens) || 0},
+          '${t.created_at || new Date().toISOString()}'
+        )
+        ON CONFLICT (trace_id) DO UPDATE SET
+          user_prompt = EXCLUDED.user_prompt,
+          agent_response = EXCLUDED.agent_response,
+          response_summary = EXCLUDED.response_summary,
+          step_index = EXCLUDED.step_index,
+          total_tokens = EXCLUDED.total_tokens;
+      `;
+
+      try {
+        await executeSql(upsertSql);
+        syncedCount++;
+      } catch (err: any) {
+        errors.push(`${t.trace_id}: ${err.message}`);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `세션(${targetSessionId})의 대화 턴 ${syncedCount}건이 원격 DB에 무손실 영속화(화해)되었습니다.`,
+      targetSessionId,
+      totalLocalTraces: tracesToSync.length,
+      syncedCount,
+      errors: errors.length > 0 ? errors : null,
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
