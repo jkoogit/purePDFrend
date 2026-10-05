@@ -55,15 +55,16 @@ stateDiagram-v2
 
 ## 📡 0-1. 대화 턴 추적 및 영속화 기술 규약 (Turn Trace Governance)
 
-- **대화 턴 전수 영속화 3대 절대 원칙 (Zero-Loss Mandate)**:
-  - 1) **`user_prompt`**: 사용자가 입력한 요청 원문 전체 텍스트 100% 무손실 보존.
-  - 2) **`agent_response`**: 에이전트 응답 전문(제목, 본문, 마크다운 표, 코드블록 전체) 100% 보존 (관리자 화면 마크다운 뷰어 완벽 렌더링 보장).
-  - 3) **`response_summary` (No-LLM 경량 추출)**: 별도 LLM 호출을 배제하고 `TurnTraceService` 정규식을 통해 첫 줄 제목(`#+ (.*)`) 또는 핵심 문단을 자동 추출하여 **토큰 소모를 0으로 차단**.
-  - 4) **자유 대화(`TASK-FREE`) 등록**: 하네스 단계 키워드가 없는 일반 질의응답도 세션 내 `TASK-FREE`로 전수 기록하여 컨텍스트 단절 방어.
-  - 5) **토큰 한도 초과 오류(429, RESOURCE_EXHAUSTED) 격리**: 도메인 서비스(`TokenQuotaDetectionService`)를 통해 쿼터 초과 오류 턴은 영속화 대상에서 자동 배제.
-- **2단계 하이브리드 등록 규약 (Hybrid Persistence)**:
+- **대화 턴 전수 영속화 4대 절대 원칙 (Zero-Loss Mandate)**:
+  - 1) **`user_prompt` Full-Text 100% 무손실 보존**: 사용자가 입력한 요청 원문 전체 텍스트(특수문자, 줄바꿈, 코드블록 포함)를 어떠한 생략이나 변형 없이 100% 원형 보존.
+  - 2) **`agent_response` Full-Text 마크다운 100% 보존**: 에이전트 응답 전문(제목, 본문, 마크다운 표, 코드블록 전체)을 100% 보존하여 관리자 화면 마크다운 뷰어(`react-markdown`)에서 깨짐 없이 완벽 렌더링 보장.
+  - 3) **응답 최상단 대화순번 `[0000-01]` 필수 표기 규약**: 모든 에이전트 응답의 제1행 제목에는 반드시 현재 세션번호 4자리와 대화순번 2자리로 구성된 대화번호 (`#[0000-01]`, `#[0000-02]`...)를 명시하여 턴 추적성과 식별성을 완전 보장.
+  - 4) **`response_summary` (No-LLM 경량 추출)**: 별도 LLM 호출을 배제하고 `TurnTraceService` 정규식을 통해 첫 줄 제목(`#+ (.*)`) 또는 핵심 문단을 자동 추출하여 **토큰 소모를 0으로 차단**.
+  - 5) **자유 대화(`TASK-FREE`) 등록**: 하네스 단계 키워드가 없는 일반 질의응답도 세션 내 `TASK-FREE`로 전수 기록하여 컨텍스트 단절 방어.
+  - 6) **토큰 한도 초과 오류(429, RESOURCE_EXHAUSTED) 격리**: 도메인 서비스(`TokenQuotaDetectionService`)를 통해 쿼터 초과 오류 턴은 영속화 대상에서 자동 배제.
+- **2단계 하이브리드 등록 및 태스크승급 전수 화해 규약 (Hybrid Persistence & Fail-Safe Reconcile)**:
   - **1단계(실시간)**: 매 턴 `data/local_agent_store.json` 즉시 저장 및 원격 DB(`POST /api/agent/trace/turn`) 비동기 적재.
-  - **2단계(정합성 보정)**: `#태스크승급` 및 `#세션정리` 시점에 `POST /api/agent/trace/reconcile`을 호출하여 원격 DB 미적재 턴 일괄 INSERT 완결 (Fail-Safe).
+  - **2단계(정합성 보정 & 승급 전수 화해)**: `#태스크승급` 및 `#세션정리` 시점에 반드시 `npx tsx scripts/reconcile_session_traces.ts` (또는 `POST /api/agent/trace/reconcile`)를 강제 실행하여, 세션 내 누적된 모든 미반영 대화 턴(현재 태스크 및 이전 누적분 전수)을 원격 DB(`aiagent.agent_conversation_trace`)에 100% 일괄 INSERT/UPSERT 완료 후 브랜치 승급 배포를 진행.
 - **원격 Git 제어 기술 원칙 (Git Data API Commit & Push Mandate)**:
   - **[필수 원칙] 계정 전환 / 샌드박스 초기화 시 원격 `dev` 자동 Pull 선행 의무**:
      새 창 또는 계정 전환 시 신규 샌드박스가 과거 로컬 스냅샷 상태로 초기화되므로, `#세션시작` 시 반드시 `npx tsx scripts/pull_remote_dev.ts`를 선행 호출하여 원격 `dev` 최신 트리를 로컬 작업공간에 100% 동기화하고 아카이빙해야 합니다. 최신 소스 Pull 없는 임의 Push는 엄격히 금지됩니다.
@@ -164,15 +165,16 @@ stateDiagram-v2
 ### [규칙 2.4] `#태스크승급` 명시 시: READ-ONLY (원격 브랜치 배포 승급 및 상태 마감)
 - 소스 및 문서 수정을 엄격히 제한하고 상태 승급 및 원격 브랜치 배포를 처리합니다.
   - **수행 사항**:
-    1. **원격 브랜치 배포 승급**: GitHub REST API(`POST /repos/:owner/:repo/merges`)를 호출하여 최신 커밋이 반영된 `dev` 브랜치 내용을 `stg` 브랜치에 머지하고, 이어 `stg` 브랜치를 `main` 브랜치에 즉시 배포 승급합니다. 3개 브랜치의 커밋 SHA 일치 여부를 검증합니다.
-    2. **하네스 스토어 동기화**: 작업한 태스크 정보를 하네스 스토어(`data/local_agent_store.json` 및 DB)에 반영하여 상태를 `완료`로 최종 수정합니다.
-    3. 태스크작업결과 리뷰 : 에이전트 작업/서비스(PDF) 작업 구분하여 표시
+    1. **미반영 대화턴 전수 보정 및 영속화 (Trace Reconcile Mandate)**: `npx tsx scripts/reconcile_session_traces.ts`를 선행 구동하여 세션 내 누적된 모든 미반영 대화턴(현재 태스크 및 이전 누적분 전수)을 원격 DB(`aiagent.agent_conversation_trace`)에 100% 무손실 INSERT/UPSERT 완료.
+    2. **원격 브랜치 배포 승급**: GitHub REST API(`POST /repos/:owner/:repo/merges`)를 호출하여 최신 커밋이 반영된 `dev` 브랜치 내용을 `stg` 브랜치에 머지하고, 이어 `stg` 브랜치를 `main` 브랜치에 즉시 배포 승급합니다. 3개 브랜치의 커밋 SHA 일치 여부를 검증합니다.
+    3. **하네스 스토어 동기화**: 작업한 태스크 정보를 하네스 스토어(`data/local_agent_store.json` 및 DB)에 반영하여 상태를 `완료`로 최종 수정합니다.
+    4. 태스크작업결과 리뷰 : 에이전트 작업/서비스(PDF) 작업 구분하여 표시
        - 문서작성 : 분석, 기획, 설계, 기타 그룹별 문서명과 한줄설명 표시
        - 백엔드 : 작업기능별 한줄설명 [태스크ID]
        - 프론트 : 화면기능별 한줄설명 [태스크ID]
        - 테스트 : 테스트별 한줄설명 [태스크ID]
        - 기타 : 분류외 작업 설명 [태스크ID]
-    4. 승급 이후 입력되는 프롬프트는 `#태스크시작` 또는 `#세션정리`로 제한합니다.
+    5. 승급 이후 입력되는 프롬프트는 `#태스크시작` 또는 `#세션정리`로 제한합니다.
        - 세션 내 진행할 잔여 태스크 목록 표시(세션시작시 계획 테스트 및 진행중 추가된 테스크 포함)
        - 다음 진행할 태스크 프롬프트 선택지 제공
 
