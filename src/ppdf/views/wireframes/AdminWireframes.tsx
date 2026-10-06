@@ -4,23 +4,39 @@ import { IconResourceRegistry } from '../../domain/IconResourceRegistry';
 import { HorizontalSlideContainer } from '../../components/HorizontalSlideContainer';
 import { WireframeTopLayer } from '../../components/WireframeTopLayer';
 
+// Modular Admin Views (13대 개선 요구사항 반영)
+import { AdminSecurityView } from './admin/AdminSecurityView';
+import { AdminProgramsView } from './admin/AdminProgramsView';
+import { AdminUsersView } from './admin/AdminUsersView';
+import { AdminTermsView } from './admin/AdminTermsView';
+import { AdminRolesView, AdminMenusView } from './admin/AdminRolesAndMenusView';
+import { AdminLogsView } from './admin/AdminLogsView';
+import { AdminUserSettingsView } from './admin/AdminUserSettingsView';
+import {
+  AdminNotificationsView,
+  AdminApiManagerView,
+  AdminBoardsAndBannersView,
+  AdminCustomerSupportView,
+  AdminFontsView,
+} from './admin/AdminExtendedModulesView';
+
 export const ADMIN_PROGRAMS = [
-  { id: 'PG-ADM-01', name: '보안관리', desc: 'IP접근제어, 2FA 강제화, 세션만료, 오프라인 토큰기간 설정' },
-  { id: 'PG-ADM-02', name: '프로그램관리', desc: '화면 프로그램 계층, 부모-자식 트리, DAG 순환참조 방지' },
-  { id: 'PG-ADM-03', name: '사용자관리', desc: '회원상태, 오프라인 사용허용, 스토리지(NAS/FTP/Drive), 개인정보 불변원칙' },
-  { id: 'PG-ADM-04', name: '약관·동의·정책', desc: '웹문서 기반 8대 약관 에디터, 문서그룹ID 기반 버전 발행, 동의이력' },
-  { id: 'PG-ADM-05', name: '사용자 권한관리', desc: 'RBAC 권한그룹 우선순위, 개별 프로그램 권한 최우선 오버라이드' },
-  { id: 'PG-ADM-06', name: '메뉴관리', desc: '프로그램ID 기반 메뉴순서 드래그, 관리자/사용자 메뉴 분리, 노출/숨김' },
+  { id: 'PG-ADM-01', name: '보안관리', desc: '화이트리스트 & 블랙리스트, 2FA 강제화, 세션만료, 오프라인 토큰' },
+  { id: 'PG-ADM-02', name: '프로그램관리', desc: '프로그램 등록/수정/삭제, DAG 순환방지, 다중권한 설정' },
+  { id: 'PG-ADM-03', name: '사용자관리', desc: '프로필 사진, 상세조회, 다중 권한 부여, 스토리지/오프라인 관리' },
+  { id: 'PG-ADM-04', name: '약관·동의·정책', desc: '약관검색, 적용버전만 보기, 이전약관 수정 새파일등록 v1.0/v1.1 버전발행' },
+  { id: 'PG-ADM-05', name: '사용자 권한관리', desc: '3대 탭: 권한관리 / 프로그램권한관리 / 사용자권한관리' },
+  { id: 'PG-ADM-06', name: '메뉴관리', desc: '메뉴 등록/수정/삭제, 위치 관리, 화면 프로그램 매핑' },
   { id: 'PG-ADM-07', name: '로그관리', desc: '다차원 감사로그 필터, PDF 다운로드 및 주석 변경 추적 타임라인' },
-  { id: 'PG-ADM-08', name: '알림관리', desc: '이메일/푸시/인앱 3대 채널 발송, 긴급/일반 공지 모달, 수신확인율' },
-  { id: 'PG-ADM-09', name: '서비스 API관리', desc: 'PDF Core 엔진 헬스, OCR API 지연시간, 보안 엔드포인트 모니터링' },
-  { id: 'PG-ADM-10', name: '외부 API관리', desc: '소셜 OAuth 자격증명 상태, 외부 번역 API, 클라우드 스토리지 연동' },
+  { id: 'PG-ADM-08', name: '알림관리', desc: '공지(점검안내), OCR 완료안내, 개인알림 대상여부 설정' },
+  { id: 'PG-ADM-09', name: '내부 서비스 API관리', desc: '내부API 탭: OCR 배치, PDF Core 엔진, 3-Way 충돌머지 헬스체크' },
+  { id: 'PG-ADM-10', name: '외부 연동 API관리', desc: '외부API 탭: Google OAuth/Drive, Gemini Multimodal Vision API' },
   { id: 'PG-ADM-11', name: '사용자설정 항목관리', desc: '사용자 환경설정 메타데이터 등록(체크박스/드롭다운), 기본값 배포' },
-  { id: 'PG-ADM-12', name: '게시판·배너관리', desc: '일반/긴급/이벤트 공지, 롤링 배너 등록(HTML/이미지/URL) 및 통계' },
-  { id: 'PG-ADM-13', name: '고객관리', desc: '고객센터 운영시간, 1:1 상담 예약, 리뷰 승인, 실시간 채팅(파일첨부)' },
-  { id: 'PG-ADM-14', name: '무료글꼴관리', desc: 'WOFF2/TTF 웹폰트 등록, 폰트 별명(Alias) 지정, 텍스트 프리뷰' },
-  { id: 'PG-ADM-15', name: '단축키 및 도구아이콘 관리', desc: 'PC/태블릿용 기본 단축키 매핑, 도구별 디자인 리소스 아이콘 지정 및 배포' },
-  { id: 'PG-ADM-16', name: '도구그룹관리', desc: '8대 뷰어모드별 기본도구 편성, 그룹간 중복허용 정책, 도구그룹 기본값 배포' },
+  { id: 'PG-ADM-12', name: '게시판·배너관리', desc: '예약공지, 다시열지않기(하루/주/월), 배너 텍스트/이미지 순서 설정' },
+  { id: 'PG-ADM-13', name: '고객관리', desc: '3대 탭: FAQ 그룹관리, 공개 QNA 관리자/등록자 알림, 1:1 비공개 상담' },
+  { id: 'PG-ADM-14', name: '무료글꼴관리', desc: '글꼴 등록/수정/삭제, 웹폰트 WOFF2/TTF, 적용여부, 실시간 프리뷰' },
+  { id: 'PG-ADM-15', name: '단축키 및 도구아이콘 관리', desc: '시스템 기본 vs 사용자 커스텀 우선, 도구별 아이콘 디자인 리소스 변경' },
+  { id: 'PG-ADM-16', name: '도구그룹관리', desc: '8대 뷰어모드별 기본도구 편성, 변경 시 영향도 검토(Impact Analysis)' },
 ];
 
 export interface AdminWireframesProps {
@@ -29,15 +45,13 @@ export interface AdminWireframesProps {
 
 export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) {
   const [selectedProg, setSelectedProg] = useState('PG-ADM-01');
+  const [filterKeyword, setFilterKeyword] = useState('');
+  const [shortcutPriority, setShortcutPriority] = useState<'SYSTEM' | 'CUSTOM'>('CUSTOM');
 
-  // Registry
+  // Registry for PG-ADM-15 & PG-ADM-16
   const registry = ViewerConfigRegistry.getInstance();
   const [configState, setConfigState] = useState(() => registry.getConfig());
-
-  // PG-ADM-01 state
-  const [offlineTokenDays, setOfflineTokenDays] = useState(30);
-  const [twoFactorEnforced, setTwoFactorEnforced] = useState(true);
-  const [geoBlockEnabled, setGeoBlockEnabled] = useState(false);
+  const [impactNotice, setImpactNotice] = useState<string | null>(null);
 
   const handleToolIconChange = (toolId: string, resKey: string) => {
     const updated = registry.updateToolIcon(toolId, resKey);
@@ -54,22 +68,58 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
     setConfigState(updated);
   };
 
+  const filteredPrograms = ADMIN_PROGRAMS.filter(
+    (p) =>
+      p.id.toLowerCase().includes(filterKeyword.toLowerCase()) ||
+      p.name.toLowerCase().includes(filterKeyword.toLowerCase()) ||
+      p.desc.toLowerCase().includes(filterKeyword.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
-      {/* 16대 관리자 프로그램 선택 칩 바 (가로 슬라이드 컨테이너 적용) */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-lg">
-        <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-xs text-slate-400">
-          <span className="font-semibold text-indigo-400">16대 관리자 운영관리 프로그램 (Admin Modules)</span>
-          <span>선택: <strong className="text-white">{selectedProg}</strong></span>
+      {/* 화면 및 메뉴 접근 안내 카드 (사용자 질문: '화면 메뉴접근은 어떻게 들어가지?' 답변 반영) */}
+      <div className="p-4 bg-gradient-to-r from-indigo-950/80 via-slate-900 to-slate-950 border border-indigo-500/40 rounded-2xl shadow-xl space-y-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">💡</span>
+            <span className="font-bold text-white text-sm">화면 메뉴 접근 경로 가이드</span>
+            <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              총 16개 시스템 설정 화면
+            </span>
+          </div>
+          <div className="text-[11px] text-slate-400">
+            상단 네비게이션: <code className="text-sky-300 font-semibold">[PDF 스튜디오]</code> ➔ <code className="text-indigo-300 font-semibold">[와이어프레임]</code> ➔ <code className="text-emerald-300 font-semibold">[🛠 관리자 서비스]</code>
+          </div>
         </div>
+        <p className="text-xs text-slate-300">
+          시스템 설정 와이어프레임은 언제든 상단 메뉴를 통해 접근할 수 있으며, 아래 16개 프로그램 칩 또는 빠른 검색을 통해 원하는 기능 화면으로 1클릭 즉시 이동할 수 있습니다.
+        </p>
+      </div>
+
+      {/* 16대 관리자 프로그램 선택 칩 바 & 빠른 검색창 */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-lg space-y-2.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-indigo-400">16대 관리자 운영관리 프로그램 (Admin Modules)</span>
+            <span className="text-slate-500 text-[11px]">선택: <strong className="text-white font-mono">{selectedProg}</strong></span>
+          </div>
+          <input
+            type="text"
+            placeholder="기능명/ID 빠른 검색 (예: 보안, 사용자, 약관)..."
+            value={filterKeyword}
+            onChange={(e) => setFilterKeyword(e.target.value)}
+            className="bg-slate-950 border border-slate-700 rounded px-2.5 py-1 text-slate-200 text-xs w-full sm:w-64"
+          />
+        </div>
+
         <HorizontalSlideContainer scrollStep={280} className="w-full">
-          {ADMIN_PROGRAMS.map((p) => {
+          {filteredPrograms.map((p) => {
             const active = p.id === selectedProg;
             return (
               <button
                 key={p.id}
                 onClick={() => setSelectedProg(p.id)}
-                className={`shrink-0 px-3.5 py-2.5 min-h-[44px] rounded-lg text-xs font-mono transition-all flex items-center gap-2 ${
+                className={`shrink-0 px-3.5 py-2 min-h-[42px] rounded-lg text-xs font-mono transition-all flex items-center gap-2 ${
                   active
                     ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 ring-1 ring-indigo-400 font-semibold'
                     : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'
@@ -83,9 +133,9 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
         </HorizontalSlideContainer>
       </div>
 
-      {/* 실제 프로덕션 대상 순수 화면 캔버스 (설명 배제, 화면 컴포넌트만 정확히 렌더링) */}
+      {/* 실제 프로덕션 대상 순수 화면 캔버스 */}
       <div className={`bg-slate-900/90 border border-slate-800 rounded-2xl ${isMobileMode ? 'p-2.5 sm:p-4' : 'p-5'} shadow-2xl space-y-6 min-h-[540px]`}>
-        {/* 모든 화면 공통 상단 탑 레이어 (WireframeTopLayer): 관리자 모드 기본 로그인 상태 */}
+        {/* 모든 화면 공통 상단 탑 레이어 */}
         <WireframeTopLayer
           currentProgramId={selectedProg}
           isLoggedIn={true}
@@ -94,223 +144,121 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
           onNavigate={(progId) => setSelectedProg(progId)}
         />
 
-        {/* PG-ADM-01: 보안관리 */}
-        {selectedProg === 'PG-ADM-01' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-xl space-y-4">
-              <h3 className="text-sm font-semibold text-slate-200 flex items-center justify-between">
-                <span>🔐 접근 통제 및 2FA 정책</span>
-                <span className="text-xs text-indigo-400">보안 1등급</span>
-              </h3>
-              <div className="space-y-3 text-xs">
-                <label className="flex items-center justify-between p-2.5 bg-slate-900 rounded-lg border border-slate-800 cursor-pointer">
-                  <span>2단계 인증(2FA: 소셜/이메일 OTP) 강제화</span>
-                  <input
-                    type="checkbox"
-                    checked={twoFactorEnforced}
-                    onChange={(e) => setTwoFactorEnforced(e.target.checked)}
-                    className="accent-indigo-500"
-                  />
-                </label>
-                <label className="flex items-center justify-between p-2.5 bg-slate-900 rounded-lg border border-slate-800 cursor-pointer">
-                  <span>해외 IP 접근 차단 (Geo-Blocking)</span>
-                  <input
-                    type="checkbox"
-                    checked={geoBlockEnabled}
-                    onChange={(e) => setGeoBlockEnabled(e.target.checked)}
-                    className="accent-indigo-500"
-                  />
-                </label>
-                <div className="p-2.5 bg-slate-900 rounded-lg border border-slate-800 space-y-1">
-                  <span className="text-slate-400">허용 IP 화이트리스트 (CIDR)</span>
-                  <input
-                    type="text"
-                    defaultValue="192.168.1.0/24, 211.234.120.0/24"
-                    className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono text-xs"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-xl space-y-4">
-              <h3 className="text-sm font-semibold text-slate-200 flex items-center justify-between">
-                <span>⏱ 세션 타임아웃 및 오프라인 토큰 수명주기</span>
-                <span className="text-xs text-emerald-400">시스템 속성</span>
-              </h3>
-              <div className="space-y-3 text-xs">
-                <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-300 font-medium">Offline Refresh Token 유효기간</span>
-                    <span className="text-indigo-400 font-bold font-mono">{offlineTokenDays}일</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="180"
-                    value={offlineTokenDays}
-                    onChange={(e) => setOfflineTokenDays(Number(e.target.value))}
-                    className="w-full accent-indigo-500 cursor-pointer"
-                  />
-                  <p className="text-[11px] text-slate-500">
-                    * 시스템 속성 <code className="text-indigo-300">OFFLINE_REFRESH_TOKEN_DAYS</code>: 온라인 로그인 시 사용자 디바이스에 부여할 오프라인 로컬 작업 보장 기간 (기본 30일, 1~180일 설정 가능)
-                  </p>
-                </div>
-                <div className="p-2.5 bg-slate-900 rounded-lg border border-slate-800 flex justify-between items-center">
-                  <span>온라인 유휴 세션 만료 시간</span>
-                  <select className="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200">
-                    <option>30분</option>
-                    <option>60분 (기본값)</option>
-                    <option>120분</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* PG-ADM-02: 프로그램관리 */}
-        {selectedProg === 'PG-ADM-02' && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-slate-400">
-                모듈형 프로그램 트리 계층 및 DAG 비순환 검증 구조
+        {/* 현재 활성 프로그램 타이틀 헤더 */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                {selectedProg}
               </span>
-              <button className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs">
-                + 신규 프로그램 등록
-              </button>
+              <h2 className="text-base font-bold text-white">
+                {ADMIN_PROGRAMS.find((p) => p.id === selectedProg)?.name}
+              </h2>
             </div>
-            <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-xl space-y-3">
-              <div className="flex items-center gap-2 p-2.5 bg-slate-900/90 rounded border border-slate-800 text-xs font-mono">
-                <span className="text-emerald-400">ROOT</span>
-                <span className="text-slate-500">➔</span>
-                <span className="text-indigo-300 font-semibold">PG-ADM-ROOT (관리자 포털)</span>
-                <span className="ml-auto text-[11px] text-slate-500">부모 프로그램 (14개 자식 노드 연결)</span>
-              </div>
-              <div className="ml-6 pl-4 border-l-2 border-indigo-500/30 space-y-2 text-xs font-mono">
-                <div className="p-2 bg-slate-900 rounded border border-slate-800 flex justify-between items-center">
-                  <span>├─ PG-ADM-01 (보안관리) - v1.2</span>
-                  <span className="text-[11px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded">DAG 순환검증 통과</span>
-                </div>
-                <div className="p-2 bg-slate-900 rounded border border-slate-800 flex justify-between items-center">
-                  <span>├─ PG-ADM-02 (프로그램관리) - v1.0</span>
-                  <span className="text-[11px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded">DAG 순환검증 통과</span>
-                </div>
-                <div className="p-2 bg-slate-900 rounded border border-slate-800 flex justify-between items-center">
-                  <span>├─ PG-ADM-03 (사용자관리) - v2.1</span>
-                  <span className="text-[11px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded">DAG 순환검증 통과</span>
-                </div>
-              </div>
-              <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded text-xs text-amber-300">
-                🛡️ <strong>DAG 가드레일 활성화</strong>: 자기 자신 또는 자신의 직계/방계 자식 노드를 부모 프로그램으로 지정할 수 없도록 원천 차단됩니다.
-              </div>
-            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              {ADMIN_PROGRAMS.find((p) => p.id === selectedProg)?.desc}
+            </p>
           </div>
-        )}
+        </div>
 
-        {/* PG-ADM-03: 사용자관리 */}
-        {selectedProg === 'PG-ADM-03' && (
-          <div className="space-y-4">
-            <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg text-xs text-rose-300 flex items-center justify-between">
-              <span>⚠️ <strong>개인정보 임의변경 불가 원칙</strong>: 관리자라도 사용자의 프로필 사진, 실명, 연락처, 소셜 연동 정보를 임의로 수정할 수 없습니다.</span>
-              <span className="px-2 py-0.5 bg-rose-500/20 rounded text-[11px]">무결성 보장</span>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
-                  <tr>
-                    <th className="p-2.5">사용자 ID</th>
-                    <th className="p-2.5">계정 상태</th>
-                    <th className="p-2.5">오프라인 사용</th>
-                    <th className="p-2.5">연동 스토리지</th>
-                    <th className="p-2.5">권한 그룹</th>
-                    <th className="p-2.5">조치</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800 text-slate-300">
-                  <tr>
-                    <td className="p-2.5 font-mono">user_0921@corp.com</td>
-                    <td className="p-2.5"><span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400">정상</span></td>
-                    <td className="p-2.5"><span className="text-emerald-400 font-semibold">허용 (30일)</span></td>
-                    <td className="p-2.5 font-mono text-[11px]">QNAP NAS (/volume1/pdf)</td>
-                    <td className="p-2.5 font-mono">ROLE_EDITOR</td>
-                    <td className="p-2.5"><button className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[11px]">비번초기화</button></td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 font-mono">guest_8812@gmail.com</td>
-                    <td className="p-2.5"><span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400">제한</span></td>
-                    <td className="p-2.5"><span className="text-slate-500">비활성</span></td>
-                    <td className="p-2.5 font-mono text-[11px]">Google Drive 연동</td>
-                    <td className="p-2.5 font-mono">ROLE_USER</td>
-                    <td className="p-2.5"><button className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[11px]">접근제한해제</button></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        {/* 1. PG-ADM-01: 보안관리 (화이트리스트 & 블랙리스트, 2FA, 토큰) */}
+        {selectedProg === 'PG-ADM-01' && <AdminSecurityView />}
 
-        {/* PG-ADM-04: 약관·동의·정책 */}
-        {selectedProg === 'PG-ADM-04' && (
-          <div className="space-y-4 text-xs">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {['이용약관', '개인정보 수집·이용', '마케팅 수신동의', '저작권 안내', '면책조항', '쿠키 정책', '청소년 보호정책', '고객지원 정책'].map((t, idx) => (
-                <div key={t} className="p-3 bg-slate-950 border border-slate-800 rounded-lg flex items-center justify-between">
-                  <div>
-                    <div className="font-semibold text-slate-200">{t}</div>
-                    <div className="text-[11px] text-slate-500 font-mono">DOC_GRP_0{idx + 1} (v2.4)</div>
-                  </div>
-                  <button className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[11px]">편집</button>
-                </div>
-              ))}
-            </div>
-            <div className="p-3 bg-slate-950 border border-slate-800 rounded-lg space-y-2">
-              <span className="text-slate-400 font-semibold">웹 문서 기반 약관 실시간 에디터 & 버전 배포</span>
-              <textarea
-                rows={3}
-                defaultValue="제1조 (목적) 본 약관은 purePDFrend 서비스의 이용조건 및 절차, 이용자와 회사의 권리, 의무, 책임사항을 규정함을 목적으로 합니다."
-                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-300 font-mono text-xs"
-              />
-              <div className="flex justify-between items-center">
-                <span className="text-[11px] text-indigo-400">* 배포 시 사용자 동의 이력 원장에 문서그룹ID 및 개정버전번호가 증빙으로 자동 기록됩니다.</span>
-                <button className="px-3 py-1 bg-indigo-600 text-white rounded text-xs">신규 개정버전 발행</button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* 2 & 3. PG-ADM-02: 프로그램관리 (프로그램 등록/수정/삭제, DAG 순환방지, 다중권한) */}
+        {selectedProg === 'PG-ADM-02' && <AdminProgramsView />}
 
-        {/* PG-ADM-15: 단축키 및 도구아이콘 관리 */}
+        {/* 4. PG-ADM-03: 사용자관리 (프로필 사진, 상세조회, 다중권한 설정, 스토리지/오프라인) */}
+        {selectedProg === 'PG-ADM-03' && <AdminUsersView />}
+
+        {/* 7. PG-ADM-04: 약관·동의·정책 (약관검색, 적용버전만 보기, 이전약관 수정 새파일등록 v1.0/v1.1) */}
+        {selectedProg === 'PG-ADM-04' && <AdminTermsView />}
+
+        {/* 6. PG-ADM-05: 사용자 권한관리 (3대 서브탭: 권한관리 / 프로그램권한관리 / 사용자권한관리) */}
+        {selectedProg === 'PG-ADM-05' && <AdminRolesView />}
+
+        {/* 5. PG-ADM-06: 메뉴관리 (메뉴 등록/수정/삭제, 위치 관리, 화면 매핑) */}
+        {selectedProg === 'PG-ADM-06' && <AdminMenusView />}
+
+        {/* PG-ADM-07: 로그관리 (검색 기능 추가 & 모바일 카드보기 - 요청 6 반영) */}
+        {selectedProg === 'PG-ADM-07' && <AdminLogsView />}
+
+        {/* 8. PG-ADM-08: 알림관리 (공지/점검, OCR완료, 개인알림 대상여부) */}
+        {selectedProg === 'PG-ADM-08' && <AdminNotificationsView />}
+
+        {/* 9. PG-ADM-09 & PG-ADM-10: API 관리 (내부 API & 외부 API 탭 화면) */}
+        {(selectedProg === 'PG-ADM-09' || selectedProg === 'PG-ADM-10') && <AdminApiManagerView />}
+
+        {/* PG-ADM-11: 사용자설정 항목관리 (등록/수정/삭제 & 기본설정항목 완비 - 요청 7 반영) */}
+        {selectedProg === 'PG-ADM-11' && <AdminUserSettingsView />}
+
+        {/* 10. PG-ADM-12: 게시판·배너관리 (예약공지, 다시열지않기 하루/주/월, 배너 순서) */}
+        {selectedProg === 'PG-ADM-12' && <AdminBoardsAndBannersView />}
+
+        {/* 11. PG-ADM-13: 고객관리 (3대 탭: FAQ 그룹관리, 공개 QNA 알림, 1:1 비공개 상담) */}
+        {selectedProg === 'PG-ADM-13' && <AdminCustomerSupportView />}
+
+        {/* 12. PG-ADM-14: 무료글꼴관리 (등록/수정/삭제, WOFF2/TTF, 적용여부, 실시간 프리뷰) */}
+        {selectedProg === 'PG-ADM-14' && <AdminFontsView />}
+
+        {/* 13. PG-ADM-15: 단축키 및 도구아이콘 관리 (시스템 기본 vs 사용자 커스텀 우선순위, 도구 아이콘 변경) */}
         {selectedProg === 'PG-ADM-15' && (
           <div className="space-y-4 text-xs">
-            <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between">
-              <div>
-                <span className="font-bold text-white text-sm">🎨 뷰어 도구별 아이콘 디자인 리소스 및 단축키 통합 관리</span>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  도구별로 미리 정의된 다양한 디자인 리소스 아이콘 중 하나를 지정하여 UI에 반영하고, PC/태블릿 기본 단축키를 설정합니다.
-                </p>
+            <div className="p-4 bg-slate-950/70 border border-slate-800 rounded-xl space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800">
+                <div>
+                  <span className="font-bold text-white text-sm">🎨 뷰어 도구별 아이콘 디자인 리소스 및 단축키 관리</span>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    도구별 아이콘 디자인 리소스(Filled, Outlined, Modern) 변경 및 시스템 기본 vs 사용자 커스텀 단축키 우선순위를 설정합니다.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={handleResetShortcutsAndIcons} className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded">
+                    기본값 복원
+                  </button>
+                  <button className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium">
+                    전체 사용자 배포
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleResetShortcutsAndIcons}
-                  className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded"
-                >
-                  기본값 복원 (Reset)
-                </button>
-                <button className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium">
-                  전체 사용자 배포
-                </button>
+
+              {/* 단축키 우선순위 정책 스위치 (요청 13 반영) */}
+              <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-2">
+                <div>
+                  <span className="font-bold text-indigo-300">⌨️ 단축키 우선순위 정책 (Shortcut Priority Policy)</span>
+                  <p className="text-[11px] text-slate-400">사용자가 개인 설정한 커스텀 단축키와 시스템 기본 단축키 간의 충돌 시 우선 적용할 기준입니다.</p>
+                </div>
+                <div className="flex gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                  <button
+                    onClick={() => setShortcutPriority('SYSTEM')}
+                    className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                      shortcutPriority === 'SYSTEM' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    시스템 기본 단축키 우선
+                  </button>
+                  <button
+                    onClick={() => setShortcutPriority('CUSTOM')}
+                    className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                      shortcutPriority === 'CUSTOM' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    사용자 커스텀 우선 (권장)
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            {/* 데스크톱 테이블 */}
+            <div className="hidden md:block overflow-x-auto bg-slate-950/70 border border-slate-800 rounded-xl">
               <table className="w-full text-left">
                 <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
                   <tr>
-                    <th className="p-2.5">도구 ID</th>
-                    <th className="p-2.5">도구 명칭</th>
-                    <th className="p-2.5">현재 아이콘</th>
-                    <th className="p-2.5">아이콘 디자인 리소스 지정</th>
-                    <th className="p-2.5">단축키 (PC/태블릿)</th>
-                    <th className="p-2.5">기능 설명</th>
+                    <th className="p-3">도구 ID</th>
+                    <th className="p-3">도구 명칭</th>
+                    <th className="p-3">현재 아이콘</th>
+                    <th className="p-3">아이콘 디자인 리소스 지정</th>
+                    <th className="p-3">단축키 (PC/태블릿)</th>
+                    <th className="p-3">기능 설명</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800 text-slate-300 font-mono text-[11px]">
@@ -321,12 +269,12 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
 
                     return (
                       <tr key={tool.id} className="hover:bg-slate-900/40">
-                        <td className="p-2.5 text-slate-400">{tool.id}</td>
-                        <td className="p-2.5 font-sans font-medium text-slate-200">{tool.name}</td>
-                        <td className="p-2.5">
+                        <td className="p-3 text-slate-400">{tool.id}</td>
+                        <td className="p-3 font-sans font-medium text-slate-200">{tool.name}</td>
+                        <td className="p-3">
                           <span className="text-xl inline-block w-7 text-center">{tool.icon}</span>
                         </td>
-                        <td className="p-2.5">
+                        <td className="p-3">
                           {availableResources.length > 0 ? (
                             <select
                               value={currentResKey}
@@ -343,7 +291,7 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
                             <span className="text-slate-500 font-sans">단일 기본 리소스</span>
                           )}
                         </td>
-                        <td className="p-2.5">
+                        <td className="p-3">
                           <input
                             type="text"
                             value={currentShortcut}
@@ -351,40 +299,135 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
                             className="w-20 bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-center font-mono text-amber-300 text-xs font-bold"
                           />
                         </td>
-                        <td className="p-2.5 font-sans text-slate-400">{tool.desc}</td>
+                        <td className="p-3 font-sans text-slate-400">{tool.desc}</td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
             </div>
+
+            {/* 모바일 카드 뷰 (단축키 카드보기 적용 - 요청 9 반영) */}
+            <div className="block md:hidden space-y-2.5">
+              {registry.getAllTools().slice(0, 10).map((tool) => {
+                const availableResources = IconResourceRegistry.getResourcesForTool(tool.id);
+                const currentResKey = configState.toolIcons?.[tool.id] || (availableResources[0]?.resourceKey ?? '');
+                const currentShortcut = configState.shortcuts?.[tool.id] || tool.defaultKey;
+
+                return (
+                  <div key={tool.id} className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl p-1 bg-slate-900 rounded-lg border border-slate-800">{tool.icon}</span>
+                        <div>
+                          <div className="font-bold text-slate-200 text-xs">{tool.name}</div>
+                          <div className="font-mono text-slate-500 text-[10px]">{tool.id}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-slate-400 text-[10px]">단축키:</span>
+                        <input
+                          type="text"
+                          value={currentShortcut}
+                          onChange={(e) => handleShortcutChange(tool.id, e.target.value)}
+                          className="w-14 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-center font-mono text-amber-300 text-xs font-bold"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="text-[11px] text-slate-400">{tool.desc}</div>
+
+                    <div className="pt-2 border-t border-slate-900">
+                      <label className="text-slate-400 text-[10px] block mb-1">아이콘 디자인 리소스 스타일:</label>
+                      {availableResources.length > 0 ? (
+                        <select
+                          value={currentResKey}
+                          onChange={(e) => handleToolIconChange(tool.id, e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 text-xs"
+                        >
+                          {availableResources.map((res) => (
+                            <option key={res.resourceKey} value={res.resourceKey}>
+                              {res.symbol} {res.label} ({res.style})
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="text-slate-500 text-[11px]">기본 단일 리소스</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
-        {/* PG-ADM-16: 도구그룹관리 */}
+        {/* 13. PG-ADM-16: 도구그룹관리 (8대 뷰어 모드별 도구편성 & 변경 시 영향도 검토 Impact Analysis) */}
         {selectedProg === 'PG-ADM-16' && (
           <div className="space-y-4 text-xs">
-            <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between">
-              <div>
-                <span className="font-bold text-white text-sm">🗂️ 8대 뷰어 모드별 기본 도구 그룹 편성 관리</span>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  보기, 주석달기, 그리기, 작성및서명, 변환, 양식준비, 삽입, 즐겨찾기 그룹의 기본 도구 구성을 정의합니다.
-                </p>
+            <div className="p-4 bg-slate-950/70 border border-slate-800 rounded-xl space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800">
+                <div>
+                  <span className="font-bold text-white text-sm">🗂️ 8대 뷰어 모드별 기본 도구 그룹 편성 관리</span>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    보기, 주석달기, 그리기, 작성및서명, 변환, 양식준비, 삽입, 즐겨찾기 그룹의 기본 도구 구성을 정의합니다.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 text-slate-300 cursor-pointer">
+                    <input type="checkbox" defaultChecked className="accent-indigo-500" />
+                    <span>그룹 간 도구 중복 편성 허용</span>
+                  </label>
+                  <button
+                    onClick={() => setImpactNotice('✅ 도구그룹 기본값이 성공적으로 배포되었습니다. 활성 세션 사용자 3,820명의 툴바에 자동 반영됩니다.')}
+                    className="px-3.5 py-1.5 bg-indigo-600 text-white rounded font-medium"
+                  >
+                    그룹 기본값 배포
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-1.5 text-slate-300 cursor-pointer">
-                  <input type="checkbox" defaultChecked className="accent-indigo-500" />
-                  <span>그룹 간 도구 중복 편성 허용</span>
-                </label>
-                <button className="px-3 py-1 bg-indigo-600 text-white rounded font-medium">그룹 기본값 배포</button>
+
+              {/* 변경 시 영향도 검토 패널 (요청 13 반영) */}
+              <div className="p-3.5 bg-indigo-950/40 border border-indigo-500/40 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-indigo-300 flex items-center gap-1.5">
+                    <span>⚠️</span>
+                    <span>도구 그룹 변경 시 영향도 검토 (Impact Analysis)</span>
+                  </span>
+                  <span className="text-[11px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300">실시간 연동 영향도 분석</span>
+                </div>
+                <p className="text-slate-300 text-[11px]">
+                  설정한 도구 그룹을 변경하여 배포할 경우, 사용자의 커스텀 툴바 프리셋에 즉각적인 레이아웃 변동이 발생합니다.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 font-mono text-[11px]">
+                  <div className="p-2 bg-slate-950 rounded border border-slate-800">
+                    <span className="text-slate-500 block">영향받는 활성 사용자:</span>
+                    <strong className="text-emerald-400">3,820명</strong>
+                  </div>
+                  <div className="p-2 bg-slate-950 rounded border border-slate-800">
+                    <span className="text-slate-500 block">영향받는 뷰어 모드:</span>
+                    <strong className="text-sky-400">8대 모드 전체 (View, Annotate, Draw...)</strong>
+                  </div>
+                  <div className="p-2 bg-slate-950 rounded border border-slate-800">
+                    <span className="text-slate-500 block">동기화 전파 지연:</span>
+                    <strong className="text-indigo-400">&lt; 0.2초 (WebSocket/SSE)</strong>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            {impactNotice && (
+              <div className="p-3 bg-emerald-950/70 border border-emerald-500/40 rounded-xl text-emerald-200 flex justify-between items-center">
+                <span>{impactNotice}</span>
+                <button onClick={() => setImpactNotice(null)} className="text-emerald-400 hover:text-white">✕</button>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {[
                 { grp: '보기 (View)', count: 2, tools: ['손 도구 (✋)', '텍스트 선택 (🔤)'] },
-                { grp: '주석달기 (Annotate)', count: 9, tools: ['펜 (✏️)', '붓 (🖌️)', '형광펜 (🖍️)', '밑줄 (➖)', '취소선 (❌)', '직사각형 (▭)*중복*'] },
-                { grp: '그리기 (Draw)', count: 6, tools: ['직사각형 (▭)', '원형 (◯)', '화살표 (➔)', '직선 (╱)', '지우개 (🧹)'] },
+                { grp: '주석달기 (Annotate)', count: 6, tools: ['펜 (✏️)', '붓 (🖌️)', '형광펜 (🖍️)', '밑줄 (➖)', '취소선 (❌)', '직사각형 (▭)'] },
+                { grp: '그리기 (Draw)', count: 5, tools: ['직사각형 (▭)', '원형 (◯)', '화살표 (➔)', '직선 (╱)', '지우개 (🧹)'] },
                 { grp: '작성 및 서명 (Sign)', count: 4, tools: ['서명 패드 (🖋️)', '날짜 스탬프 (📅)', '체크 (✔️)', '승인 도장 (💮)'] },
                 { grp: '변환 (Convert)', count: 2, tools: ['JPG 이미지 (🖼️)', 'Word 변환 (📄)'] },
                 { grp: '양식 준비 (Form)', count: 2, tools: ['입력 필드 (📝)', '체크박스 (☑️)'] },
@@ -403,50 +446,8 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
                       </span>
                     ))}
                   </div>
-                  <div className="pt-1 flex justify-between items-center text-[10px] text-slate-500">
-                    <span>드래그 순서 재배치 지원</span>
-                    <button className="text-indigo-400 hover:underline">+ 도구 추가</button>
-                  </div>
                 </div>
               ))}
-            </div>
-          </div>
-        )}
-
-        {/* PG-ADM-05 ~ 14 탭별 직관적 와이어프레임 프리뷰 */}
-        {['PG-ADM-05', 'PG-ADM-06', 'PG-ADM-07', 'PG-ADM-08', 'PG-ADM-09', 'PG-ADM-10', 'PG-ADM-11', 'PG-ADM-12', 'PG-ADM-13', 'PG-ADM-14'].includes(selectedProg) && (
-          <div className="p-6 bg-slate-950/60 border border-slate-800 rounded-xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <span className="text-sm font-semibold text-slate-200">
-                {ADMIN_PROGRAMS.find((p) => p.id === selectedProg)?.name} 세부 와이어프레임 구조
-              </span>
-              <span className="text-xs px-2.5 py-1 bg-indigo-500/10 text-indigo-400 rounded-full border border-indigo-500/20">
-                표준 프로토타입 뷰
-              </span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-              <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 space-y-1">
-                <span className="text-slate-500">입력 및 검색 바</span>
-                <div className="h-8 bg-slate-950 rounded border border-slate-700 flex items-center px-2 text-slate-400 font-mono">
-                  검색조건 / 필터 / 타겟팅 ...
-                </div>
-              </div>
-              <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 space-y-1">
-                <span className="text-slate-500">상태 모니터링 위젯</span>
-                <div className="h-8 bg-slate-950 rounded border border-slate-700 flex items-center px-2 text-emerald-400 font-mono">
-                  정상 가동 (ACTIVE)
-                </div>
-              </div>
-              <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 space-y-1">
-                <span className="text-slate-500">액션 커맨드</span>
-                <div className="h-8 bg-indigo-950/40 rounded border border-indigo-800/40 flex items-center justify-center text-indigo-300 font-medium">
-                  + 신규 등록 / 일괄 동기화
-                </div>
-              </div>
-            </div>
-            <div className="h-44 bg-slate-900/50 rounded-xl border border-dashed border-slate-800 flex flex-col items-center justify-center text-slate-500 text-xs space-y-1">
-              <span className="text-slate-400 font-medium">[{selectedProg}] 데이터 그리드 및 반응형 대시보드 뷰</span>
-              <span className="text-[11px] text-slate-600">모바일 접속 시 1열 카드뷰로 자동 전환되며, PC에서는 다단 테이블로 표시됩니다.</span>
             </div>
           </div>
         )}
