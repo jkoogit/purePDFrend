@@ -219,24 +219,26 @@ export async function syncAndPush(
     }
   }
 
-  console.log(`   Unchanged files: ${treeItems.length} (reusing remote blobs)`);
+  console.log(`   Unchanged files: ${files.length - filesToUpload.length} (reusing remote base tree blobs)`);
   console.log(`   Modified/New files to upload: ${filesToUpload.length}`);
+
+  const modifiedTreeItems: Array<{ path: string; mode: string; type: string; sha: string }> = [];
 
   // Upload modified or new blobs
   for (let i = 0; i < filesToUpload.length; i++) {
     const f = filesToUpload[i];
     const sha = await uploadBlob(f);
-    treeItems.push({ path: f, mode: '100644', type: 'blob', sha });
+    modifiedTreeItems.push({ path: f, mode: '100644', type: 'blob', sha });
     console.log(`   Uploaded blob [${i + 1}/${filesToUpload.length}]: ${f}`);
     await new Promise((res) => setTimeout(res, 80));
   }
-  console.log(`   All ${treeItems.length} tree items prepared.`);
+  console.log(`   Total ${modifiedTreeItems.length} modified/new tree items prepared.`);
 
-  // 4. Create new tree
+  // 4. Create new tree layered on top of base_tree
   console.log('4. Creating new Git Tree...');
   const treeRes = await requestGitHub('/git/trees', 'POST', {
     base_tree: baseTreeSha,
-    tree: treeItems,
+    tree: modifiedTreeItems,
   });
   if (treeRes.status !== 201) {
     throw new Error(`Failed to create git tree: ${JSON.stringify(treeRes.body)}`);

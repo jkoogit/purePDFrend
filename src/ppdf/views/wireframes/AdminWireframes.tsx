@@ -29,8 +29,7 @@ export const ADMIN_PROGRAMS = [
   { id: 'PG-ADM-06', name: '메뉴관리', desc: '메뉴 등록/수정/삭제, 위치 관리, 화면 프로그램 매핑' },
   { id: 'PG-ADM-07', name: '로그관리', desc: '다차원 감사로그 필터, PDF 다운로드 및 주석 변경 추적 타임라인' },
   { id: 'PG-ADM-08', name: '알림관리', desc: '공지(점검안내), OCR 완료안내, 개인알림 대상여부 설정' },
-  { id: 'PG-ADM-09', name: '내부 서비스 API관리', desc: '내부API 탭: OCR 배치, PDF Core 엔진, 3-Way 충돌머지 헬스체크' },
-  { id: 'PG-ADM-10', name: '외부 연동 API관리', desc: '외부API 탭: Google OAuth/Drive, Gemini Multimodal Vision API' },
+  { id: 'PG-ADM-09', name: 'API 연동관리 (내부/외부 통합)', desc: '내부 서비스 API(OCR 배치, Core 엔진) 및 외부 연동 API(OAuth, Gemini AI) 단일 통합 관리' },
   { id: 'PG-ADM-11', name: '사용자설정 항목관리', desc: '사용자 환경설정 메타데이터 등록(체크박스/드롭다운), 기본값 배포' },
   { id: 'PG-ADM-12', name: '게시판·배너관리', desc: '예약공지, 다시열지않기(하루/주/월), 배너 텍스트/이미지 순서 설정' },
   { id: 'PG-ADM-13', name: '고객관리', desc: '3대 탭: FAQ 그룹관리, 공개 QNA 관리자/등록자 알림, 1:1 비공개 상담' },
@@ -47,11 +46,33 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
   const [selectedProg, setSelectedProg] = useState('PG-ADM-01');
   const [filterKeyword, setFilterKeyword] = useState('');
   const [shortcutPriority, setShortcutPriority] = useState<'SYSTEM' | 'CUSTOM'>('CUSTOM');
+  const [shortcutViewMode, setShortcutViewMode] = useState<'CARDS' | 'TABLE'>('CARDS');
 
   // Registry for PG-ADM-15 & PG-ADM-16
   const registry = ViewerConfigRegistry.getInstance();
   const [configState, setConfigState] = useState(() => registry.getConfig());
   const [impactNotice, setImpactNotice] = useState<string | null>(null);
+  const [customUploadedIcons, setCustomUploadedIcons] = useState<Record<string, string>>({});
+
+  // 단축키 복합 기능키 조합 파서 & 빌더 (요청 6 반영)
+  const parseShortcut = (sc: string) => {
+    const parts = (sc || '').split('+').map((p) => p.trim());
+    const hasCtrl = parts.some((p) => p.toLowerCase() === 'ctrl' || p.toLowerCase() === 'control');
+    const hasShift = parts.some((p) => p.toLowerCase() === 'shift');
+    const hasAlt = parts.some((p) => p.toLowerCase() === 'alt');
+    const mainKey = parts.filter((p) => !['ctrl', 'control', 'shift', 'alt'].includes(p.toLowerCase())).pop() || '';
+    return { hasCtrl, hasShift, hasAlt, mainKey };
+  };
+
+  const buildShortcut = (hasCtrl: boolean, hasShift: boolean, hasAlt: boolean, mainKey: string) => {
+    const parts: string[] = [];
+    if (hasCtrl) parts.push('Ctrl');
+    if (hasShift) parts.push('Shift');
+    if (hasAlt) parts.push('Alt');
+    const cleanKey = (mainKey || '').trim().toUpperCase();
+    if (cleanKey) parts.push(cleanKey);
+    return parts.join(' + ') || cleanKey;
+  };
 
   const handleToolIconChange = (toolId: string, resKey: string) => {
     const updated = registry.updateToolIcon(toolId, resKey);
@@ -84,7 +105,7 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
             <span className="text-lg">💡</span>
             <span className="font-bold text-white text-sm">화면 메뉴 접근 경로 가이드</span>
             <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-              총 16개 시스템 설정 화면
+              총 15개 시스템 설정 화면 (내부/외부 API 연동 단일화)
             </span>
           </div>
           <div className="text-[11px] text-slate-400">
@@ -92,7 +113,7 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
           </div>
         </div>
         <p className="text-xs text-slate-300">
-          시스템 설정 와이어프레임은 언제든 상단 메뉴를 통해 접근할 수 있으며, 아래 16개 프로그램 칩 또는 빠른 검색을 통해 원하는 기능 화면으로 1클릭 즉시 이동할 수 있습니다.
+          시스템 설정 와이어프레임은 언제든 상단 메뉴를 통해 접근할 수 있으며, 아래 15개 프로그램 칩 또는 빠른 검색을 통해 원하는 기능 화면으로 1클릭 즉시 이동할 수 있습니다.
         </p>
       </div>
 
@@ -221,144 +242,324 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
                 </div>
               </div>
 
-              {/* 단축키 우선순위 정책 스위치 (요청 13 반영) */}
-              <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-2">
+              {/* 보기 모드 및 단축키 우선순위 정책 컨트롤 (요청 2 반영: 가로형 카드 및 넓이 초과 시 자동 줄바꿈) */}
+              <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 flex flex-col md:flex-row justify-between items-center gap-3">
                 <div>
                   <span className="font-bold text-indigo-300">⌨️ 단축키 우선순위 정책 (Shortcut Priority Policy)</span>
                   <p className="text-[11px] text-slate-400">사용자가 개인 설정한 커스텀 단축키와 시스템 기본 단축키 간의 충돌 시 우선 적용할 기준입니다.</p>
                 </div>
-                <div className="flex gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
-                  <button
-                    onClick={() => setShortcutPriority('SYSTEM')}
-                    className={`px-3 py-1 rounded text-xs font-medium transition-all ${
-                      shortcutPriority === 'SYSTEM' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    시스템 기본 단축키 우선
-                  </button>
-                  <button
-                    onClick={() => setShortcutPriority('CUSTOM')}
-                    className={`px-3 py-1 rounded text-xs font-medium transition-all ${
-                      shortcutPriority === 'CUSTOM' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    사용자 커스텀 우선 (권장)
-                  </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                    <button
+                      onClick={() => setShortcutPriority('SYSTEM')}
+                      className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
+                        shortcutPriority === 'SYSTEM' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      시스템 기본 우선
+                    </button>
+                    <button
+                      onClick={() => setShortcutPriority('CUSTOM')}
+                      className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
+                        shortcutPriority === 'CUSTOM' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      사용자 커스텀 우선
+                    </button>
+                  </div>
+                  <div className="flex gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                    <button
+                      onClick={() => setShortcutViewMode('CARDS')}
+                      className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
+                        shortcutViewMode === 'CARDS' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      🗂️ 가로형 카드 (자동 줄바꿈)
+                    </button>
+                    <button
+                      onClick={() => setShortcutViewMode('TABLE')}
+                      className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
+                        shortcutViewMode === 'TABLE' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      📋 테이블 보기
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* 데스크톱 테이블 */}
-            <div className="hidden md:block overflow-x-auto bg-slate-950/70 border border-slate-800 rounded-xl">
-              <table className="w-full text-left">
-                <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
-                  <tr>
-                    <th className="p-3">도구 ID</th>
-                    <th className="p-3">도구 명칭</th>
-                    <th className="p-3">현재 아이콘</th>
-                    <th className="p-3">아이콘 디자인 리소스 지정</th>
-                    <th className="p-3">단축키 (PC/태블릿)</th>
-                    <th className="p-3">기능 설명</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800 text-slate-300 font-mono text-[11px]">
-                  {registry.getAllTools().slice(0, 10).map((tool) => {
-                    const availableResources = IconResourceRegistry.getResourcesForTool(tool.id);
-                    const currentResKey = configState.toolIcons?.[tool.id] || (availableResources[0]?.resourceKey ?? '');
-                    const currentShortcut = configState.shortcuts?.[tool.id] || tool.defaultKey;
+            {/* 가로형 카드 목록 - 너비 초과 시 자동 줄바꿈 (요청 2 반영: flex-wrap 기반 가로형 카드) */}
+            {shortcutViewMode === 'CARDS' ? (
+              <div className="flex flex-wrap gap-3.5 items-stretch">
+                {registry.getAllTools().slice(0, 10).map((tool) => {
+                  const availableResources = IconResourceRegistry.getResourcesForTool(tool.id);
+                  const currentResKey = configState.toolIcons?.[tool.id] || (availableResources[0]?.resourceKey ?? '');
+                  const currentShortcut = configState.shortcuts?.[tool.id] || tool.defaultKey;
+                  const scInfo = parseShortcut(currentShortcut);
+                  const customIconFile = customUploadedIcons[tool.id];
 
-                    return (
-                      <tr key={tool.id} className="hover:bg-slate-900/40">
-                        <td className="p-3 text-slate-400">{tool.id}</td>
-                        <td className="p-3 font-sans font-medium text-slate-200">{tool.name}</td>
-                        <td className="p-3">
-                          <span className="text-xl inline-block w-7 text-center">{tool.icon}</span>
-                        </td>
-                        <td className="p-3">
-                          {availableResources.length > 0 ? (
-                            <select
-                              value={currentResKey}
-                              onChange={(e) => handleToolIconChange(tool.id, e.target.value)}
-                              className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 text-xs font-sans"
-                            >
-                              {availableResources.map((res) => (
-                                <option key={res.resourceKey} value={res.resourceKey}>
-                                  {res.symbol} {res.label} ({res.style})
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <span className="text-slate-500 font-sans">단일 기본 리소스</span>
-                          )}
-                        </td>
-                        <td className="p-3">
+                  return (
+                    <div
+                      key={tool.id}
+                      className="p-3.5 bg-slate-950/90 border border-slate-800 hover:border-indigo-500/50 rounded-xl flex flex-col justify-between gap-2.5 min-w-[280px] flex-1 basis-[320px] max-w-[460px] shadow-md transition-all"
+                    >
+                      {/* 상단: 아이콘 + 도구명 + ID + 단축키 칩 */}
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-2xl p-1.5 bg-slate-900 rounded-lg border border-slate-800 text-center w-10 h-10 flex items-center justify-center flex-shrink-0">
+                            {tool.icon}
+                          </span>
+                          <div>
+                            <div className="font-bold text-slate-100 text-xs">{tool.name}</div>
+                            <div className="font-mono text-slate-500 text-[10px]">{tool.id}</div>
+                          </div>
+                        </div>
+                        <span className="font-mono text-amber-400 font-bold text-xs bg-slate-900 px-2 py-1 rounded border border-slate-800 flex-shrink-0 shadow-inner">
+                          {currentShortcut || '미설정'}
+                        </span>
+                      </div>
+
+                      {/* 단축키 복합키 조합 설정 (Ctrl+Shift+Alt 가로형 인라인) */}
+                      <div className="p-2 bg-slate-900/90 rounded-lg border border-slate-800/80 space-y-1">
+                        <span className="text-slate-400 text-[10px] block font-medium">단축키 복합키 조합 (Ctrl+Shift):</span>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-300">
+                          <label className="flex items-center gap-0.5 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={scInfo.hasCtrl}
+                              onChange={(e) => {
+                                const next = buildShortcut(e.target.checked, scInfo.hasShift, scInfo.hasAlt, scInfo.mainKey);
+                                handleShortcutChange(tool.id, next);
+                              }}
+                              className="accent-indigo-500 w-3 h-3 cursor-pointer"
+                            />
+                            <span>Ctrl</span>
+                          </label>
+                          <label className="flex items-center gap-0.5 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={scInfo.hasShift}
+                              onChange={(e) => {
+                                const next = buildShortcut(scInfo.hasCtrl, e.target.checked, scInfo.hasAlt, scInfo.mainKey);
+                                handleShortcutChange(tool.id, next);
+                              }}
+                              className="accent-indigo-500 w-3 h-3 cursor-pointer"
+                            />
+                            <span>Shift</span>
+                          </label>
+                          <label className="flex items-center gap-0.5 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={scInfo.hasAlt}
+                              onChange={(e) => {
+                                const next = buildShortcut(scInfo.hasCtrl, scInfo.hasShift, e.target.checked, scInfo.mainKey);
+                                handleShortcutChange(tool.id, next);
+                              }}
+                              className="accent-indigo-500 w-3 h-3 cursor-pointer"
+                            />
+                            <span>Alt</span>
+                          </label>
+                          <span className="text-slate-600">+</span>
                           <input
                             type="text"
-                            value={currentShortcut}
-                            onChange={(e) => handleShortcutChange(tool.id, e.target.value)}
-                            className="w-20 bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-center font-mono text-amber-300 text-xs font-bold"
+                            maxLength={3}
+                            value={scInfo.mainKey}
+                            onChange={(e) => {
+                              const next = buildShortcut(scInfo.hasCtrl, scInfo.hasShift, scInfo.hasAlt, e.target.value);
+                              handleShortcutChange(tool.id, next);
+                            }}
+                            className="w-10 bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-center font-mono text-amber-300 text-xs font-bold focus:border-indigo-500 outline-none"
                           />
-                        </td>
-                        <td className="p-3 font-sans text-slate-400">{tool.desc}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* 모바일 카드 뷰 (단축키 카드보기 적용 - 요청 9 반영) */}
-            <div className="block md:hidden space-y-2.5">
-              {registry.getAllTools().slice(0, 10).map((tool) => {
-                const availableResources = IconResourceRegistry.getResourcesForTool(tool.id);
-                const currentResKey = configState.toolIcons?.[tool.id] || (availableResources[0]?.resourceKey ?? '');
-                const currentShortcut = configState.shortcuts?.[tool.id] || tool.defaultKey;
-
-                return (
-                  <div key={tool.id} className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl p-1 bg-slate-900 rounded-lg border border-slate-800">{tool.icon}</span>
-                        <div>
-                          <div className="font-bold text-slate-200 text-xs">{tool.name}</div>
-                          <div className="font-mono text-slate-500 text-[10px]">{tool.id}</div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-slate-400 text-[10px]">단축키:</span>
-                        <input
-                          type="text"
-                          value={currentShortcut}
-                          onChange={(e) => handleShortcutChange(tool.id, e.target.value)}
-                          className="w-14 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-center font-mono text-amber-300 text-xs font-bold"
-                        />
+
+                      <div className="text-[11px] text-slate-400 line-clamp-2">{tool.desc}</div>
+
+                      {/* 하단: 아이콘 리소스 및 파일 첨부 */}
+                      <div className="pt-2 border-t border-slate-900 space-y-1.5">
+                        {availableResources.length > 0 && (
+                          <select
+                            value={currentResKey}
+                            onChange={(e) => handleToolIconChange(tool.id, e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 text-xs"
+                          >
+                            {availableResources.map((res) => (
+                              <option key={res.resourceKey} value={res.resourceKey}>
+                                {res.symbol} {res.label} ({res.style})
+                              </option>
+                            ))}
+                          </select>
+                        )}
+
+                        <div className="flex items-center gap-1.5 pt-0.5">
+                          <label className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded border border-slate-700 text-[10px] cursor-pointer flex items-center gap-1 whitespace-nowrap">
+                            <span>📎 아이콘 첨부</span>
+                            <input
+                              type="file"
+                              accept=".svg,.png,.webp,.ico"
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                  const fn = e.target.files[0].name;
+                                  setCustomUploadedIcons((prev) => ({ ...prev, [tool.id]: fn }));
+                                }
+                              }}
+                            />
+                          </label>
+                          {customIconFile ? (
+                            <span className="text-[10px] text-emerald-300 font-mono truncate max-w-[140px]" title={customIconFile}>
+                              ✓ {customIconFile}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-500">기본/프리셋</span>
+                          )}
+                        </div>
                       </div>
                     </div>
+                  );
+                })}
+              </div>
+            ) : (
+              /* 데스크톱 테이블 뷰 */
+              <div className="overflow-x-auto bg-slate-950/70 border border-slate-800 rounded-xl">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
+                    <tr>
+                      <th className="p-3">도구 ID</th>
+                      <th className="p-3">도구 명칭</th>
+                      <th className="p-3">현재 아이콘</th>
+                      <th className="p-3">아이콘 리소스 & 파일 첨부</th>
+                      <th className="p-3">단축키 (Ctrl+Shift 조합)</th>
+                      <th className="p-3">기능 설명</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800 text-slate-300 font-mono text-[11px]">
+                    {registry.getAllTools().slice(0, 10).map((tool) => {
+                      const availableResources = IconResourceRegistry.getResourcesForTool(tool.id);
+                      const currentResKey = configState.toolIcons?.[tool.id] || (availableResources[0]?.resourceKey ?? '');
+                      const currentShortcut = configState.shortcuts?.[tool.id] || tool.defaultKey;
+                      const scInfo = parseShortcut(currentShortcut);
+                      const customIconFile = customUploadedIcons[tool.id];
 
-                    <div className="text-[11px] text-slate-400">{tool.desc}</div>
+                      return (
+                        <tr key={tool.id} className="hover:bg-slate-900/40">
+                          <td className="p-3 text-slate-400">{tool.id}</td>
+                          <td className="p-3 font-sans font-medium text-slate-200">{tool.name}</td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xl inline-block w-7 text-center">{tool.icon}</span>
+                              {customIconFile && (
+                                <span className="px-1.5 py-0.5 rounded bg-indigo-950 border border-indigo-700/50 text-[10px] text-indigo-300 font-sans">
+                                  📎 파일
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-3 space-y-1">
+                            {availableResources.length > 0 ? (
+                              <select
+                                value={currentResKey}
+                                onChange={(e) => handleToolIconChange(tool.id, e.target.value)}
+                                className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 text-xs font-sans w-full"
+                              >
+                                {availableResources.map((res) => (
+                                  <option key={res.resourceKey} value={res.resourceKey}>
+                                    {res.symbol} {res.label} ({res.style})
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <span className="text-slate-500 font-sans block">단일 기본 리소스</span>
+                            )}
 
-                    <div className="pt-2 border-t border-slate-900">
-                      <label className="text-slate-400 text-[10px] block mb-1">아이콘 디자인 리소스 스타일:</label>
-                      {availableResources.length > 0 ? (
-                        <select
-                          value={currentResKey}
-                          onChange={(e) => handleToolIconChange(tool.id, e.target.value)}
-                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 text-xs"
-                        >
-                          {availableResources.map((res) => (
-                            <option key={res.resourceKey} value={res.resourceKey}>
-                              {res.symbol} {res.label} ({res.style})
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span className="text-slate-500 text-[11px]">기본 단일 리소스</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                            <div className="flex items-center gap-1.5 pt-0.5">
+                              <label className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded border border-slate-700 text-[10px] cursor-pointer flex items-center gap-1 whitespace-nowrap">
+                                <span>📎 파일 첨부</span>
+                                <input
+                                  type="file"
+                                  accept=".svg,.png,.webp,.ico"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    if (e.target.files && e.target.files[0]) {
+                                      const fn = e.target.files[0].name;
+                                      setCustomUploadedIcons((prev) => ({ ...prev, [tool.id]: fn }));
+                                    }
+                                  }}
+                                />
+                              </label>
+                              {customIconFile ? (
+                                <span className="text-[10px] text-emerald-300 font-mono truncate max-w-[120px]" title={customIconFile}>
+                                  ✓ {customIconFile}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-slate-500">기본/프리셋</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-1.5 text-[10px] text-slate-300">
+                                <label className="flex items-center gap-0.5 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={scInfo.hasCtrl}
+                                    onChange={(e) => {
+                                      const next = buildShortcut(e.target.checked, scInfo.hasShift, scInfo.hasAlt, scInfo.mainKey);
+                                      handleShortcutChange(tool.id, next);
+                                    }}
+                                    className="accent-indigo-500 w-3 h-3"
+                                  />
+                                  <span>Ctrl</span>
+                                </label>
+                                <label className="flex items-center gap-0.5 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={scInfo.hasShift}
+                                    onChange={(e) => {
+                                      const next = buildShortcut(scInfo.hasCtrl, e.target.checked, scInfo.hasAlt, scInfo.mainKey);
+                                      handleShortcutChange(tool.id, next);
+                                    }}
+                                    className="accent-indigo-500 w-3 h-3"
+                                  />
+                                  <span>Shift</span>
+                                </label>
+                                <label className="flex items-center gap-0.5 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={scInfo.hasAlt}
+                                    onChange={(e) => {
+                                      const next = buildShortcut(scInfo.hasCtrl, scInfo.hasShift, e.target.checked, scInfo.mainKey);
+                                      handleShortcutChange(tool.id, next);
+                                    }}
+                                    className="accent-indigo-500 w-3 h-3"
+                                  />
+                                  <span>Alt</span>
+                                </label>
+                                <input
+                                  type="text"
+                                  maxLength={3}
+                                  value={scInfo.mainKey}
+                                  onChange={(e) => {
+                                    const next = buildShortcut(scInfo.hasCtrl, scInfo.hasShift, scInfo.hasAlt, e.target.value);
+                                    handleShortcutChange(tool.id, next);
+                                  }}
+                                  className="w-8 bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-center font-mono text-amber-300 text-xs font-bold"
+                                />
+                              </div>
+                              <span className="font-mono text-amber-400 font-bold text-[11px]">
+                                {currentShortcut || '미설정'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="p-3 font-sans text-slate-400">{tool.desc}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
