@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { Button, Input, Badge, Card, Modal } from '@shared/components/ui';
 
 export interface AdminUserItem {
   id: string;
@@ -11,7 +12,7 @@ export interface AdminUserItem {
   storageType: string;
   storagePath: string;
   storageUsage: string;
-  roles: string[]; // 다중 권한 설정 지원 (요청 4 반영)
+  roles: string[]; // 다중 권한 설정 지원
 }
 
 const INITIAL_USERS: AdminUserItem[] = [
@@ -19,7 +20,7 @@ const INITIAL_USERS: AdminUserItem[] = [
     id: 'user_0921@corp.com',
     name: '홍길동',
     avatarUrl: '',
-    avatarColor: 'from-indigo-500 to-purple-600',
+    avatarColor: 'from-blue-500 to-indigo-600',
     status: '정상',
     offlineAllowed: true,
     offlineDaysLeft: 29,
@@ -108,62 +109,66 @@ export function AdminUsersView() {
   return (
     <div className="space-y-4 text-xs">
       {notice && (
-        <div className="p-3 bg-indigo-950/80 border border-indigo-500/40 rounded-xl text-indigo-200 flex justify-between items-center">
+        <div className="p-3 bg-blue-950/80 border border-blue-500/40 rounded-xl text-blue-200 flex justify-between items-center animate-fade-in">
           <span>{notice}</span>
-          <button onClick={() => setNotice(null)} className="text-[11px] text-indigo-400 hover:text-white">✕</button>
+          <button onClick={() => setNotice(null)} className="text-[11px] text-blue-400 hover:text-white cursor-pointer">✕</button>
         </div>
       )}
 
       {/* 개인정보 불변원칙 헌장 */}
       <div className="p-3 bg-rose-950/30 border border-rose-500/20 rounded-xl text-rose-300 flex items-center justify-between">
         <span>🛡️ <strong>개인정보 불변원칙</strong>: 관리자는 회원의 비밀번호 평문이나 식별정보를 임의 수정할 수 없으며 초기화 링크 발송만 가능합니다.</span>
-        <span className="text-[10px] px-2 py-0.5 rounded bg-rose-500/20">보안 1등급</span>
+        <Badge variant="danger" size="sm">보안 1등급</Badge>
       </div>
 
-      {/* 검색 및 필터 바 (이름/권한/상태 검색조건 추가 - 요청 2 반영) */}
-      <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="text"
-            placeholder="회원명 또는 이메일 검색..."
-            value={searchName}
-            onChange={(e) => setSearchName(e.target.value)}
-            className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-slate-200 text-xs w-full sm:w-48"
-          />
+      {/* 검색 및 필터 바 */}
+      <Card variant="subtle">
+        <div className="p-3 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="w-full sm:w-48">
+              <Input
+                type="text"
+                placeholder="회원명 또는 이메일 검색..."
+                value={searchName}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchName(e.target.value)}
+                touchTarget={false}
+              />
+            </div>
 
-          <select
-            value={filterRole}
-            onChange={(e) => setFilterRole(e.target.value)}
-            className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 text-xs"
-          >
-            <option value="ALL">전체 권한</option>
-            {AVAILABLE_ROLES.map((r) => (
-              <option key={r} value={r}>{r}</option>
-            ))}
-          </select>
+            <select
+              value={filterRole}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterRole(e.target.value)}
+              className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="ALL">전체 권한</option>
+              {AVAILABLE_ROLES.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
 
-          <div className="flex gap-1 items-center bg-slate-900/80 p-0.5 rounded-lg border border-slate-800">
-            <span className="text-slate-400 text-[11px] px-1.5">상태:</span>
-            {['ALL', '정상', '제한', '휴면'].map((st) => (
-              <button
-                key={st}
-                onClick={() => setFilterStatus(st)}
-                className={`px-2.5 py-0.5 rounded text-xs font-medium transition-all ${
-                  filterStatus === st ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                {st === 'ALL' ? '전체' : st}
-              </button>
-            ))}
+            <div className="flex gap-1 items-center bg-slate-900/80 p-0.5 rounded-lg border border-slate-800">
+              <span className="text-slate-400 text-[11px] px-1.5">상태:</span>
+              {['ALL', '정상', '제한', '휴면'].map((st) => (
+                <button
+                  key={st}
+                  onClick={() => setFilterStatus(st)}
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                    filterStatus === st ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {st === 'ALL' ? '전체' : st}
+                </button>
+              ))}
+            </div>
           </div>
+
+          <span className="text-slate-400 text-[11px] self-end md:self-auto font-mono">
+            조회 결과: <strong className="text-blue-400">{filteredUsers.length}</strong> / {users.length}명
+          </span>
         </div>
+      </Card>
 
-        <span className="text-slate-400 text-[11px] self-end md:self-auto">
-          조회 결과: <strong className="text-indigo-400">{filteredUsers.length}</strong> / {users.length}명
-        </span>
-      </div>
-
-      {/* 사용자 목록 테이블 (프로필 사진 포함 - 요청 4) */}
+      {/* 사용자 목록 테이블 */}
       <div className="hidden md:block overflow-x-auto bg-slate-950/70 border border-slate-800 rounded-xl">
         <table className="w-full text-left">
           <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
@@ -179,46 +184,56 @@ export function AdminUsersView() {
           </thead>
           <tbody className="divide-y divide-slate-800 text-slate-300">
             {filteredUsers.map((u) => (
-                <tr key={u.id} className="hover:bg-slate-900/40">
-                  <td className="p-3">
-                    <div className="flex items-center gap-2.5">
-                      {/* 프로필 사진 아바타 뱃지 */}
-                      <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${u.avatarColor} flex items-center justify-center font-bold text-white text-xs shadow shrink-0`}>
-                        {u.name.slice(0, 1)}
-                      </div>
-                      <div className="font-mono text-slate-200 font-medium">{u.id}</div>
+              <tr key={u.id} className="hover:bg-slate-900/40">
+                <td className="p-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${u.avatarColor} flex items-center justify-center font-bold text-white text-xs shadow shrink-0 select-none`}>
+                      {u.name.slice(0, 1)}
                     </div>
-                  </td>
-                  <td className="p-3 font-medium text-slate-300">{u.name}</td>
-                  <td className="p-3">
-                    <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${u.status === '정상' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                      {u.status}
-                    </span>
-                  </td>
-                  <td className="p-3 font-mono text-[11px]">
-                    {u.offlineAllowed ? <span className="text-emerald-400 font-semibold">허용 ({u.offlineDaysLeft}일)</span> : <span className="text-slate-500">비활성</span>}
-                  </td>
-                  <td className="p-3 font-mono text-[11px] text-slate-400">
-                    <div>{u.storageType}</div>
-                    <div className="text-[10px] text-indigo-400">{u.storageUsage}</div>
-                  </td>
-                  <td className="p-3">
-                    <div className="flex flex-wrap gap-1">
-                      {u.roles.map((r) => (
-                        <span key={r} className="px-1.5 py-0.2 bg-slate-800 text-indigo-300 rounded text-[10px] font-mono">{r}</span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="p-3 text-center">
-                    <button
-                      onClick={() => setSelectedUser(u)}
-                      className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[11px] font-medium"
-                    >
-                      상세조회
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    <div className="font-mono text-slate-200 font-medium">{u.id}</div>
+                  </div>
+                </td>
+                <td className="p-3 font-medium text-slate-300">{u.name}</td>
+                <td className="p-3">
+                  <Badge
+                    variant={u.status === '정상' ? 'success' : u.status === '제한' ? 'danger' : 'warning'}
+                    size="sm"
+                    dot
+                  >
+                    {u.status}
+                  </Badge>
+                </td>
+                <td className="p-3 font-mono text-[11px]">
+                  {u.offlineAllowed ? (
+                    <Badge variant="success" size="sm">허용 ({u.offlineDaysLeft}일)</Badge>
+                  ) : (
+                    <span className="text-slate-500">비활성</span>
+                  )}
+                </td>
+                <td className="p-3 font-mono text-[11px] text-slate-400">
+                  <div>{u.storageType}</div>
+                  <div className="text-[10px] text-blue-400">{u.storageUsage}</div>
+                </td>
+                <td className="p-3">
+                  <div className="flex flex-wrap gap-1">
+                    {u.roles.map((r) => (
+                      <Badge key={r} variant="neutral" size="sm">
+                        {r}
+                      </Badge>
+                    ))}
+                  </div>
+                </td>
+                <td className="p-3 text-center">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setSelectedUser(u)}
+                  >
+                    상세조회
+                  </Button>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -226,103 +241,119 @@ export function AdminUsersView() {
       {/* 모바일 전용 카드 뷰 */}
       <div className="block md:hidden space-y-2.5">
         {filteredUsers.map((u) => (
-            <div key={u.id} className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${u.avatarColor} flex items-center justify-center font-bold text-white text-xs shrink-0`}>
-                    {u.name.slice(0, 1)}
-                  </div>
-                  <span className="font-semibold text-slate-200">{u.name}</span>
+          <Card key={u.id} variant="subtle" className="p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${u.avatarColor} flex items-center justify-center font-bold text-white text-xs shrink-0 select-none`}>
+                  {u.name.slice(0, 1)}
                 </div>
-                <span className={`px-2 py-0.5 rounded text-[10px] ${u.status === '정상' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                  {u.status}
-                </span>
+                <span className="font-semibold text-slate-200">{u.name}</span>
               </div>
-              <div className="font-mono text-slate-400 text-[11px] break-all">{u.id}</div>
-              <div className="flex flex-wrap gap-1">
-                {u.roles.map((r) => (
-                  <span key={r} className="px-1.5 py-0.2 bg-slate-800 text-indigo-300 rounded text-[10px] font-mono">{r}</span>
-                ))}
-              </div>
-              <button
-                onClick={() => setSelectedUser(u)}
-                className="w-full py-1.5 bg-slate-800 text-slate-200 rounded font-medium text-center"
+              <Badge
+                variant={u.status === '정상' ? 'success' : u.status === '제한' ? 'danger' : 'warning'}
+                size="sm"
+                dot
               >
-                상세화면 조회 및 권한 설정
-              </button>
+                {u.status}
+              </Badge>
             </div>
-          ))}
+            <div className="font-mono text-slate-400 text-[11px] break-all">{u.id}</div>
+            <div className="flex flex-wrap gap-1">
+              {u.roles.map((r) => (
+                <Badge key={r} variant="neutral" size="sm">
+                  {r}
+                </Badge>
+              ))}
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setSelectedUser(u)}
+              className="w-full"
+            >
+              상세화면 조회 및 권한 설정
+            </Button>
+          </Card>
+        ))}
       </div>
 
-      {/* 사용자 상세화면 조회 팝업 모달 (요청 3 반영: fixed 모달 오버레이 전환) */}
+      {/* 사용자 상세화면 조회 Modal */}
       {selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-slate-900 border border-indigo-500/60 rounded-2xl p-4 sm:p-5 max-w-2xl w-full max-h-[90vh] overflow-y-auto space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${selectedUser.avatarColor} flex items-center justify-center font-bold text-white text-base shadow`}>
-                  {selectedUser.name.slice(0, 1)}
-                </div>
-                <div>
-                  <span className="font-bold text-white text-sm">{selectedUser.name} ({selectedUser.id})</span>
-                  <span className="block text-[11px] text-slate-400">회원 상세정보 및 다중 권한 관리</span>
-                </div>
+        <Modal
+          isOpen={Boolean(selectedUser)}
+          onClose={() => setSelectedUser(null)}
+          size="lg"
+          title={
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${selectedUser.avatarColor} flex items-center justify-center font-bold text-white text-sm shadow select-none`}>
+                {selectedUser.name.slice(0, 1)}
               </div>
-              <button onClick={() => setSelectedUser(null)} className="text-slate-400 hover:text-white text-base px-2">✕</button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
-                <span className="font-semibold text-indigo-300">👤 기본 정보 & 상태</span>
-                <div className="space-y-1 text-slate-300">
-                  <div>계정 식별자: <span className="font-mono text-slate-200">{selectedUser.id}</span></div>
-                  <div>회원 상태: <span className="font-semibold text-emerald-400">{selectedUser.status}</span></div>
-                  <div>오프라인 토큰: <span className="font-mono">{selectedUser.offlineAllowed ? `${selectedUser.offlineDaysLeft}일 유효` : '비활성'}</span></div>
-                </div>
-                <button
-                  onClick={() => setNotice(`📧 [발송완료] '${selectedUser.id}'에게 비밀번호 재설정 일회용 링크가 발송되었습니다.`)}
-                  className="mt-2 px-3 py-1 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded text-xs"
-                >
-                  비밀번호 초기화 메일 발송
-                </button>
-              </div>
-
-              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
-                <span className="font-semibold text-indigo-300">🗄️ 연동 스토리지 현황</span>
-                <div className="space-y-1 text-slate-300 font-mono text-[11px]">
-                  <div>종류: {selectedUser.storageType}</div>
-                  <div>경로: {selectedUser.storagePath}</div>
-                  <div>용량: {selectedUser.storageUsage}</div>
-                </div>
+              <div>
+                <span className="font-bold text-white text-sm sm:text-base">{selectedUser.name}</span>
+                <span className="block font-mono text-xs text-slate-400">{selectedUser.id}</span>
               </div>
             </div>
-
-            {/* 다중 권한 설정 체크박스 */}
-            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
-              <span className="font-semibold text-indigo-300">🔑 다중 역할 권한 부여 (Multiple Roles Assignment)</span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-                {AVAILABLE_ROLES.map((role) => (
-                  <label key={role} className="flex items-center gap-2 p-2 bg-slate-900 rounded-lg border border-slate-800 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedUser.roles.includes(role)}
-                      onChange={() => toggleUserRole(selectedUser.id, role)}
-                      className="accent-indigo-500"
-                    />
-                    <span className={selectedUser.roles.includes(role) ? 'text-indigo-300 font-mono font-bold' : 'text-slate-400 font-mono'}>{role}</span>
-                  </label>
-                ))}
+          }
+          description="회원 상세정보 및 다중 권한 관리"
+          footer={
+            <Button variant="primary" size="sm" onClick={() => setSelectedUser(null)}>
+              확인 및 닫기
+            </Button>
+          }
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Card variant="subtle" className="p-3 space-y-2">
+              <h4 className="font-semibold text-blue-300">👤 기본 정보 & 상태</h4>
+              <div className="space-y-1.5 text-slate-300 text-xs">
+                <div>계정 식별자: <span className="font-mono text-slate-200">{selectedUser.id}</span></div>
+                <div className="flex items-center gap-2">
+                  <span>회원 상태:</span>
+                  <Badge variant={selectedUser.status === '정상' ? 'success' : 'danger'} size="sm">
+                    {selectedUser.status}
+                  </Badge>
+                </div>
+                <div>오프라인 토큰: <span className="font-mono text-slate-200">{selectedUser.offlineAllowed ? `${selectedUser.offlineDaysLeft}일 유효` : '비활성'}</span></div>
               </div>
-            </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setNotice(`📧 [발송완료] '${selectedUser.id}'에게 비밀번호 재설정 일회용 링크가 발송되었습니다.`)}
+                className="mt-2 w-full text-blue-300 border-blue-800/60"
+              >
+                비밀번호 초기화 메일 발송
+              </Button>
+            </Card>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
-              <button onClick={() => setSelectedUser(null)} className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium">
-                확인 및 닫기
-              </button>
-            </div>
+            <Card variant="subtle" className="p-3 space-y-2">
+              <h4 className="font-semibold text-blue-300">🗄️ 연동 스토리지 현황</h4>
+              <div className="space-y-1.5 text-slate-300 font-mono text-[11px]">
+                <div>종류: <span className="text-slate-100">{selectedUser.storageType}</span></div>
+                <div>경로: <span className="text-slate-100">{selectedUser.storagePath}</span></div>
+                <div>용량: <span className="text-blue-400 font-bold">{selectedUser.storageUsage}</span></div>
+              </div>
+            </Card>
           </div>
-        </div>
+
+          {/* 다중 권한 설정 체크박스 */}
+          <Card variant="subtle" className="p-3 space-y-2">
+            <h4 className="font-semibold text-blue-300">🔑 다중 역할 권한 부여 (Multiple Roles)</h4>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+              {AVAILABLE_ROLES.map((role) => (
+                <label key={role} className="flex items-center gap-2 p-2 bg-slate-900 rounded-lg border border-slate-800 cursor-pointer hover:border-slate-700 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={selectedUser.roles.includes(role)}
+                    onChange={() => toggleUserRole(selectedUser.id, role)}
+                    className="accent-blue-500 w-3.5 h-3.5 cursor-pointer"
+                  />
+                  <span className={selectedUser.roles.includes(role) ? 'text-blue-300 font-mono font-bold' : 'text-slate-400 font-mono'}>{role}</span>
+                </label>
+              ))}
+            </div>
+          </Card>
+        </Modal>
       )}
     </div>
   );
 }
+
