@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { Button, Input, Badge, Card, Modal } from '@shared/components/ui';
 
 export interface ScreenProgramItem {
   id: string;
@@ -32,7 +33,7 @@ export function AdminProgramsView() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  // Search & Filter State (요청 2 반영)
+  // Search & Filter State
   const [searchKeyword, setSearchKeyword] = useState('');
   const [domainFilter, setDomainFilter] = useState<'ALL' | 'USR' | 'ADM'>('ALL');
   const [roleFilter, setRoleFilter] = useState('ALL');
@@ -147,139 +148,145 @@ export function AdminProgramsView() {
   return (
     <div className="space-y-4 text-xs">
       {/* 헤더 & 등록 버튼 */}
-      <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl flex justify-between items-center">
-        <div>
-          <span className="font-bold text-white text-sm">🖥️ 프로그램 및 화면 관리 (다중 권한 설정 지원)</span>
-          <p className="text-[11px] text-slate-400 mt-0.5">화면 프로그램 등록, 수정, 삭제 및 역할별 다중 접근 권한을 매핑합니다.</p>
+      <Card variant="subtle">
+        <div className="p-3.5 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+          <div>
+            <h3 className="font-bold text-white text-sm sm:text-base flex items-center gap-2">
+              <span>🖥️</span> 프로그램 및 화면 관리
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-0.5">화면 프로그램 등록, 수정, 삭제 및 역할별 다중 접근 권한을 매핑합니다.</p>
+          </div>
+          <Button variant="primary" size="sm" onClick={openCreate} className="self-start sm:self-auto">
+            + 프로그램 등록
+          </Button>
         </div>
-        <button onClick={openCreate} className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium shadow">
-          + 프로그램 등록
-        </button>
-      </div>
+      </Card>
 
-      {/* 검색 및 필터 조건 바 (요청 2 반영) */}
-      <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl flex flex-col sm:flex-row justify-between items-center gap-2.5">
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <input
-            type="text"
-            placeholder="프로그램 ID, 명칭, 라우트 검색..."
-            value={searchKeyword}
-            onChange={(e) => setSearchKeyword(e.target.value)}
-            className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-slate-200 text-xs w-full sm:w-48"
-          />
-          <select
-            value={domainFilter}
-            onChange={(e) => setDomainFilter(e.target.value as any)}
-            className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 text-xs"
-          >
-            <option value="ALL">전체 도메인</option>
-            <option value="USR">사용자 포털 (PG-USR)</option>
-            <option value="ADM">관리자 포털 (PG-ADM)</option>
-          </select>
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 text-xs"
-          >
-            <option value="ALL">전체 권한</option>
-            {AVAILABLE_ROLES.map((r) => (
-              <option key={r} value={r}>{r}</option>
-            ))}
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 text-xs"
-          >
-            <option value="ALL">전체 상태</option>
-            <option value="ACTIVE">활성 (ACTIVE)</option>
-            <option value="INACTIVE">비활성 (INACTIVE)</option>
-          </select>
+      {/* 검색 및 필터 조건 바 */}
+      <Card variant="subtle">
+        <div className="p-3 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <div className="w-full sm:w-48">
+              <Input
+                type="text"
+                placeholder="프로그램 ID, 명칭, 라우트..."
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                touchTarget={false}
+              />
+            </div>
+            <select
+              value={domainFilter}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setDomainFilter(e.target.value as any)}
+              className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="ALL">전체 도메인</option>
+              <option value="USR">사용자 포털 (PG-USR)</option>
+              <option value="ADM">관리자 포털 (PG-ADM)</option>
+            </select>
+            <select
+              value={roleFilter}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setRoleFilter(e.target.value)}
+              className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="ALL">전체 권한</option>
+              {AVAILABLE_ROLES.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatusFilter(e.target.value as any)}
+              className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="ALL">전체 상태</option>
+              <option value="ACTIVE">활성 (ACTIVE)</option>
+              <option value="INACTIVE">비활성 (INACTIVE)</option>
+            </select>
+          </div>
+          <span className="text-slate-400 text-[11px] whitespace-nowrap self-end sm:self-center font-mono">
+            검색 결과: <strong className="text-blue-400">{filteredPrograms.length}</strong> / {programs.length}건
+          </span>
         </div>
-        <span className="text-slate-400 text-[11px] whitespace-nowrap">
-          검색 결과: <strong className="text-indigo-400">{filteredPrograms.length}</strong> / {programs.length}건
-        </span>
-      </div>
+      </Card>
 
-      {/* 등록 및 수정 폼 (팝업 모달로 전환 - 요청 1 반영) */}
-      {(isCreating || editingId) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-slate-900 border border-indigo-500/60 rounded-2xl p-4 sm:p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-              <span className="font-bold text-indigo-300 text-sm sm:text-base">
-                {isCreating ? '➕ 신규 프로그램 등록' : `✏️ 프로그램 수정: [${editingId}]`}
-              </span>
-              <button onClick={() => { setIsCreating(false); setEditingId(null); }} className="text-slate-400 hover:text-white text-base">✕</button>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-slate-400 block mb-1">프로그램 ID</label>
-                <input
-                  type="text"
-                  disabled={!isCreating}
-                  value={formId}
-                  onChange={(e) => setFormId(e.target.value)}
-                  placeholder="예: PG-ADM-17"
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono text-xs"
-                />
-              </div>
-              <div>
-                <label className="text-slate-400 block mb-1">화면 프로그램 명칭</label>
-                <input
-                  type="text"
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="예: 대시보드 리포트"
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
-                />
-              </div>
-              <div>
-                <label className="text-slate-400 block mb-1">부모 프로그램 (DAG 계층 트리)</label>
-                <select
-                  value={formParent}
-                  onChange={(e) => setFormParent(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs font-mono"
-                >
-                  <option value="ROOT">ROOT (최상위 루트)</option>
-                  {programs.map((p) => (
-                    <option key={p.id} value={p.id}>{p.id} ({p.name})</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-slate-400 block mb-1">라우트 경로 (Path)</label>
-                <input
-                  type="text"
-                  value={formRoute}
-                  onChange={(e) => setFormRoute(e.target.value)}
-                  placeholder="/admin/report"
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono text-xs"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="text-slate-400 block mb-1">접근 가능 권한 설정 (다중 권한 지원)</label>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {AVAILABLE_ROLES.map((r) => (
-                    <label key={r} className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-950 rounded border border-slate-800 cursor-pointer text-[11px]">
-                      <input type="checkbox" checked={formRoles.includes(r)} onChange={() => toggleRole(r)} className="accent-indigo-500" />
-                      <span className={formRoles.includes(r) ? 'text-indigo-300 font-medium font-mono' : 'text-slate-400 font-mono'}>{r}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-            {dagError && (
-              <div className="p-2.5 bg-rose-950/60 border border-rose-800/60 rounded text-rose-300 font-semibold text-xs">
-                {dagError}
-              </div>
-            )}
-            <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
-              <button onClick={() => { setIsCreating(false); setEditingId(null); }} className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-lg text-xs">취소</button>
-              <button onClick={handleSave} className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium text-xs shadow">저장 완료</button>
+      {/* 등록 및 수정 폼 (표준 Modal 컴포넌트 적용) */}
+      <Modal
+        isOpen={isCreating || Boolean(editingId)}
+        onClose={() => { setIsCreating(false); setEditingId(null); }}
+        title={isCreating ? '➕ 신규 프로그램 등록' : `✏️ 프로그램 수정: [${editingId}]`}
+        size="lg"
+        footer={
+          <>
+            <Button variant="ghost" size="sm" onClick={() => { setIsCreating(false); setEditingId(null); }}>
+              취소
+            </Button>
+            <Button variant="primary" size="sm" onClick={handleSave}>
+              저장 완료
+            </Button>
+          </>
+        }
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <Input
+              label="프로그램 ID"
+              disabled={!isCreating}
+              value={formId}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormId(e.target.value)}
+              placeholder="예: PG-ADM-17"
+              className="font-mono"
+            />
+          </div>
+          <div>
+            <Input
+              label="화면 프로그램 명칭"
+              value={formName}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormName(e.target.value)}
+              placeholder="예: 대시보드 리포트"
+            />
+          </div>
+          <div>
+            <label className="text-slate-300 block mb-1.5 font-medium">부모 프로그램 (DAG 계층 트리)</label>
+            <select
+              value={formParent}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormParent(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            >
+              <option value="ROOT">ROOT (최상위 루트)</option>
+              {programs.map((p) => (
+                <option key={p.id} value={p.id}>{p.id} ({p.name})</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <Input
+              label="라우트 경로 (Path)"
+              value={formRoute}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormRoute(e.target.value)}
+              placeholder="/admin/report"
+              className="font-mono"
+            />
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className="text-slate-300 block mb-1.5 font-medium">접근 가능 권한 설정 (다중 권한 지원)</label>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {AVAILABLE_ROLES.map((r) => (
+                <label key={r} className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer text-[11px] hover:border-slate-700">
+                  <input type="checkbox" checked={formRoles.includes(r)} onChange={() => toggleRole(r)} className="accent-blue-500 w-3.5 h-3.5 cursor-pointer" />
+                  <span className={formRoles.includes(r) ? 'text-blue-300 font-medium font-mono' : 'text-slate-400 font-mono'}>{r}</span>
+                </label>
+              ))}
             </div>
           </div>
         </div>
-      )}
+        {dagError && (
+          <div className="p-2.5 bg-rose-950/60 border border-rose-800/60 rounded-lg text-rose-300 font-semibold text-xs">
+            {dagError}
+          </div>
+        )}
+      </Modal>
 
       {/* 프로그램 목록 테이블 (데스크톱 & 모바일 카드) */}
       <div className="hidden md:block overflow-x-auto bg-slate-950/70 border border-slate-800 rounded-xl">
@@ -298,24 +305,32 @@ export function AdminProgramsView() {
           <tbody className="divide-y divide-slate-800 text-slate-300">
             {filteredPrograms.map((p) => (
               <tr key={p.id} className="hover:bg-slate-900/40">
-                <td className="p-3 font-mono font-bold text-indigo-300">{p.id}</td>
+                <td className="p-3 font-mono font-bold text-blue-300">{p.id}</td>
                 <td className="p-3 font-medium text-slate-200">{p.name}</td>
                 <td className="p-3 font-mono text-slate-400">{p.parentId}</td>
                 <td className="p-3 font-mono text-slate-500">{p.route}</td>
                 <td className="p-3">
                   <div className="flex flex-wrap gap-1">
                     {p.roles.map((r) => (
-                      <span key={r} className="px-1.5 py-0.2 bg-slate-800 text-slate-300 rounded text-[10px] font-mono">{r}</span>
+                      <Badge key={r} variant="neutral" size="sm">
+                        {r}
+                      </Badge>
                     ))}
                   </div>
                 </td>
                 <td className="p-3">
-                  <span className={`px-2 py-0.5 rounded text-[10px] ${p.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>{p.status}</span>
+                  <Badge variant={p.status === 'ACTIVE' ? 'success' : 'neutral'} size="sm" dot>
+                    {p.status}
+                  </Badge>
                 </td>
                 <td className="p-3 text-center">
                   <div className="flex justify-center gap-1.5">
-                    <button onClick={() => openEdit(p)} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded">수정</button>
-                    <button onClick={() => handleDelete(p.id)} className="px-2 py-1 bg-rose-950 hover:bg-rose-900 text-rose-300 rounded">삭제</button>
+                    <Button variant="secondary" size="sm" onClick={() => openEdit(p)}>
+                      수정
+                    </Button>
+                    <Button variant="danger" size="sm" onClick={() => handleDelete(p.id)}>
+                      삭제
+                    </Button>
                   </div>
                 </td>
               </tr>
@@ -327,25 +342,34 @@ export function AdminProgramsView() {
       {/* 모바일 반응형 카드 (0px 가로스크롤) */}
       <div className="block md:hidden space-y-2.5">
         {filteredPrograms.map((p) => (
-          <div key={p.id} className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+          <Card key={p.id} variant="subtle" className="p-3 space-y-2">
             <div className="flex justify-between items-center">
-              <span className="font-mono font-bold text-indigo-300">{p.id}</span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400">{p.status}</span>
+              <span className="font-mono font-bold text-blue-300">{p.id}</span>
+              <Badge variant={p.status === 'ACTIVE' ? 'success' : 'neutral'} size="sm" dot>
+                {p.status}
+              </Badge>
             </div>
             <div className="font-medium text-slate-200 text-sm">{p.name}</div>
             <div className="text-[11px] text-slate-400 font-mono">부모: {p.parentId} | 경로: {p.route}</div>
             <div className="flex flex-wrap gap-1">
               {p.roles.map((r) => (
-                <span key={r} className="px-1.5 py-0.5 bg-slate-800 text-slate-300 rounded text-[10px] font-mono">{r}</span>
+                <Badge key={r} variant="neutral" size="sm">
+                  {r}
+                </Badge>
               ))}
             </div>
-            <div className="flex gap-2 pt-1 border-t border-slate-900">
-              <button onClick={() => openEdit(p)} className="flex-1 py-1 bg-slate-800 text-slate-200 rounded text-center">수정</button>
-              <button onClick={() => handleDelete(p.id)} className="flex-1 py-1 bg-rose-950 text-rose-300 rounded text-center">삭제</button>
+            <div className="flex gap-2 pt-2 border-t border-slate-900">
+              <Button variant="secondary" size="sm" className="flex-1" onClick={() => openEdit(p)}>
+                수정
+              </Button>
+              <Button variant="danger" size="sm" className="flex-1" onClick={() => handleDelete(p.id)}>
+                삭제
+              </Button>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
     </div>
   );
 }
+
