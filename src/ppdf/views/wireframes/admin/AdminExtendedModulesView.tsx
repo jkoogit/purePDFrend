@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Button, Input, Textarea, Badge, Card, Modal } from '@shared/components/ui';
 
 // ============================================================================
 // PG-ADM-08: 알림관리 (요청 10: 생성화면 추가, 모바일 카드보기, 사용여부 추가, 상세 수정/삭제)
@@ -96,21 +97,23 @@ export function AdminNotificationsView() {
 
   return (
     <div className="space-y-4 text-xs">
-      <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl flex justify-between items-center">
+      <Card variant="subtle" className="p-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <div>
           <span className="font-bold text-white text-sm">🔔 알림 관리 (공지 / 서비스 / 개인알림)</span>
           <p className="text-[11px] text-slate-400 mt-0.5">시스템 점검공지 및 OCR 처리완료, 개인보안 알림 템플릿과 사용여부를 관리합니다.</p>
         </div>
-        <button
+        <Button
+          variant="primary"
+          size="sm"
           onClick={openCreate}
-          className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium text-xs shadow"
+          className="text-xs shrink-0"
         >
           + 신규 알림 등록
-        </button>
-      </div>
+        </Button>
+      </Card>
 
       {/* 데스크톱 테이블 */}
-      <div className="hidden md:block bg-slate-950/70 border border-slate-800 rounded-xl overflow-hidden">
+      <div className="hidden md:block bg-slate-950/70 border border-slate-800 rounded-xl overflow-hidden shadow">
         <table className="w-full text-left">
           <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
             <tr>
@@ -130,25 +133,25 @@ export function AdminNotificationsView() {
                 <td className="p-3 font-mono font-bold text-indigo-300">{n.id}</td>
                 <td className="p-3 font-medium text-slate-200">{n.title}</td>
                 <td className="p-3">
-                  <span className="px-2 py-0.5 rounded bg-slate-800 text-indigo-300 text-[10px] font-mono">{n.type}</span>
+                  <Badge variant="primary" size="sm">{n.type}</Badge>
                 </td>
                 <td className="p-3 text-emerald-400">{n.target}</td>
                 <td className="p-3 text-slate-400">{n.channel}</td>
                 <td className="p-3">
                   <button
                     onClick={() => setNotifications(notifications.map((x) => (x.id === n.id ? { ...x, active: !x.active } : x)))}
-                    className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                      n.active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-500'
-                    }`}
+                    className="cursor-pointer"
                   >
-                    {n.active ? '활성 (사용중)' : '비활성 (정지)'}
+                    <Badge variant={n.active ? 'success' : 'neutral'} size="sm" dot={true}>
+                      {n.active ? '활성 (사용중)' : '비활성 (정지)'}
+                    </Badge>
                   </button>
                 </td>
                 <td className="p-3 font-mono text-slate-500">{n.date}</td>
                 <td className="p-3 text-center">
-                  <div className="flex justify-center gap-1.5">
-                    <button onClick={() => openEdit(n)} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded">수정</button>
-                    <button onClick={() => handleDelete(n.id)} className="px-2 py-1 bg-rose-950 hover:bg-rose-900 text-rose-300 rounded">삭제</button>
+                  <div className="flex justify-center items-center gap-1.5">
+                    <Button variant="secondary" size="sm" onClick={() => openEdit(n)} className="text-xs px-2.5 py-1">수정</Button>
+                    <Button variant="danger" size="sm" onClick={() => handleDelete(n.id)} className="text-xs px-2.5 py-1">삭제</Button>
                   </div>
                 </td>
               </tr>
@@ -160,16 +163,16 @@ export function AdminNotificationsView() {
       {/* 모바일 카드 뷰 (요청 10) */}
       <div className="block md:hidden space-y-2">
         {notifications.map((n) => (
-          <div key={n.id} className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+          <Card key={n.id} variant="subtle" className="p-3 space-y-2">
             <div className="flex justify-between items-center">
               <span className="font-mono font-bold text-indigo-300">{n.id}</span>
               <button
                 onClick={() => setNotifications(notifications.map((x) => (x.id === n.id ? { ...x, active: !x.active } : x)))}
-                className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                  n.active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-500'
-                }`}
+                className="cursor-pointer"
               >
-                {n.active ? '활성' : '비활성'}
+                <Badge variant={n.active ? 'success' : 'neutral'} size="sm" dot={true}>
+                  {n.active ? '활성' : '비활성'}
+                </Badge>
               </button>
             </div>
             <div className="font-bold text-slate-200 text-sm">{n.title}</div>
@@ -179,108 +182,99 @@ export function AdminNotificationsView() {
               <span>{n.date}</span>
             </div>
             <div className="flex gap-2 pt-1 border-t border-slate-900">
-              <button onClick={() => openEdit(n)} className="flex-1 py-1 bg-slate-800 text-slate-200 rounded text-center">수정</button>
-              <button onClick={() => handleDelete(n.id)} className="flex-1 py-1 bg-rose-950 text-rose-300 rounded text-center">삭제</button>
+              <Button variant="secondary" size="sm" onClick={() => openEdit(n)} className="flex-1 text-xs">수정</Button>
+              <Button variant="danger" size="sm" onClick={() => handleDelete(n.id)} className="flex-1 text-xs">삭제</Button>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
 
       {/* 알림 생성 및 수정 팝업 모달 */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-slate-900 border border-indigo-500/60 rounded-2xl p-4 sm:p-5 max-w-lg w-full space-y-3.5 shadow-2xl">
-            <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-              <span className="font-bold text-white text-sm">
-                {editingItem ? `✏️ 알림 상세 수정 [${editingItem.id}]` : '🔔 신규 알림 등록'}
-              </span>
-              <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-white">✕</button>
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title={editingItem ? `✏️ 알림 상세 수정 [${editingItem.id}]` : '🔔 신규 알림 등록'}
+        size="lg"
+        footer={
+          <div className="flex justify-end gap-2 w-full">
+            <Button variant="secondary" size="sm" onClick={() => setShowCreateModal(false)}>취소</Button>
+            <Button variant="primary" size="sm" onClick={handleSave}>저장 완료</Button>
+          </div>
+        }
+      >
+        <div className="space-y-3 text-xs">
+          <div>
+            <Input
+              label="알림 제목"
+              value={formTitle}
+              onChange={(e) => setFormTitle(e.target.value)}
+              placeholder="예: 정기 서버 점검 안내"
+            />
+          </div>
+
+          <div>
+            <Textarea
+              label="상세 안내 내용"
+              rows={3}
+              value={formContent}
+              onChange={(e) => setFormContent(e.target.value)}
+              placeholder="사용자에게 전달할 상세 메시지 입력"
+              className="font-mono"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-slate-400 block mb-1">알림 유형</label>
+              <select
+                value={formType}
+                onChange={(e) => setFormType(e.target.value as any)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200 text-xs min-h-[44px] sm:min-h-[36px]"
+              >
+                <option value="점검안내">공지: 점검안내</option>
+                <option value="OCR서비스">서비스: OCR 완료안내</option>
+                <option value="개인알림">개인알림: 계정/보안</option>
+                <option value="보안공지">보안공지: 관리자 전용</option>
+              </select>
             </div>
 
-            <div className="space-y-2.5">
-              <div>
-                <label className="text-slate-400 block mb-1">알림 제목</label>
-                <input
-                  type="text"
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  placeholder="예: 정기 서버 점검 안내"
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="text-slate-400 block mb-1">상세 안내 내용</label>
-                <textarea
-                  rows={3}
-                  value={formContent}
-                  onChange={(e) => setFormContent(e.target.value)}
-                  placeholder="사용자에게 전달할 상세 메시지 입력"
-                  className="w-full bg-slate-950 border border-slate-700 rounded p-2.5 text-slate-200 text-xs font-mono"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-slate-400 block mb-1">알림 유형</label>
-                  <select
-                    value={formType}
-                    onChange={(e) => setFormType(e.target.value as any)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-slate-200 text-xs"
-                  >
-                    <option value="점검안내">공지: 점검안내</option>
-                    <option value="OCR서비스">서비스: OCR 완료안내</option>
-                    <option value="개인알림">개인알림: 계정/보안</option>
-                    <option value="보안공지">보안공지: 관리자 전용</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-slate-400 block mb-1">수신 대상</label>
-                  <select
-                    value={formTarget}
-                    onChange={(e) => setFormTarget(e.target.value as any)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-slate-200 text-xs"
-                  >
-                    <option value="전체 사용자">전체 사용자 (공지)</option>
-                    <option value="개인알림 (요청자)">개인알림 (요청자 한정)</option>
-                    <option value="관리자 그룹">관리자 전용</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 items-center pt-1">
-                <div>
-                  <label className="text-slate-400 block mb-1">발송 채널</label>
-                  <input
-                    type="text"
-                    value={formChannel}
-                    onChange={(e) => setFormChannel(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
-                  />
-                </div>
-                <div className="pt-4 flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="notifActive"
-                    checked={formActive}
-                    onChange={(e) => setFormActive(e.target.checked)}
-                    className="accent-indigo-500 w-4 h-4 cursor-pointer"
-                  />
-                  <label htmlFor="notifActive" className="text-slate-300 cursor-pointer">
-                    즉시 활성화 (사용 여부)
-                  </label>
-                </div>
-              </div>
+            <div>
+              <label className="text-slate-400 block mb-1">수신 대상</label>
+              <select
+                value={formTarget}
+                onChange={(e) => setFormTarget(e.target.value as any)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200 text-xs min-h-[44px] sm:min-h-[36px]"
+              >
+                <option value="전체 사용자">전체 사용자 (공지)</option>
+                <option value="개인알림 (요청자)">개인알림 (요청자 한정)</option>
+                <option value="관리자 그룹">관리자 전용</option>
+              </select>
             </div>
+          </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
-              <button onClick={() => setShowCreateModal(false)} className="px-3 py-1.5 bg-slate-800 text-slate-400 rounded">취소</button>
-              <button onClick={handleSave} className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium">저장 완료</button>
+          <div className="grid grid-cols-2 gap-2 items-center pt-1">
+            <div>
+              <Input
+                label="발송 채널"
+                value={formChannel}
+                onChange={(e) => setFormChannel(e.target.value)}
+              />
+            </div>
+            <div className="pt-4 flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="notifActive"
+                checked={formActive}
+                onChange={(e) => setFormActive(e.target.checked)}
+                className="accent-indigo-500 w-4 h-4 cursor-pointer"
+              />
+              <label htmlFor="notifActive" className="text-slate-300 cursor-pointer">
+                즉시 활성화 (사용 여부)
+              </label>
             </div>
           </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }
@@ -386,26 +380,27 @@ export function AdminApiManagerView() {
   return (
     <div className="space-y-4 text-xs">
       {/* 단일 통합 헤더 및 요약 대시보드 (요청 4 반영: 내부/외부 API 단일화) */}
-      <div className="p-4 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950/70 border border-slate-800 rounded-xl space-y-3">
+      <Card variant="default" className="p-4 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950/70 border border-slate-800 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <div className="flex items-center gap-2">
               <span className="text-lg">🔗</span>
               <span className="font-bold text-white text-sm">API 연동관리 (내부 서비스 & 외부 연동 단일 통합)</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold font-mono">
-                통합 단일 관리
-              </span>
+              <Badge variant="success" size="sm">통합 단일 관리</Badge>
             </div>
             <p className="text-[11px] text-slate-400 mt-1">
               내부 서비스 엔진 API(OCR 배치, PDF Core 렌더링, 3-Way 충돌머지)와 외부 연동 API(Google OAuth, Gemini AI, 번역)를 단일 화면에서 통합 관리합니다.
             </p>
           </div>
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={openCreate}
-            className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium shadow flex items-center gap-1.5 flex-shrink-0 self-start sm:self-auto"
+            leftIcon={<span>+</span>}
+            className="text-xs shrink-0 self-start sm:self-auto"
           >
-            <span>+</span> <span>통합 API 등록</span>
-          </button>
+            통합 API 등록
+          </Button>
         </div>
 
         {/* 3대 요약 통계 카드 */}
@@ -423,42 +418,42 @@ export function AdminApiManagerView() {
             <span className="font-mono font-bold text-purple-400 text-xs">{apiList.filter((a) => a.category === 'EXTERNAL').length}건 연동 가동</span>
           </div>
         </div>
-      </div>
+      </Card>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-slate-950/70 border border-slate-800 rounded-xl">
+      <Card variant="subtle" className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3">
         <div className="flex flex-wrap gap-2">
-          <button
+          <Button
+            variant={activeTab === 'ALL' ? 'primary' : 'secondary'}
+            size="sm"
             onClick={() => setActiveTab('ALL')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
-              activeTab === 'ALL' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-800 text-slate-400'
-            }`}
+            className="text-xs"
           >
             전체 통합 API ({apiList.length})
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={activeTab === 'INTERNAL' ? 'primary' : 'secondary'}
+            size="sm"
             onClick={() => setActiveTab('INTERNAL')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
-              activeTab === 'INTERNAL' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-800 text-slate-400'
-            }`}
+            className="text-xs"
           >
             ⚙️ 내부 서비스 API
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={activeTab === 'EXTERNAL' ? 'primary' : 'secondary'}
+            size="sm"
             onClick={() => setActiveTab('EXTERNAL')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
-              activeTab === 'EXTERNAL' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-800 text-slate-400'
-            }`}
+            className="text-xs"
           >
             🌐 외부 연동 API
-          </button>
+          </Button>
         </div>
         <div className="text-[11px] text-slate-400 font-mono">
-          표시 중: <strong className="text-slate-200">{filteredApis.length}</strong>개 항목
+          표시 중: <Badge variant="primary" size="sm">{filteredApis.length}개</Badge> 항목
         </div>
-      </div>
+      </Card>
 
       {/* 데스크톱 테이블 */}
-      <div className="hidden md:block bg-slate-950/70 border border-slate-800 rounded-xl overflow-hidden">
+      <div className="hidden md:block bg-slate-950/70 border border-slate-800 rounded-xl overflow-hidden shadow">
         <table className="w-full text-left">
           <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
             <tr>
@@ -477,28 +472,26 @@ export function AdminApiManagerView() {
                 <td className="p-3 font-mono font-bold text-indigo-300">{a.id}</td>
                 <td className="p-3 font-medium text-slate-200">{a.name}</td>
                 <td className="p-3">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-mono ${
-                    a.category === 'INTERNAL' ? 'bg-sky-500/10 text-sky-400' : 'bg-purple-500/10 text-purple-400'
-                  }`}>
+                  <Badge variant={a.category === 'INTERNAL' ? 'info' : 'primary'} size="sm">
                     {a.category}
-                  </span>
+                  </Badge>
                 </td>
                 <td className="p-3 font-mono text-slate-400 text-[11px] truncate max-w-xs">{a.endpoint}</td>
                 <td className="p-3 font-mono text-emerald-400">{a.latency}</td>
                 <td className="p-3">
                   <button
                     onClick={() => setApiList(apiList.map((x) => (x.id === a.id ? { ...x, active: !x.active } : x)))}
-                    className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                      a.active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-500'
-                    }`}
+                    className="cursor-pointer"
                   >
-                    {a.active ? '활성 (ACTIVE)' : '비활성 (OFF)'}
+                    <Badge variant={a.active ? 'success' : 'neutral'} size="sm" dot={true}>
+                      {a.active ? '활성 (ACTIVE)' : '비활성 (OFF)'}
+                    </Badge>
                   </button>
                 </td>
                 <td className="p-3 text-center">
-                  <div className="flex justify-center gap-1.5">
-                    <button onClick={() => openEdit(a)} className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded">수정</button>
-                    <button onClick={() => handleDelete(a.id)} className="px-2 py-1 bg-rose-950 hover:bg-rose-900 text-rose-300 rounded">삭제</button>
+                  <div className="flex justify-center items-center gap-1.5">
+                    <Button variant="secondary" size="sm" onClick={() => openEdit(a)} className="text-xs px-2.5 py-1">수정</Button>
+                    <Button variant="danger" size="sm" onClick={() => handleDelete(a.id)} className="text-xs px-2.5 py-1">삭제</Button>
                   </div>
                 </td>
               </tr>
@@ -510,110 +503,101 @@ export function AdminApiManagerView() {
       {/* 모바일 카드 뷰 */}
       <div className="block md:hidden space-y-2">
         {filteredApis.map((a) => (
-          <div key={a.id} className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+          <Card key={a.id} variant="subtle" className="p-3 space-y-2">
             <div className="flex justify-between items-center">
               <span className="font-mono font-bold text-indigo-300">{a.id}</span>
               <button
                 onClick={() => setApiList(apiList.map((x) => (x.id === a.id ? { ...x, active: !x.active } : x)))}
-                className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                  a.active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-500'
-                }`}
+                className="cursor-pointer"
               >
-                {a.active ? '활성' : '비활성'}
+                <Badge variant={a.active ? 'success' : 'neutral'} size="sm" dot={true}>
+                  {a.active ? '활성' : '비활성'}
+                </Badge>
               </button>
             </div>
             <div className="font-bold text-slate-200 text-sm">{a.name}</div>
             <div className="text-[11px] font-mono text-slate-400 break-all">{a.endpoint}</div>
             <div className="flex justify-between text-[11px] text-slate-500 font-mono">
-              <span>{a.category}</span>
+              <Badge variant={a.category === 'INTERNAL' ? 'info' : 'primary'} size="sm">{a.category}</Badge>
               <span className="text-emerald-400">{a.latency}</span>
             </div>
             <div className="flex gap-2 pt-1 border-t border-slate-900">
-              <button onClick={() => openEdit(a)} className="flex-1 py-1 bg-slate-800 text-slate-200 rounded text-center">수정</button>
-              <button onClick={() => handleDelete(a.id)} className="flex-1 py-1 bg-rose-950 text-rose-300 rounded text-center">삭제</button>
+              <Button variant="secondary" size="sm" onClick={() => openEdit(a)} className="flex-1 text-xs">수정</Button>
+              <Button variant="danger" size="sm" onClick={() => handleDelete(a.id)} className="flex-1 text-xs">삭제</Button>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
 
       {/* API 등록 및 수정 팝업 모달 */}
-      {showApiModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-slate-900 border border-indigo-500/60 rounded-2xl p-4 sm:p-5 max-w-lg w-full space-y-3.5 shadow-2xl">
-            <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-              <span className="font-bold text-white text-sm">
-                {editingApi ? `✏️ API 수정: [${editingApi.id}]` : '🌐 신규 API 엔드포인트 등록'}
-              </span>
-              <button onClick={() => setShowApiModal(false)} className="text-slate-400 hover:text-white">✕</button>
-            </div>
+      <Modal
+        isOpen={showApiModal}
+        onClose={() => setShowApiModal(false)}
+        title={editingApi ? `✏️ API 수정: [${editingApi.id}]` : '🌐 신규 API 엔드포인트 등록'}
+        size="lg"
+        footer={
+          <div className="flex justify-end gap-2 w-full">
+            <Button variant="secondary" size="sm" onClick={() => setShowApiModal(false)}>취소</Button>
+            <Button variant="primary" size="sm" onClick={handleSave}>저장 완료</Button>
+          </div>
+        }
+      >
+        <div className="space-y-3 text-xs">
+          <div>
+            <Input
+              label="API 명칭"
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              placeholder="예: 실시간 워터마크 API"
+            />
+          </div>
 
-            <div className="space-y-2.5">
-              <div>
-                <label className="text-slate-400 block mb-1">API 명칭</label>
-                <input
-                  type="text"
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="예: 실시간 워터마크 API"
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
-                />
-              </div>
+          <div>
+            <label className="text-slate-400 block mb-1">구분</label>
+            <select
+              value={formCategory}
+              onChange={(e) => setFormCategory(e.target.value as any)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200 text-xs min-h-[44px] sm:min-h-[36px]"
+            >
+              <option value="INTERNAL">내부 서비스 API (INTERNAL)</option>
+              <option value="EXTERNAL">외부 연동 API (EXTERNAL)</option>
+            </select>
+          </div>
 
-              <div>
-                <label className="text-slate-400 block mb-1">구분</label>
-                <select
-                  value={formCategory}
-                  onChange={(e) => setFormCategory(e.target.value as any)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
-                >
-                  <option value="INTERNAL">내부 서비스 API (INTERNAL)</option>
-                  <option value="EXTERNAL">외부 연동 API (EXTERNAL)</option>
-                </select>
-              </div>
+          <div>
+            <Input
+              label="엔드포인트 URL"
+              value={formEndpoint}
+              onChange={(e) => setFormEndpoint(e.target.value)}
+              placeholder="/api/... or https://..."
+              className="font-mono"
+            />
+          </div>
 
-              <div>
-                <label className="text-slate-400 block mb-1">엔드포인트 URL</label>
-                <input
-                  type="text"
-                  value={formEndpoint}
-                  onChange={(e) => setFormEndpoint(e.target.value)}
-                  placeholder="/api/... or https://..."
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs font-mono"
-                />
-              </div>
+          <div>
+            <Input
+              label="자격증명 토큰 / 키"
+              value={formKey}
+              onChange={(e) => setFormKey(e.target.value)}
+              placeholder="API Key or Secret Token"
+              className="font-mono"
+            />
+          </div>
 
-              <div>
-                <label className="text-slate-400 block mb-1">자격증명 토큰 / 키</label>
-                <input
-                  type="text"
-                  value={formKey}
-                  onChange={(e) => setFormKey(e.target.value)}
-                  placeholder="API Key or Secret Token"
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs font-mono"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="apiActive"
-                  checked={formActive}
-                  onChange={(e) => setFormActive(e.target.checked)}
-                  className="accent-indigo-500 w-4 h-4 cursor-pointer"
-                />
-                <label htmlFor="apiActive" className="text-slate-300 cursor-pointer">
-                  즉시 활성화 (사용 여부)
-                </label>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
-              <button onClick={() => setShowApiModal(false)} className="px-3 py-1.5 bg-slate-800 text-slate-400 rounded">취소</button>
-              <button onClick={handleSave} className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium">저장 완료</button>
-            </div>
+          <div className="pt-2 flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="apiActive"
+              checked={formActive}
+              onChange={(e) => setFormActive(e.target.checked)}
+              className="accent-indigo-500 w-4 h-4 cursor-pointer"
+            />
+            <label htmlFor="apiActive" className="text-slate-300 cursor-pointer">
+              즉시 활성화 (사용 여부)
+            </label>
           </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }
@@ -852,34 +836,42 @@ export function AdminBoardsAndBannersView() {
     <div className="space-y-4 text-xs">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800">
         <div className="flex gap-2">
-          <button
+          <Button
+            variant={boardTab === 'NOTICES' ? 'primary' : 'secondary'}
+            size="sm"
             onClick={() => setBoardTab('NOTICES')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-all ${boardTab === 'NOTICES' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-800 text-slate-400'}`}
+            className="text-xs"
           >
             📢 공지사항 (예약공지 & 팝업 다시열지않기)
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={boardTab === 'BANNERS' ? 'primary' : 'secondary'}
+            size="sm"
             onClick={() => setBoardTab('BANNERS')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-all ${boardTab === 'BANNERS' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-800 text-slate-400'}`}
+            className="text-xs"
           >
             🖼️ 롤링 배너 (텍스트/이미지 순서 & 사용여부)
-          </button>
+          </Button>
         </div>
         <div>
           {boardTab === 'NOTICES' ? (
-            <button
+            <Button
+              variant="primary"
+              size="sm"
               onClick={openCreateNotice}
-              className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium shadow text-xs"
+              className="text-xs"
             >
               + 공지사항 등록
-            </button>
+            </Button>
           ) : (
-            <button
+            <Button
+              variant="primary"
+              size="sm"
               onClick={openCreateBanner}
-              className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium shadow text-xs"
+              className="text-xs"
             >
               + 신규 배너 등록
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -887,7 +879,7 @@ export function AdminBoardsAndBannersView() {
       {boardTab === 'NOTICES' ? (
         <div className="space-y-3">
           {/* 데스크톱 테이블 */}
-          <div className="hidden md:block bg-slate-950/70 border border-slate-800 rounded-xl overflow-hidden">
+          <div className="hidden md:block bg-slate-950/70 border border-slate-800 rounded-xl overflow-hidden shadow">
             <table className="w-full text-left">
               <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
                 <tr>
@@ -909,27 +901,31 @@ export function AdminBoardsAndBannersView() {
                     <td className="p-3">
                       <button
                         onClick={() => setNotices(notices.map((x) => (x.id === n.id ? { ...x, active: !x.active } : x)))}
-                        className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                          n.active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-500'
-                        }`}
+                        className="cursor-pointer"
                       >
-                        {n.active ? '사용중' : '미사용'}
+                        <Badge variant={n.active ? 'success' : 'neutral'} size="sm" dot={true}>
+                          {n.active ? '사용중' : '미사용'}
+                        </Badge>
                       </button>
                     </td>
                     <td className="p-3 text-center">
-                      <div className="flex justify-center gap-1.5">
-                        <button
+                      <div className="flex justify-center items-center gap-1.5">
+                        <Button
+                          variant="secondary"
+                          size="sm"
                           onClick={() => openEditNotice(n)}
-                          className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[11px]"
+                          className="px-2.5 py-1 text-xs"
                         >
                           수정
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
                           onClick={() => setNotices(notices.filter((x) => x.id !== n.id))}
-                          className="px-2 py-0.5 bg-rose-950 hover:bg-rose-900 text-rose-300 rounded text-[11px]"
+                          className="px-2.5 py-1 text-xs"
                         >
                           삭제
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -941,36 +937,40 @@ export function AdminBoardsAndBannersView() {
           {/* 모바일 카드 뷰 */}
           <div className="block md:hidden space-y-2">
             {notices.map((n) => (
-              <div key={n.id} className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+              <Card key={n.id} variant="subtle" className="p-3 space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="font-mono font-bold text-indigo-300">{n.id}</span>
                   <button
                     onClick={() => setNotices(notices.map((x) => (x.id === n.id ? { ...x, active: !x.active } : x)))}
-                    className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                      n.active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-500'
-                    }`}
+                    className="cursor-pointer"
                   >
-                    {n.active ? '사용중' : '미사용'}
+                    <Badge variant={n.active ? 'success' : 'neutral'} size="sm" dot={true}>
+                      {n.active ? '사용중' : '미사용'}
+                    </Badge>
                   </button>
                 </div>
                 <div className="font-bold text-slate-200">{n.title}</div>
                 <div className="text-[11px] text-slate-400">옵션: {n.dismissOption}</div>
                 <div className="text-[11px] text-emerald-400">일정: {n.scheduleDate}</div>
                 <div className="flex justify-end gap-1.5 pt-1 border-t border-slate-900">
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => openEditNotice(n)}
-                    className="px-2.5 py-1 bg-slate-800 text-slate-300 rounded text-xs"
+                    className="text-xs flex-1"
                   >
                     수정
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
                     onClick={() => setNotices(notices.filter((x) => x.id !== n.id))}
-                    className="px-2.5 py-1 bg-rose-950 text-rose-300 rounded text-xs"
+                    className="text-xs flex-1"
                   >
                     삭제
-                  </button>
+                  </Button>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         </div>
@@ -997,16 +997,18 @@ export function AdminBoardsAndBannersView() {
                     <td className="p-3">
                       <button
                         onClick={() => setBanners(banners.map((x) => (x.id === b.id ? { ...x, active: !x.active } : x)))}
-                        className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                          b.active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-500'
-                        }`}
+                        className="cursor-pointer"
                       >
-                        {b.active ? '사용중' : '미사용'}
+                        <Badge variant={b.active ? 'success' : 'neutral'} size="sm" dot={true}>
+                          {b.active ? '사용중' : '미사용'}
+                        </Badge>
                       </button>
                     </td>
                     <td className="p-3 text-center">
                       <div className="flex justify-center items-center gap-1">
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => {
                             if (idx > 0) {
                               const copy = [...banners];
@@ -1017,11 +1019,13 @@ export function AdminBoardsAndBannersView() {
                               setBanners(copy);
                             }
                           }}
-                          className="px-2 py-0.5 bg-slate-800 text-slate-300 rounded"
+                          className="px-2 py-0.5 text-xs"
                         >
                           ▲
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => {
                             if (idx < banners.length - 1) {
                               const copy = [...banners];
@@ -1032,22 +1036,26 @@ export function AdminBoardsAndBannersView() {
                               setBanners(copy);
                             }
                           }}
-                          className="px-2 py-0.5 bg-slate-800 text-slate-300 rounded"
+                          className="px-2 py-0.5 text-xs"
                         >
                           ▼
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
                           onClick={() => openEditBanner(b)}
-                          className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded ml-1"
+                          className="px-2.5 py-1 text-xs ml-1"
                         >
                           수정
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
                           onClick={() => setBanners(banners.filter((x) => x.id !== b.id))}
-                          className="px-2 py-0.5 bg-rose-950 text-rose-300 rounded"
+                          className="px-2.5 py-1 text-xs"
                         >
                           삭제
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -1059,280 +1067,263 @@ export function AdminBoardsAndBannersView() {
           {/* 모바일 카드 뷰 */}
           <div className="block md:hidden space-y-2">
             {banners.map((b) => (
-              <div key={b.id} className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+              <Card key={b.id} variant="subtle" className="p-3 space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="font-mono text-emerald-400 font-bold">순서 #{b.order}</span>
                   <button
                     onClick={() => setBanners(banners.map((x) => (x.id === b.id ? { ...x, active: !x.active } : x)))}
-                    className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                      b.active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-500'
-                    }`}
+                    className="cursor-pointer"
                   >
-                    {b.active ? '사용중' : '미사용'}
+                    <Badge variant={b.active ? 'success' : 'neutral'} size="sm" dot={true}>
+                      {b.active ? '사용중' : '미사용'}
+                    </Badge>
                   </button>
                 </div>
                 <div className="font-bold text-slate-200">{b.title}</div>
                 <div className="text-[11px] text-slate-400">{b.type}</div>
                 <div className="flex justify-end gap-1.5 pt-1 border-t border-slate-900">
-                  <button onClick={() => openEditBanner(b)} className="px-2.5 py-1 bg-slate-800 text-slate-300 rounded text-xs">
+                  <Button variant="secondary" size="sm" onClick={() => openEditBanner(b)} className="text-xs flex-1">
                     수정
-                  </button>
-                  <button onClick={() => setBanners(banners.filter((x) => x.id !== b.id))} className="px-2.5 py-1 bg-rose-950 text-rose-300 rounded text-xs">
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={() => setBanners(banners.filter((x) => x.id !== b.id))} className="text-xs flex-1">
                     삭제
-                  </button>
+                  </Button>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         </div>
       )}
 
       {/* 공지 등록 및 수정 모달 */}
-      {showNoticeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-slate-900 border border-indigo-500/60 rounded-2xl p-4 sm:p-5 max-w-lg w-full space-y-3.5 shadow-2xl">
-            <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-              <span className="font-bold text-white text-sm">
-                {editingNotice ? `✏️ 공지사항 수정: [${editingNotice.id}]` : '📢 신규 공지사항 작성'}
-              </span>
-              <button onClick={() => setShowNoticeModal(false)} className="text-slate-400 hover:text-white">✕</button>
+      <Modal
+        isOpen={showNoticeModal}
+        onClose={() => setShowNoticeModal(false)}
+        title={editingNotice ? `✏️ 공지사항 수정: [${editingNotice.id}]` : '📢 신규 공지사항 작성'}
+        size="lg"
+        footer={
+          <div className="flex justify-end gap-2 w-full">
+            <Button variant="secondary" size="sm" onClick={() => setShowNoticeModal(false)}>취소</Button>
+            <Button variant="primary" size="sm" onClick={handleSaveNotice}>저장</Button>
+          </div>
+        }
+      >
+        <div className="space-y-3 text-xs">
+          <div>
+            <Input
+              label="공지 제목"
+              value={noticeFormTitle}
+              onChange={(e) => setNoticeFormTitle(e.target.value)}
+              placeholder="예: 서버 정기 점검 일정 안내"
+            />
+          </div>
+
+          <div>
+            <Textarea
+              label="공지 본문 내용 (다중행 텍스트)"
+              rows={3}
+              value={noticeFormContent}
+              onChange={(e) => setNoticeFormContent(e.target.value)}
+              placeholder="공지사항 상세 본문 내용을 여러 줄로 입력하세요..."
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <Input
+                label="게시 시작일"
+                type="date"
+                value={noticeFormStartDate}
+                onChange={(e) => setNoticeFormStartDate(e.target.value)}
+                className="font-mono"
+              />
             </div>
-
-            <div className="space-y-2.5">
-              <div>
-                <label className="text-slate-400 block mb-1">공지 제목</label>
-                <input
-                  type="text"
-                  value={noticeFormTitle}
-                  onChange={(e) => setNoticeFormTitle(e.target.value)}
-                  placeholder="예: 서버 정기 점검 일정 안내"
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="text-slate-400 block mb-1">공지 본문 내용 (다중행 텍스트)</label>
-                <textarea
-                  rows={3}
-                  value={noticeFormContent}
-                  onChange={(e) => setNoticeFormContent(e.target.value)}
-                  placeholder="공지사항 상세 본문 내용을 여러 줄로 입력하세요..."
-                  className="w-full bg-slate-950 border border-slate-700 rounded p-2.5 text-slate-200 text-xs leading-relaxed"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-slate-400 block mb-1">게시 시작일</label>
-                  <input
-                    type="date"
-                    value={noticeFormStartDate}
-                    onChange={(e) => setNoticeFormStartDate(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="text-slate-400 block mb-1">게시 종료일</label>
-                  <input
-                    type="date"
-                    value={noticeFormEndDate}
-                    onChange={(e) => setNoticeFormEndDate(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs font-mono"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-slate-400 block mb-1">첨부파일</label>
-                <div className="flex gap-2 items-center">
-                  <input
-                    type="text"
-                    value={noticeFormAttachment}
-                    onChange={(e) => setNoticeFormAttachment(e.target.value)}
-                    placeholder="첨부파일명 또는 파일 선택 (예: notice_guide.pdf)"
-                    className="flex-1 bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs font-mono"
-                  />
-                  <label className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded cursor-pointer text-xs border border-slate-700 whitespace-nowrap">
-                    파일 첨부
-                    <input
-                      type="file"
-                      className="hidden"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          setNoticeFormAttachment(e.target.files[0].name + ` (${(e.target.files[0].size / 1024).toFixed(0)} KB)`);
-                        }
-                      }}
-                    />
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-slate-400 block mb-1">다시열지않기 팝업 옵션</label>
-                <select
-                  value={noticeFormDismiss}
-                  onChange={(e) => setNoticeFormDismiss(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
-                >
-                  <option>하루 동안 열지 않기 (24시간)</option>
-                  <option>7일 동안 열지 않기 (일주일)</option>
-                  <option>30일 동안 열지 않기 (한달)</option>
-                  <option>다시 보지 않기 (영구)</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="noticeSched"
-                  checked={noticeFormIsScheduled}
-                  onChange={(e) => setNoticeFormIsScheduled(e.target.checked)}
-                  className="accent-indigo-500 w-4 h-4"
-                />
-                <label htmlFor="noticeSched" className="text-slate-300 cursor-pointer">
-                  예약 발행 활성화
-                </label>
-              </div>
-
-              {noticeFormIsScheduled && (
-                <div>
-                  <label className="text-slate-400 block mb-1">예약 발행 일시</label>
-                  <input
-                    type="text"
-                    value={noticeFormDate}
-                    onChange={(e) => setNoticeFormDate(e.target.value)}
-                    placeholder="YYYY-MM-DD HH:mm"
-                    className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs font-mono"
-                  />
-                </div>
-              )}
-
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="noticeAct"
-                  checked={noticeFormActive}
-                  onChange={(e) => setNoticeFormActive(e.target.checked)}
-                  className="accent-indigo-500 w-4 h-4"
-                />
-                <label htmlFor="noticeAct" className="text-slate-300 cursor-pointer">
-                  즉시 활성화 (사용 여부)
-                </label>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
-              <button onClick={() => setShowNoticeModal(false)} className="px-3.5 py-1.5 bg-slate-800 text-slate-400 rounded text-xs">취소</button>
-              <button onClick={handleSaveNotice} className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium text-xs">저장</button>
+            <div>
+              <Input
+                label="게시 종료일"
+                type="date"
+                value={noticeFormEndDate}
+                onChange={(e) => setNoticeFormEndDate(e.target.value)}
+                className="font-mono"
+              />
             </div>
           </div>
+
+          <div>
+            <label className="text-slate-400 block mb-1">첨부파일</label>
+            <div className="flex gap-2 items-center">
+              <input
+                type="text"
+                value={noticeFormAttachment}
+                onChange={(e) => setNoticeFormAttachment(e.target.value)}
+                placeholder="첨부파일명 또는 파일 선택 (예: notice_guide.pdf)"
+                className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200 text-xs font-mono"
+              />
+              <label className="px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded-lg cursor-pointer text-xs border border-slate-700 whitespace-nowrap">
+                파일 첨부
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setNoticeFormAttachment(e.target.files[0].name + ` (${(e.target.files[0].size / 1024).toFixed(0)} KB)`);
+                    }
+                  }}
+                />
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-slate-400 block mb-1">다시열지않기 팝업 옵션</label>
+            <select
+              value={noticeFormDismiss}
+              onChange={(e) => setNoticeFormDismiss(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200 text-xs min-h-[44px] sm:min-h-[36px]"
+            >
+              <option>하루 동안 열지 않기 (24시간)</option>
+              <option>7일 동안 열지 않기 (일주일)</option>
+              <option>30일 동안 열지 않기 (한달)</option>
+              <option>다시 보지 않기 (영구)</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2 pt-1">
+            <input
+              type="checkbox"
+              id="noticeSched"
+              checked={noticeFormIsScheduled}
+              onChange={(e) => setNoticeFormIsScheduled(e.target.checked)}
+              className="accent-indigo-500 w-4 h-4"
+            />
+            <label htmlFor="noticeSched" className="text-slate-300 cursor-pointer">
+              예약 발행 활성화
+            </label>
+          </div>
+
+          {noticeFormIsScheduled && (
+            <div>
+              <Input
+                label="예약 발행 일시"
+                value={noticeFormDate}
+                onChange={(e) => setNoticeFormDate(e.target.value)}
+                placeholder="YYYY-MM-DD HH:mm"
+                className="font-mono"
+              />
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 pt-1">
+            <input
+              type="checkbox"
+              id="noticeAct"
+              checked={noticeFormActive}
+              onChange={(e) => setNoticeFormActive(e.target.checked)}
+              className="accent-indigo-500 w-4 h-4"
+            />
+            <label htmlFor="noticeAct" className="text-slate-300 cursor-pointer">
+              즉시 활성화 (사용 여부)
+            </label>
+          </div>
         </div>
-      )}
+      </Modal>
 
       {/* 배너 등록 및 수정 모달 (가로 튐 완전 방지) */}
-      {showBannerModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-slate-900 border border-indigo-500/60 rounded-2xl p-4 sm:p-5 max-w-lg w-full space-y-3.5 shadow-2xl">
-            <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-              <span className="font-bold text-white text-sm">
-                {editingBanner ? `✏️ 롤링 배너 수정: [${editingBanner.id}]` : '🖼️ 신규 롤링 배너 등록'}
-              </span>
-              <button onClick={() => setShowBannerModal(false)} className="text-slate-400 hover:text-white">✕</button>
-            </div>
+      <Modal
+        isOpen={showBannerModal}
+        onClose={() => setShowBannerModal(false)}
+        title={editingBanner ? `✏️ 롤링 배너 수정: [${editingBanner.id}]` : '🖼️ 신규 롤링 배너 등록'}
+        size="lg"
+        footer={
+          <div className="flex justify-end gap-2 w-full">
+            <Button variant="secondary" size="sm" onClick={() => setShowBannerModal(false)}>취소</Button>
+            <Button variant="primary" size="sm" onClick={handleSaveBanner}>저장</Button>
+          </div>
+        }
+      >
+        <div className="space-y-3 text-xs">
+          <div>
+            <Input
+              label="배너 문구 및 제목"
+              value={bannerFormTitle}
+              onChange={(e) => setBannerFormTitle(e.target.value)}
+              placeholder="예: 스마트 뷰어 AI 주석 어시스턴트"
+            />
+          </div>
 
-            <div className="space-y-2.5">
-              <div>
-                <label className="text-slate-400 block mb-1">배너 문구 및 제목</label>
+          <div>
+            <Textarea
+              label="배너 본문 및 설명 (다중행 텍스트)"
+              rows={3}
+              value={bannerFormContent}
+              onChange={(e) => setBannerFormContent(e.target.value)}
+              placeholder="배너 상세 설명 및 카피 문구를 여러 줄로 입력하세요..."
+            />
+          </div>
+
+          <div>
+            <label className="text-slate-400 block mb-1">배너 이미지 / 첨부파일</label>
+            <div className="flex gap-2 items-center">
+              <input
+                type="text"
+                value={bannerFormAttachment}
+                onChange={(e) => setBannerFormAttachment(e.target.value)}
+                placeholder="이미지 파일명 또는 파일 선택 (예: banner_hero.png)"
+                className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200 text-xs font-mono"
+              />
+              <label className="px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded-lg cursor-pointer text-xs border border-slate-700 whitespace-nowrap">
+                이미지 첨부
                 <input
-                  type="text"
-                  value={bannerFormTitle}
-                  onChange={(e) => setBannerFormTitle(e.target.value)}
-                  placeholder="예: 스마트 뷰어 AI 주석 어시스턴트"
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setBannerFormAttachment(e.target.files[0].name + ` (${(e.target.files[0].size / 1024).toFixed(0)} KB)`);
+                    }
+                  }}
                 />
-              </div>
-
-              <div>
-                <label className="text-slate-400 block mb-1">배너 본문 및 설명 (다중행 텍스트)</label>
-                <textarea
-                  rows={3}
-                  value={bannerFormContent}
-                  onChange={(e) => setBannerFormContent(e.target.value)}
-                  placeholder="배너 상세 설명 및 카피 문구를 여러 줄로 입력하세요..."
-                  className="w-full bg-slate-950 border border-slate-700 rounded p-2.5 text-slate-200 text-xs leading-relaxed"
-                />
-              </div>
-
-              <div>
-                <label className="text-slate-400 block mb-1">배너 이미지 / 첨부파일</label>
-                <div className="flex gap-2 items-center">
-                  <input
-                    type="text"
-                    value={bannerFormAttachment}
-                    onChange={(e) => setBannerFormAttachment(e.target.value)}
-                    placeholder="이미지 파일명 또는 파일 선택 (예: banner_hero.png)"
-                    className="flex-1 bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs font-mono"
-                  />
-                  <label className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded cursor-pointer text-xs border border-slate-700 whitespace-nowrap">
-                    이미지 첨부
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          setBannerFormAttachment(e.target.files[0].name + ` (${(e.target.files[0].size / 1024).toFixed(0)} KB)`);
-                        }
-                      }}
-                    />
-                  </label>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-slate-400 block mb-1">배너 유형</label>
-                  <select
-                    value={bannerFormType}
-                    onChange={(e) => setBannerFormType(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
-                  >
-                    <option>이미지 배너</option>
-                    <option>텍스트 배너</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-slate-400 block mb-1">노출 우선순위</label>
-                  <input
-                    type="number"
-                    value={bannerFormOrder}
-                    onChange={(e) => setBannerFormOrder(parseInt(e.target.value) || 1)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs font-mono"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="bannerAct"
-                  checked={bannerFormActive}
-                  onChange={(e) => setBannerFormActive(e.target.checked)}
-                  className="accent-indigo-500 w-4 h-4"
-                />
-                <label htmlFor="bannerAct" className="text-slate-300 cursor-pointer">
-                  즉시 활성화 (사용 여부)
-                </label>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
-              <button onClick={() => setShowBannerModal(false)} className="px-3.5 py-1.5 bg-slate-800 text-slate-400 rounded text-xs">취소</button>
-              <button onClick={handleSaveBanner} className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium text-xs">저장</button>
+              </label>
             </div>
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label className="text-slate-400 block mb-1">배너 유형</label>
+              <select
+                value={bannerFormType}
+                onChange={(e) => setBannerFormType(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200 text-xs min-h-[44px] sm:min-h-[36px]"
+              >
+                <option>이미지 배너</option>
+                <option>텍스트 배너</option>
+              </select>
+            </div>
+            <div>
+              <Input
+                label="노출 우선순위"
+                type="number"
+                value={bannerFormOrder}
+                onChange={(e) => setBannerFormOrder(parseInt(e.target.value) || 1)}
+                className="font-mono"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 pt-1">
+            <input
+              type="checkbox"
+              id="bannerAct"
+              checked={bannerFormActive}
+              onChange={(e) => setBannerFormActive(e.target.checked)}
+              className="accent-indigo-500 w-4 h-4 cursor-pointer"
+            />
+            <label htmlFor="bannerAct" className="text-slate-300 cursor-pointer">
+              즉시 활성화 (사용 여부)
+            </label>
+          </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }
@@ -1474,61 +1465,68 @@ export function AdminCustomerSupportView() {
 
   return (
     <div className="space-y-4 text-xs">
-      <div className="flex gap-2 pb-2 border-b border-slate-800">
-        <button
+      <div className="flex flex-wrap gap-2 pb-2 border-b border-slate-800">
+        <Button
+          variant={supportTab === 'FAQ' ? 'primary' : 'secondary'}
+          size="sm"
           onClick={() => setSupportTab('FAQ')}
-          className={`px-3 py-1.5 rounded-lg font-medium transition-all ${supportTab === 'FAQ' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-800 text-slate-400'}`}
+          className="text-xs"
         >
           ❓ FAQ 관리 (질문·답변 & 그룹 & 순서)
-        </button>
-        <button
+        </Button>
+        <Button
+          variant={supportTab === 'QNA' ? 'primary' : 'secondary'}
+          size="sm"
           onClick={() => setSupportTab('QNA')}
-          className={`px-3 py-1.5 rounded-lg font-medium transition-all ${supportTab === 'QNA' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-800 text-slate-400'}`}
+          className="text-xs"
         >
           💬 공개 Q&A (2-Depth 답글 지원)
-        </button>
-        <button
+        </Button>
+        <Button
+          variant={supportTab === 'INQUIRY' ? 'primary' : 'secondary'}
+          size="sm"
           onClick={() => setSupportTab('INQUIRY')}
-          className={`px-3 py-1.5 rounded-lg font-medium transition-all ${supportTab === 'INQUIRY' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-800 text-slate-400'}`}
+          className="text-xs"
         >
           🔒 1:1 비공개 상담 (2-Depth 답글 지원)
-        </button>
+        </Button>
       </div>
 
       {/* 1. FAQ 관리 */}
       {supportTab === 'FAQ' && (
         <div className="space-y-3">
           {/* FAQ 등록 폼 */}
-          <div className="p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2">
+          <Card variant="subtle" className="p-3.5 space-y-2">
             <span className="font-bold text-white text-xs">신규 FAQ 등록</span>
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
               <select
                 value={newFaqCat}
                 onChange={(e) => setNewFaqCat(e.target.value)}
-                className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
+                className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200 text-xs min-h-[44px] sm:min-h-[36px]"
               >
                 <option value="뷰어/오프라인">뷰어/오프라인</option>
                 <option value="OCR서비스">OCR서비스</option>
                 <option value="계정/보안">계정/보안</option>
                 <option value="결제/구독">결제/구독</option>
               </select>
-              <input
-                type="text"
-                placeholder="질문 제목 입력"
-                value={newFaqQ}
-                onChange={(e) => setNewFaqQ(e.target.value)}
-                className="sm:col-span-3 bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
-              />
+              <div className="sm:col-span-3">
+                <Input
+                  placeholder="질문 제목 입력"
+                  value={newFaqQ}
+                  onChange={(e) => setNewFaqQ(e.target.value)}
+                />
+              </div>
             </div>
-            <textarea
+            <Textarea
               rows={2}
               placeholder="상세 답변 내용 입력"
               value={newFaqA}
               onChange={(e) => setNewFaqA(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-slate-200 text-xs"
             />
             <div className="flex justify-end">
-              <button
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => {
                   if (newFaqQ && newFaqA) {
                     setFaqs([
@@ -1545,26 +1543,26 @@ export function AdminCustomerSupportView() {
                     setNewFaqA('');
                   }
                 }}
-                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium text-xs shadow"
+                className="text-xs"
               >
                 저장
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
 
           {/* 카테고리 필터 */}
-          <div className="flex gap-1.5 items-center">
+          <div className="flex flex-wrap gap-1.5 items-center">
             <span className="text-slate-400 text-[11px]">카테고리:</span>
             {['ALL', '뷰어/오프라인', 'OCR서비스', '계정/보안', '결제/구독'].map((c) => (
-              <button
+              <Button
                 key={c}
+                variant={faqCategoryFilter === c ? 'primary' : 'ghost'}
+                size="sm"
                 onClick={() => setFaqCategoryFilter(c)}
-                className={`px-2.5 py-1 rounded text-xs transition-all ${
-                  faqCategoryFilter === c ? 'bg-indigo-600 text-white' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'
-                }`}
+                className="text-xs px-2.5 py-1"
               >
                 {c === 'ALL' ? '전체' : c}
-              </button>
+              </Button>
             ))}
           </div>
 
@@ -1573,162 +1571,158 @@ export function AdminCustomerSupportView() {
             {faqs
               .filter((f) => (faqCategoryFilter === 'ALL' ? true : f.category === faqCategoryFilter))
               .map((f, idx) => (
-                <div key={f.id} className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-1.5">
+                <Card key={f.id} variant="subtle" className="p-3 space-y-1.5">
                   <div className="flex justify-between items-center">
-                    <span className="px-2 py-0.5 rounded bg-slate-800 text-indigo-300 text-[10px] font-mono">
+                    <Badge variant="primary" size="sm">
                       #{f.order} {f.category}
-                    </span>
-                    <div className="flex gap-1">
-                      <button onClick={() => handleMoveFaq(idx, 'up')} className="px-2 py-0.5 bg-slate-800 text-slate-300 rounded text-xs">▲</button>
-                      <button onClick={() => handleMoveFaq(idx, 'down')} className="px-2 py-0.5 bg-slate-800 text-slate-300 rounded text-xs">▼</button>
-                      <button
+                    </Badge>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => handleMoveFaq(idx, 'up')} className="px-2 py-0.5 text-xs">▲</Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleMoveFaq(idx, 'down')} className="px-2 py-0.5 text-xs">▼</Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         onClick={() => {
                           setEditingFaq(f);
                           setEditFaqQ(f.question);
                           setEditFaqA(f.answer);
                           setEditFaqCat(f.category);
                         }}
-                        className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs ml-1"
+                        className="px-2.5 py-0.5 text-xs ml-1"
                       >
                         수정
-                      </button>
-                      <button onClick={() => setFaqs(faqs.filter((x) => x.id !== f.id))} className="px-2 py-0.5 bg-rose-950 text-rose-300 rounded text-xs ml-1">삭제</button>
+                      </Button>
+                      <Button variant="danger" size="sm" onClick={() => setFaqs(faqs.filter((x) => x.id !== f.id))} className="px-2.5 py-0.5 text-xs ml-1">삭제</Button>
                     </div>
                   </div>
                   <div className="font-bold text-slate-200 text-sm">Q. {f.question}</div>
                   <div className="text-slate-400 text-xs whitespace-pre-wrap">{f.answer}</div>
-                </div>
+                </Card>
               ))}
           </div>
 
           {/* FAQ 수정 전용 팝업 모달 (요청 4 반영) */}
-          {editingFaq && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-fadeIn">
-              <div className="bg-slate-900 border border-indigo-500/60 rounded-2xl p-4 sm:p-5 max-w-lg w-full space-y-3.5 shadow-2xl">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-                  <span className="font-bold text-white text-sm">✏️ FAQ 수정: [{editingFaq.id}]</span>
-                  <button onClick={() => setEditingFaq(null)} className="text-slate-400 hover:text-white">✕</button>
-                </div>
+          <Modal
+            isOpen={!!editingFaq}
+            onClose={() => setEditingFaq(null)}
+            title={editingFaq ? `✏️ FAQ 수정: [${editingFaq.id}]` : ''}
+            size="md"
+            footer={
+              <div className="flex justify-end gap-2 w-full">
+                <Button variant="secondary" size="sm" onClick={() => setEditingFaq(null)}>취소</Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    if (editFaqQ.trim() && editFaqA.trim()) {
+                      setFaqs(faqs.map(x => x.id === editingFaq?.id ? { ...x, category: editFaqCat, question: editFaqQ, answer: editFaqA } : x));
+                      setEditingFaq(null);
+                    }
+                  }}
+                >
+                  저장
+                </Button>
+              </div>
+            }
+          >
+            <div className="space-y-2.5 text-xs">
+              <div>
+                <label className="text-slate-400 block mb-1">카테고리</label>
+                <select
+                  value={editFaqCat}
+                  onChange={(e) => setEditFaqCat(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200 text-xs min-h-[44px] sm:min-h-[36px]"
+                >
+                  <option value="뷰어/오프라인">뷰어/오프라인</option>
+                  <option value="OCR서비스">OCR서비스</option>
+                  <option value="계정/보안">계정/보안</option>
+                  <option value="결제/구독">결제/구독</option>
+                </select>
+              </div>
 
-                <div className="space-y-2.5">
-                  <div>
-                    <label className="text-slate-400 block mb-1">카테고리</label>
-                    <select
-                      value={editFaqCat}
-                      onChange={(e) => setEditFaqCat(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
-                    >
-                      <option value="뷰어/오프라인">뷰어/오프라인</option>
-                      <option value="OCR서비스">OCR서비스</option>
-                      <option value="계정/보안">계정/보안</option>
-                      <option value="결제/구독">결제/구독</option>
-                    </select>
-                  </div>
+              <div>
+                <Input
+                  label="질문 제목"
+                  value={editFaqQ}
+                  onChange={(e) => setEditFaqQ(e.target.value)}
+                />
+              </div>
 
-                  <div>
-                    <label className="text-slate-400 block mb-1">질문 제목</label>
-                    <input
-                      type="text"
-                      value={editFaqQ}
-                      onChange={(e) => setEditFaqQ(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-slate-400 block mb-1">상세 답변</label>
-                    <textarea
-                      rows={3}
-                      value={editFaqA}
-                      onChange={(e) => setEditFaqA(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded p-2.5 text-slate-200 text-xs"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
-                  <button onClick={() => setEditingFaq(null)} className="px-3.5 py-1.5 bg-slate-800 text-slate-400 rounded text-xs">취소</button>
-                  <button
-                    onClick={() => {
-                      if (editFaqQ.trim() && editFaqA.trim()) {
-                        setFaqs(faqs.map(x => x.id === editingFaq.id ? { ...x, category: editFaqCat, question: editFaqQ, answer: editFaqA } : x));
-                        setEditingFaq(null);
-                      }
-                    }}
-                    className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium text-xs"
-                  >
-                    저장
-                  </button>
-                </div>
+              <div>
+                <Textarea
+                  label="상세 답변"
+                  rows={3}
+                  value={editFaqA}
+                  onChange={(e) => setEditFaqA(e.target.value)}
+                />
               </div>
             </div>
-          )}
+          </Modal>
         </div>
       )}
 
       {/* 2 & 3. QNA 및 1:1 상담 (2-Depth 답글 구조 - 요청 3: Q&A 답글 버튼 및 수정 보강) */}
       {(supportTab === 'QNA' || supportTab === 'INQUIRY') && (
         <div className="space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-indigo-950/40 border border-indigo-500/30 rounded-xl">
+          <Card variant="subtle" className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-indigo-950/40 border border-indigo-500/30">
             <div className="text-indigo-300 text-[11px]">
               💡 <strong>[2-Depth 단일 스레드 설계]</strong>: 고객 문의(Depth 1)에 대한 관리자 공인 답변(Depth 2)으로 무한 댓글을 방지하고 공식 답변의 신뢰도를 유지합니다.
             </div>
-            <button
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => {
                 setNewQuestionTitle('');
                 setNewQuestionAuthor('user_' + Math.floor(1000 + Math.random() * 9000) + '@company.com');
                 setShowNewQuestionModal(true);
               }}
-              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium text-xs shadow flex items-center gap-1 flex-shrink-0 self-start sm:self-auto"
+              leftIcon={<span>+</span>}
+              className="text-xs shrink-0 self-start sm:self-auto"
             >
-              <span>+</span> <span>신규 {supportTab === 'QNA' ? 'Q&A 질문' : '1:1 상담'} 등록</span>
-            </button>
-          </div>
+              신규 {supportTab === 'QNA' ? 'Q&A 질문' : '1:1 상담'} 등록
+            </Button>
+          </Card>
 
           <div className="space-y-3">
             {tickets
               .filter((t) => t.type === supportTab)
               .map((t) => (
-                <div key={t.id} className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-3 shadow-md">
+                <Card key={t.id} variant="subtle" className="p-4 space-y-3 shadow-md">
                   {/* Depth 1: 고객 질의 */}
                   <div className="space-y-1.5 border-b border-slate-900 pb-2.5">
                     <div className="flex flex-wrap justify-between items-center gap-2">
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-indigo-300 font-bold">{t.id}</span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-medium ${
-                          t.reply
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                            : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                        }`}>
+                        <Badge variant={t.reply ? 'success' : 'warning'} size="sm">
                           {t.reply ? '✓ 답변완료' : '⚠️ 답변대기'}
-                        </span>
+                        </Badge>
                         <span className="text-[10px] font-mono text-slate-500">{t.date} | 작성자: {t.author}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <button
+                        <Button
+                          variant={t.reply ? 'secondary' : 'primary'}
+                          size="sm"
                           onClick={() => {
                             setActiveReplyId(t.id);
                             setReplyInputText(t.reply ? t.reply.answer : '');
                           }}
-                          className={`px-3 py-1 rounded text-xs font-semibold shadow transition-all ${
-                            t.reply
-                              ? 'bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700'
-                              : 'bg-indigo-600 hover:bg-indigo-500 text-white'
-                          }`}
+                          className="text-xs px-3 py-1"
                         >
                           {t.reply ? '답글수정' : '✍️ 답글작성'}
-                        </button>
+                        </Button>
                         {t.reply && (
-                          <button
+                          <Button
+                            variant="danger"
+                            size="sm"
                             onClick={() => {
                               if (window.confirm('등록된 답글을 삭제하시겠습니까?')) {
                                 setTickets(tickets.map((x) => (x.id === t.id ? { ...x, reply: undefined } : x)));
                               }
                             }}
-                            className="px-2 py-1 bg-rose-950/60 hover:bg-rose-900 text-rose-300 rounded text-xs"
+                            className="text-xs px-2 py-1"
                           >
                             답글삭제
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -1742,15 +1736,17 @@ export function AdminCustomerSupportView() {
                         <span className="font-semibold text-emerald-400 text-xs">↳ {t.reply.replier} 답변 완료</span>
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] font-mono text-slate-500">{t.reply.repliedAt} (등록자 알림 발송됨)</span>
-                          <button
+                          <Button
+                            variant="secondary"
+                            size="sm"
                             onClick={() => {
                               setActiveReplyId(t.id);
                               setReplyInputText(t.reply?.answer || '');
                             }}
-                            className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded text-[11px]"
+                            className="text-[11px] px-2 py-0.5"
                           >
                             답글수정
-                          </button>
+                          </Button>
                         </div>
                       </div>
                       <div className="text-slate-300 text-xs leading-relaxed whitespace-pre-wrap">{t.reply.answer}</div>
@@ -1764,114 +1760,109 @@ export function AdminCustomerSupportView() {
                           <div className="text-[10px] text-slate-400">답글을 작성하여 등록하면 고객에게 알림이 즉시 발송됩니다.</div>
                         </div>
                       </div>
-                      <button
+                      <Button
+                        variant="primary"
+                        size="sm"
                         onClick={() => {
                           setActiveReplyId(t.id);
                           setReplyInputText('');
                         }}
-                        className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium text-xs shadow flex items-center gap-1 self-end sm:self-auto"
+                        leftIcon={<span>✍️</span>}
+                        className="text-xs shrink-0 self-end sm:self-auto"
                       >
-                        <span>✍️</span> <span>답글작성</span>
-                      </button>
+                        답글작성
+                      </Button>
                     </div>
                   )}
 
                   {/* 답글 작성 및 수정 인라인 폼 */}
                   {activeReplyId === t.id && (
-                    <div className="p-3 bg-slate-900 border border-indigo-500/60 rounded-xl space-y-2.5 animate-fadeIn">
+                    <Card variant="subtle" className="p-3 border border-indigo-500/60 rounded-xl space-y-2.5 animate-fadeIn">
                       <div className="flex justify-between items-center">
                         <span className="font-bold text-white text-xs">
                           ✍️ {t.reply ? '관리자 공식 답글 수정' : '관리자 공식 답글 작성'} (저장 시 등록자에게 알림 자동 발송)
                         </span>
-                        <button onClick={() => setActiveReplyId(null)} className="text-slate-400 hover:text-white text-xs">✕ 닫기</button>
+                        <Button variant="ghost" size="sm" onClick={() => setActiveReplyId(null)} className="text-xs">✕ 닫기</Button>
                       </div>
-                      <textarea
+                      <Textarea
                         rows={3}
                         value={replyInputText}
                         onChange={(e) => setReplyInputText(e.target.value)}
                         placeholder="공식 답변 내용을 상세히 입력하세요..."
-                        className="w-full bg-slate-950 border border-slate-700 rounded p-2.5 text-slate-200 text-xs focus:border-indigo-500 outline-none"
                       />
                       <div className="flex justify-end gap-2">
-                        <button onClick={() => setActiveReplyId(null)} className="px-3 py-1 bg-slate-800 text-slate-400 rounded text-xs">
+                        <Button variant="secondary" size="sm" onClick={() => setActiveReplyId(null)} className="text-xs">
                           취소
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="primary"
+                          size="sm"
                           onClick={() => handleAddReply(t.id)}
-                          className="px-4 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium text-xs shadow"
+                          className="text-xs"
                         >
                           저장
-                        </button>
+                        </Button>
                       </div>
-                    </div>
+                    </Card>
                   )}
-                </div>
+                </Card>
               ))}
           </div>
 
           {/* 신규 Q&A / 1:1 질문 등록 모달 */}
-          {showNewQuestionModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-fadeIn">
-              <div className="bg-slate-900 border border-indigo-500/60 rounded-2xl p-4 sm:p-5 max-w-lg w-full space-y-3.5 shadow-2xl">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-                  <span className="font-bold text-white text-sm">
-                    💬 신규 {supportTab === 'QNA' ? 'Q&A 질문' : '1:1 비공개 상담'} 등록
-                  </span>
-                  <button onClick={() => setShowNewQuestionModal(false)} className="text-slate-400 hover:text-white">✕</button>
-                </div>
-
-                <div className="space-y-2.5">
-                  <div>
-                    <label className="text-slate-400 block mb-1">작성자 계정 (이메일)</label>
-                    <input
-                      type="text"
-                      value={newQuestionAuthor}
-                      onChange={(e) => setNewQuestionAuthor(e.target.value)}
-                      placeholder="user@company.com"
-                      className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-slate-400 block mb-1">문의 제목 및 내용</label>
-                    <textarea
-                      rows={3}
-                      value={newQuestionTitle}
-                      onChange={(e) => setNewQuestionTitle(e.target.value)}
-                      placeholder="질문 내용을 입력하세요..."
-                      className="w-full bg-slate-950 border border-slate-700 rounded p-2.5 text-slate-200 text-xs"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
-                  <button onClick={() => setShowNewQuestionModal(false)} className="px-3.5 py-1.5 bg-slate-800 text-slate-400 rounded text-xs">
-                    취소
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (!newQuestionTitle.trim()) return;
-                      const prefix = supportTab === 'QNA' ? 'TKT-QNA' : 'TKT-INQ';
-                      setTickets([
-                        ...tickets,
-                        {
-                          id: `${prefix}-${String(tickets.length + 1).padStart(2, '0')}`,
-                          type: supportTab,
-                          author: newQuestionAuthor || 'anonymous_user@company.com',
-                          question: newQuestionTitle,
-                          date: new Date().toISOString().slice(0, 10),
-                        },
-                      ]);
-                      setShowNewQuestionModal(false);
-                      setNewQuestionTitle('');
-                    }}
-                    className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium text-xs shadow"
-                  >
-                    저장
-                  </button>
-                </div>
+          <Modal
+            isOpen={showNewQuestionModal}
+            onClose={() => setShowNewQuestionModal(false)}
+            title={`💬 신규 ${supportTab === 'QNA' ? 'Q&A 질문' : '1:1 비공개 상담'} 등록`}
+            size="md"
+            footer={
+              <div className="flex justify-end gap-2 w-full">
+                <Button variant="secondary" size="sm" onClick={() => setShowNewQuestionModal(false)}>취소</Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    if (!newQuestionTitle.trim()) return;
+                    const prefix = supportTab === 'QNA' ? 'TKT-QNA' : 'TKT-INQ';
+                    setTickets([
+                      ...tickets,
+                      {
+                        id: `${prefix}-${String(tickets.length + 1).padStart(2, '0')}`,
+                        type: supportTab,
+                        author: newQuestionAuthor || 'anonymous_user@company.com',
+                        question: newQuestionTitle,
+                        date: new Date().toISOString().slice(0, 10),
+                      },
+                    ]);
+                    setShowNewQuestionModal(false);
+                    setNewQuestionTitle('');
+                  }}
+                >
+                  저장
+                </Button>
+              </div>
+            }
+          >
+            <div className="space-y-2.5 text-xs">
+              <div>
+                <Input
+                  label="작성자 계정 (이메일)"
+                  value={newQuestionAuthor}
+                  onChange={(e) => setNewQuestionAuthor(e.target.value)}
+                  placeholder="user@company.com"
+                />
+              </div>
+              <div>
+                <Textarea
+                  label="문의 제목 및 내용"
+                  rows={3}
+                  value={newQuestionTitle}
+                  onChange={(e) => setNewQuestionTitle(e.target.value)}
+                  placeholder="질문 내용을 입력하세요..."
+                />
               </div>
             </div>
-          )}
+          </Modal>
         </div>
       )}
     </div>
@@ -1993,68 +1984,71 @@ export function AdminFontsView() {
 
   return (
     <div className="space-y-4 text-xs">
-      <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl flex flex-col sm:flex-row justify-between items-center gap-2">
+      <Card variant="subtle" className="p-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <div>
           <span className="font-bold text-white text-sm">🔤 무료 웹글꼴 관리 (한 글꼴 다중 파일 업로드 지원)</span>
           <p className="text-[11px] text-slate-400 mt-0.5">전자책 및 PDF 주석 텍스트용 웹폰트를 관리하고 한 글꼴 패밀리에 속한 다중 웨이트/포맷 파일을 업로드합니다.</p>
         </div>
-        <button onClick={openCreate} className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium shadow">
-          + 글꼴 등록
-        </button>
-      </div>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={openCreate}
+          leftIcon={<span>+</span>}
+          className="text-xs shrink-0 self-start sm:self-auto"
+        >
+          글꼴 등록
+        </Button>
+      </Card>
 
       {/* 실시간 텍스트 프리뷰 입력창 및 보기 모드 전환 */}
-      <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+      <Card variant="subtle" className="p-3 space-y-2">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <span className="font-semibold text-indigo-300">실시간 렌더링 프리뷰 텍스트 입력:</span>
           <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
-            <button
+            <Button
+              variant={cardLayout === 'HORIZONTAL' ? 'primary' : 'ghost'}
+              size="sm"
               onClick={() => setCardLayout('HORIZONTAL')}
-              className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
-                cardLayout === 'HORIZONTAL' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
-              }`}
+              className="text-xs px-2.5 py-1"
             >
               ↔️ 가로형 카드 (기본)
-            </button>
-            <button
+            </Button>
+            <Button
+              variant={cardLayout === 'GRID' ? 'primary' : 'ghost'}
+              size="sm"
               onClick={() => setCardLayout('GRID')}
-              className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
-                cardLayout === 'GRID' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
-              }`}
+              className="text-xs px-2.5 py-1"
             >
               ⊞ 격자형 카드
-            </button>
+            </Button>
           </div>
         </div>
-        <input
-          type="text"
+        <Input
           value={previewText}
           onChange={(e) => setPreviewText(e.target.value)}
           placeholder="프리뷰할 텍스트를 입력하세요..."
-          className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
         />
-      </div>
+      </Card>
 
       {/* 가로형 카드 목록 (요청 1 반영: 세로 대신 넓은 가로형 카드) */}
       {cardLayout === 'HORIZONTAL' ? (
         <div className="space-y-3">
           {fonts.map((f, idx) => (
-            <div
+            <Card
               key={f.id}
-              className="p-4 bg-slate-950/90 border border-slate-800 hover:border-indigo-500/50 rounded-xl transition-all shadow-md flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+              variant="subtle"
+              className="p-4 transition-all shadow-md flex flex-col lg:flex-row lg:items-center justify-between gap-4"
             >
               {/* 좌측: 글꼴 정보 및 파일 목록 */}
               <div className="lg:w-72 space-y-2 flex-shrink-0">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-white text-sm">{f.name}</span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-medium ${
-                    f.active ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-500'
-                  }`}>
-                    {f.active ? '● 적용중' : '○ 미적용'}
-                  </span>
-                  <span className="text-[10px] px-1.5 py-0.5 bg-indigo-950 text-indigo-300 rounded font-mono border border-indigo-800/40">
+                  <Badge variant={f.active ? 'success' : 'neutral'} size="sm" dot={true}>
+                    {f.active ? '적용중' : '미적용'}
+                  </Badge>
+                  <Badge variant="primary" size="sm">
                     {f.format}
-                  </span>
+                  </Badge>
                 </div>
                 <div className="text-[11px] text-slate-400 font-mono">
                   <span className="text-amber-400 font-bold mr-1.5">#{f.order}</span>
@@ -2089,60 +2083,66 @@ export function AdminFontsView() {
 
               {/* 우측: 관리 조치 버튼 */}
               <div className="flex lg:flex-col items-center lg:items-end justify-between gap-2 flex-shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-900">
-                <button
+                <Button
+                  variant={f.active ? 'danger' : 'primary'}
+                  size="sm"
                   onClick={() => setFonts(fonts.map((x) => (x.id === f.id ? { ...x, active: !x.active } : x)))}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                    f.active
-                      ? 'bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/40'
-                      : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow'
-                  }`}
+                  className="text-xs px-3 py-1.5"
                 >
                   {f.active ? '적용해제' : '뷰어 적용하기'}
-                </button>
+                </Button>
                 <div className="flex items-center gap-1">
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => moveOrder(idx, 'up')}
                     disabled={idx === 0}
-                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-300 rounded text-xs"
+                    className="px-2 py-1 text-xs"
                     title="위로 이동"
                   >
                     ▲
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => moveOrder(idx, 'down')}
                     disabled={idx === fonts.length - 1}
-                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-300 rounded text-xs"
+                    className="px-2 py-1 text-xs"
                     title="아래로 이동"
                   >
                     ▼
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => openEdit(f)}
-                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs"
+                    className="px-2.5 py-1 text-xs"
                   >
                     수정
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
                     onClick={() => setFonts(fonts.filter((x) => x.id !== f.id))}
-                    className="px-2.5 py-1 bg-rose-950 hover:bg-rose-900 text-rose-300 rounded text-xs"
+                    className="px-2.5 py-1 text-xs"
                   >
                     삭제
-                  </button>
+                  </Button>
                 </div>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       ) : (
         /* 격자형 카드 목록 */
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {fonts.map((f, idx) => (
-            <div key={f.id} className="p-3.5 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+            <Card key={f.id} variant="subtle" className="p-3.5 space-y-2">
               <div className="flex justify-between items-center">
                 <span className="font-bold text-white text-sm">{f.name}</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded font-mono ${f.active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-500'}`}>
+                <Badge variant={f.active ? 'success' : 'neutral'} size="sm" dot={true}>
                   {f.active ? '적용중' : '미적용'}
-                </span>
+                </Badge>
               </div>
               <div className="text-[11px] text-slate-400 font-mono">
                 순번 #{f.order} | 별칭: {f.alias} ({f.format})
@@ -2160,123 +2160,116 @@ export function AdminFontsView() {
                 </div>
               </div>
 
-              <div className="p-2.5 bg-slate-900 rounded border border-slate-800 text-slate-200 text-sm truncate" style={{ fontFamily: f.name }}>
+              <div className="p-2.5 bg-slate-900 rounded-lg border border-slate-800 text-slate-200 text-sm truncate" style={{ fontFamily: f.name }}>
                 {previewText}
               </div>
               <div className="flex justify-between items-center pt-1 border-t border-slate-900">
                 <div className="flex gap-1">
-                  <button onClick={() => moveOrder(idx, 'up')} className="px-2 py-0.5 bg-slate-800 text-slate-300 rounded text-xs">▲</button>
-                  <button onClick={() => moveOrder(idx, 'down')} className="px-2 py-0.5 bg-slate-800 text-slate-300 rounded text-xs">▼</button>
-                  <button onClick={() => openEdit(f)} className="px-2 py-0.5 bg-slate-800 text-slate-300 rounded text-xs ml-1">수정</button>
-                  <button onClick={() => setFonts(fonts.filter((x) => x.id !== f.id))} className="px-2 py-0.5 bg-rose-950 text-rose-300 rounded text-xs">삭제</button>
+                  <Button variant="ghost" size="sm" onClick={() => moveOrder(idx, 'up')} className="px-2 py-0.5 text-xs">▲</Button>
+                  <Button variant="ghost" size="sm" onClick={() => moveOrder(idx, 'down')} className="px-2 py-0.5 text-xs">▼</Button>
+                  <Button variant="secondary" size="sm" onClick={() => openEdit(f)} className="px-2.5 py-0.5 text-xs ml-1">수정</Button>
+                  <Button variant="danger" size="sm" onClick={() => setFonts(fonts.filter((x) => x.id !== f.id))} className="px-2.5 py-0.5 text-xs">삭제</Button>
                 </div>
-                <button
+                <Button
+                  variant={f.active ? 'secondary' : 'primary'}
+                  size="sm"
                   onClick={() => setFonts(fonts.map((x) => (x.id === f.id ? { ...x, active: !x.active } : x)))}
-                  className="px-2 py-0.5 bg-indigo-950 text-indigo-300 border border-indigo-800/40 rounded text-[11px]"
+                  className="text-[11px] px-2 py-0.5"
                 >
                   {f.active ? '적용해제' : '적용하기'}
-                </button>
+                </Button>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
 
       {/* 글꼴 등록 및 수정 모달 (다중 파일 업로드 지원 - 요청 5 반영) */}
-      {showFontModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-slate-900 border border-indigo-500/60 rounded-2xl p-4 sm:p-5 max-w-md w-full space-y-3.5 shadow-2xl">
-            <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-              <span className="font-bold text-white text-sm">
-                {editingFont ? `✏️ 글꼴 수정: [${editingFont.name}]` : '🔤 신규 무료 웹글꼴 등록'}
-              </span>
-              <button onClick={() => setShowFontModal(false)} className="text-slate-400 hover:text-white">✕</button>
-            </div>
+      <Modal
+        isOpen={showFontModal}
+        onClose={() => setShowFontModal(false)}
+        title={editingFont ? `✏️ 글꼴 수정: [${editingFont.name}]` : '🔤 신규 무료 웹글꼴 등록'}
+        size="md"
+        footer={
+          <div className="flex justify-end gap-2 w-full">
+            <Button variant="secondary" size="sm" onClick={() => setShowFontModal(false)}>취소</Button>
+            <Button variant="primary" size="sm" onClick={handleSave}>저장</Button>
+          </div>
+        }
+      >
+        <div className="space-y-3 text-xs">
+          <div>
+            <Input
+              label="글꼴 패밀리 명칭"
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              placeholder="예: Pretendard GOV"
+            />
+          </div>
 
-            <div className="space-y-2.5">
-              <div>
-                <label className="text-slate-400 block mb-1">글꼴 패밀리 명칭</label>
+          <div>
+            <Input
+              label="글꼴 별명 (Alias)"
+              value={formAlias}
+              onChange={(e) => setFormAlias(e.target.value)}
+              placeholder="예: 본고딕 대체형"
+            />
+          </div>
+
+          <div>
+            <label className="text-slate-400 block mb-1">기본 포맷</label>
+            <select
+              value={formFormat}
+              onChange={(e) => setFormFormat(e.target.value as any)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200 text-xs min-h-[44px] sm:min-h-[36px]"
+            >
+              <option value="WOFF2">WOFF2 (경량 웹폰트 권장)</option>
+              <option value="TTF">TTF (표준 트루타입)</option>
+              <option value="다중포맷">다중포맷 (여러 웨이트 파일 동시 등록)</option>
+            </select>
+          </div>
+
+          {/* 한 글꼴에 글꼴 파일 여러 개 업로드 (요청 5 반영) */}
+          <div>
+            <label className="text-slate-400 block mb-1">글꼴 파일 다중 첨부 (.woff2, .woff, .ttf, .otf)</label>
+            <div className="flex gap-2 items-center">
+              <label className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 rounded-lg cursor-pointer text-xs flex items-center gap-1.5">
+                <span>📁 파일 다중 선택</span>
                 <input
-                  type="text"
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="예: Pretendard GOV"
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
+                  type="file"
+                  multiple
+                  accept=".woff,.woff2,.ttf,.otf"
+                  onChange={(e) => {
+                    if (e.target.files) {
+                      const names = Array.from(e.target.files).map((file) => file.name);
+                      setFormFiles((prev) => [...prev, ...names]);
+                    }
+                  }}
+                  className="hidden"
                 />
-              </div>
-
-              <div>
-                <label className="text-slate-400 block mb-1">글꼴 별명 (Alias)</label>
-                <input
-                  type="text"
-                  value={formAlias}
-                  onChange={(e) => setFormAlias(e.target.value)}
-                  placeholder="예: 본고딕 대체형"
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="text-slate-400 block mb-1">기본 포맷</label>
-                <select
-                  value={formFormat}
-                  onChange={(e) => setFormFormat(e.target.value as any)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
-                >
-                  <option value="WOFF2">WOFF2 (경량 웹폰트 권장)</option>
-                  <option value="TTF">TTF (표준 트루타입)</option>
-                  <option value="다중포맷">다중포맷 (여러 웨이트 파일 동시 등록)</option>
-                </select>
-              </div>
-
-              {/* 한 글꼴에 글꼴 파일 여러 개 업로드 (요청 5 반영) */}
-              <div>
-                <label className="text-slate-400 block mb-1">글꼴 파일 다중 첨부 (.woff2, .woff, .ttf, .otf)</label>
-                <div className="flex gap-2 items-center">
-                  <label className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 rounded cursor-pointer text-xs flex items-center gap-1.5">
-                    <span>📁 파일 다중 선택</span>
-                    <input
-                      type="file"
-                      multiple
-                      accept=".woff,.woff2,.ttf,.otf"
-                      onChange={(e) => {
-                        if (e.target.files) {
-                          const names = Array.from(e.target.files).map((file) => file.name);
-                          setFormFiles((prev) => [...prev, ...names]);
-                        }
-                      }}
-                      className="hidden"
-                    />
-                  </label>
-                  <span className="text-[11px] text-slate-400">선택된 파일: {formFiles.length}개</span>
-                </div>
-
-                {formFiles.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2 p-2 bg-slate-950 rounded border border-slate-800 max-h-24 overflow-y-auto">
-                    {formFiles.map((fn, fIdx) => (
-                      <span key={fIdx} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-200 text-[10px] font-mono">
-                        <span>{fn}</span>
-                        <button
-                          type="button"
-                          onClick={() => setFormFiles(formFiles.filter((_, i) => i !== fIdx))}
-                          className="text-slate-400 hover:text-rose-400 ml-0.5"
-                        >
-                          ✕
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
+              </label>
+              <span className="text-[11px] text-slate-400">선택된 파일: {formFiles.length}개</span>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
-              <button onClick={() => setShowFontModal(false)} className="px-3 py-1.5 bg-slate-800 text-slate-400 rounded text-xs">취소</button>
-              <button onClick={handleSave} className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium text-xs">저장</button>
-            </div>
+            {formFiles.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2 p-2 bg-slate-950 rounded-lg border border-slate-800 max-h-24 overflow-y-auto">
+                {formFiles.map((fn, fIdx) => (
+                  <span key={fIdx} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-200 text-[10px] font-mono">
+                    <span>{fn}</span>
+                    <button
+                      type="button"
+                      onClick={() => setFormFiles(formFiles.filter((_, i) => i !== fIdx))}
+                      className="text-slate-400 hover:text-rose-400 ml-0.5"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

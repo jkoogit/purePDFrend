@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Button, Input, Badge, Card } from '@shared/components/ui';
 
 // PG-ADM-05: 사용자권한관리 (3대 서브탭: 권한관리 / 프로그램권한관리 / 사용자권한관리 - 요청 5, 6, 7 반영)
 export function AdminRolesView() {
@@ -92,59 +93,53 @@ export function AdminRolesView() {
 
       {/* 3대 서브탭 전환 (요청 4 반영: 괄호명 삭제 및 모바일 겹치기/세그먼트 탭 지원) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 p-1 bg-slate-950/80 border border-slate-800 rounded-xl">
-        <button
+        <Button
+          variant={activeSubTab === 'ROLES' ? 'primary' : 'ghost'}
+          size="sm"
           onClick={() => setActiveSubTab('ROLES')}
-          className={`px-3 py-2 rounded-lg font-semibold text-center text-xs transition-all ${
-            activeSubTab === 'ROLES'
-              ? 'bg-indigo-600 text-white shadow-md'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
-          }`}
+          className="w-full text-xs font-semibold"
         >
           권한관리
-        </button>
-        <button
+        </Button>
+        <Button
+          variant={activeSubTab === 'PROG_ROLES' ? 'primary' : 'ghost'}
+          size="sm"
           onClick={() => setActiveSubTab('PROG_ROLES')}
-          className={`px-3 py-2 rounded-lg font-semibold text-center text-xs transition-all ${
-            activeSubTab === 'PROG_ROLES'
-              ? 'bg-indigo-600 text-white shadow-md'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
-          }`}
+          className="w-full text-xs font-semibold"
         >
           프로그램권한관리
-        </button>
-        <button
+        </Button>
+        <Button
+          variant={activeSubTab === 'USER_ROLES' ? 'primary' : 'ghost'}
+          size="sm"
           onClick={() => setActiveSubTab('USER_ROLES')}
-          className={`px-3 py-2 rounded-lg font-semibold text-center text-xs transition-all ${
-            activeSubTab === 'USER_ROLES'
-              ? 'bg-indigo-600 text-white shadow-md'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
-          }`}
+          className="w-full text-xs font-semibold"
         >
           사용자권한관리
-        </button>
+        </Button>
       </div>
 
       {/* 탭 1: 권한관리 (등록, 수정, 삭제 - 요청 6 반영: 가로넓이 overflow 방지 및 모바일 카드 뷰) */}
       {activeSubTab === 'ROLES' && (
         <div className="space-y-3">
-          <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2">
+          <Card variant="subtle" className="p-3.5 space-y-2">
             <span className="font-bold text-white text-xs">신규 역할 권한 등록</span>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <input
-                type="text"
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
+              <Input
                 placeholder="권한 코드 (예: ROLE_AUDITOR)"
                 value={newRoleId}
                 onChange={(e) => setNewRoleId(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono text-xs"
+                className="font-mono text-xs"
               />
-              <input
-                type="text"
+              <Input
                 placeholder="권한 명칭 (예: 내부감사관)"
                 value={newRoleName}
                 onChange={(e) => setNewRoleName(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
+                className="text-xs"
               />
-              <button
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => {
                   if (newRoleId && newRoleName) {
                     setRoleGroups([
@@ -156,15 +151,15 @@ export function AdminRolesView() {
                     setNotice('신규 권한이 성공적으로 등록되었습니다.');
                   }
                 }}
-                className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium text-xs shadow"
+                className="w-full text-xs"
               >
                 + 권한 등록
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
 
           {/* 데스크톱 테이블 */}
-          <div className="hidden md:block bg-slate-950/70 border border-slate-800 rounded-xl overflow-hidden">
+          <div className="hidden md:block bg-slate-950/70 border border-slate-800 rounded-xl overflow-hidden shadow">
             <table className="w-full text-left">
               <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
                 <tr>
@@ -180,18 +175,22 @@ export function AdminRolesView() {
                   <tr key={rg.id} className="hover:bg-slate-900/40">
                     <td className="p-3 font-mono font-bold text-indigo-300">{rg.id}</td>
                     <td className="p-3 font-medium text-slate-200">{rg.name}</td>
-                    <td className="p-3 font-mono text-emerald-400">우선순위 {rg.priority}</td>
+                    <td className="p-3 font-mono">
+                      <Badge variant="success" size="sm">우선순위 {rg.priority}</Badge>
+                    </td>
                     <td className="p-3 text-slate-400">{rg.desc}</td>
                     <td className="p-3 text-center">
-                      <button
+                      <Button
+                        variant="danger"
+                        size="sm"
                         onClick={() => {
                           setRoleGroups(roleGroups.filter((r) => r.id !== rg.id));
                           setNotice(`권한 '${rg.id}'가 삭제되었습니다.`);
                         }}
-                        className="px-2.5 py-1 bg-rose-950 hover:bg-rose-900 text-rose-300 rounded text-xs"
+                        className="text-xs px-2.5 py-1"
                       >
                         삭제
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -202,25 +201,27 @@ export function AdminRolesView() {
           {/* 모바일 카드 뷰 (요청 5 반영) */}
           <div className="block md:hidden space-y-2">
             {roleGroups.map((rg) => (
-              <div key={rg.id} className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-1.5">
+              <Card key={rg.id} variant="subtle" className="p-3 space-y-1.5">
                 <div className="flex justify-between items-center">
                   <span className="font-mono font-bold text-indigo-300 text-xs">{rg.id}</span>
-                  <span className="font-mono text-emerald-400 text-[11px]">우선순위 {rg.priority}</span>
+                  <Badge variant="success" size="sm">우선순위 {rg.priority}</Badge>
                 </div>
                 <div className="font-medium text-slate-200">{rg.name}</div>
                 <div className="text-[11px] text-slate-400">{rg.desc}</div>
                 <div className="pt-1 flex justify-end">
-                  <button
+                  <Button
+                    variant="danger"
+                    size="sm"
                     onClick={() => {
                       setRoleGroups(roleGroups.filter((r) => r.id !== rg.id));
                       setNotice(`권한 '${rg.id}'가 삭제되었습니다.`);
                     }}
-                    className="px-2.5 py-1 bg-rose-950 text-rose-300 rounded text-xs"
+                    className="text-xs px-2.5 py-1"
                   >
                     삭제
-                  </button>
+                  </Button>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         </div>
@@ -235,17 +236,19 @@ export function AdminRolesView() {
               <select
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value)}
-                className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-slate-200 font-mono text-xs"
+                className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-slate-200 font-mono text-xs focus:ring-1 focus:ring-indigo-500"
               >
                 {roleGroups.map((r) => (
                   <option key={r.id} value={r.id}>{r.name} ({r.id})</option>
                 ))}
               </select>
             </div>
-            <span className="text-slate-500 text-[11px]">선택된 프로그램: {(rolePrograms[selectedRole] || []).length}개</span>
+            <span className="text-slate-500 text-[11px]">
+              선택된 프로그램: <Badge variant="primary" size="sm">{(rolePrograms[selectedRole] || []).length}개</Badge>
+            </span>
           </div>
 
-          <div className="p-4 bg-slate-950/70 border border-slate-800 rounded-xl space-y-3">
+          <Card variant="subtle" className="p-4 space-y-3">
             <span className="font-semibold text-emerald-400 block">
               ['{selectedRole}'] 권한에 허용할 화면 프로그램을 체크박스로 지정하세요:
             </span>
@@ -256,7 +259,7 @@ export function AdminRolesView() {
                   <label
                     key={prog.id}
                     className={`p-2.5 rounded-lg border flex items-center justify-between cursor-pointer transition-colors ${
-                      checked ? 'bg-indigo-950/40 border-indigo-500' : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                      checked ? 'bg-indigo-950/40 border-indigo-500 ring-1 ring-indigo-500/30' : 'bg-slate-900 border-slate-800 hover:border-slate-700'
                     }`}
                   >
                     <div>
@@ -267,13 +270,13 @@ export function AdminRolesView() {
                       type="checkbox"
                       checked={checked}
                       onChange={() => toggleProgramInRole(prog.id)}
-                      className="accent-indigo-500 w-4 h-4"
+                      className="accent-indigo-500 w-4 h-4 cursor-pointer"
                     />
                   </label>
                 );
               })}
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
@@ -286,41 +289,45 @@ export function AdminRolesView() {
               <select
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value)}
-                className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-slate-200 font-mono text-xs"
+                className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-slate-200 font-mono text-xs focus:ring-1 focus:ring-indigo-500"
               >
                 {roleGroups.map((r) => (
                   <option key={r.id} value={r.id}>{r.name} ({r.id})</option>
                 ))}
               </select>
             </div>
-            <span className="text-slate-500 text-[11px]">배정된 사용자: {(roleUsers[selectedRole] || []).length}명</span>
+            <span className="text-slate-500 text-[11px]">
+              배정된 사용자: <Badge variant="primary" size="sm">{(roleUsers[selectedRole] || []).length}명</Badge>
+            </span>
           </div>
 
           {/* 신규 사용자 추가 폼 (요청 7 반영) */}
-          <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2">
+          <Card variant="subtle" className="p-3.5 space-y-2">
             <span className="font-bold text-white text-xs">➕ ['{selectedRole}'] 권한에 신규 사용자 배정 (사용자 추가)</span>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
               <select
                 value={newAssignUserEmail}
                 onChange={(e) => setNewAssignUserEmail(e.target.value)}
-                className="w-full sm:col-span-2 bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs font-mono"
+                className="w-full sm:col-span-2 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200 text-xs font-mono min-h-[44px] sm:min-h-[36px]"
               >
                 <option value="">-- 배정할 사용자 선택 --</option>
                 {candidateUsers.map((u) => (
                   <option key={u} value={u}>{u}</option>
                 ))}
               </select>
-              <button
+              <Button
+                variant="success"
+                size="sm"
                 onClick={handleAddUserToRole}
-                className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-medium text-xs shadow"
+                className="w-full text-xs"
               >
                 + 사용자 권한 부여
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
 
           {/* 현재 배정 사용자 목록 */}
-          <div className="p-4 bg-slate-950/70 border border-slate-800 rounded-xl space-y-3">
+          <Card variant="subtle" className="p-4 space-y-3">
             <span className="font-semibold text-emerald-400 block">
               현재 ['{selectedRole}'] 권한이 부여된 사용자 목록:
             </span>
@@ -331,21 +338,23 @@ export function AdminRolesView() {
                 (roleUsers[selectedRole] || []).map((email, i) => (
                   <div key={i} className="flex justify-between items-center p-2.5 bg-slate-900 rounded-lg border border-slate-800 font-mono text-xs">
                     <span className="text-slate-200">{email}</span>
-                    <button
+                    <Button
+                      variant="danger"
+                      size="sm"
                       onClick={() => {
                         const updated = (roleUsers[selectedRole] || []).filter((e) => e !== email);
                         setRoleUsers({ ...roleUsers, [selectedRole]: updated });
                         setNotice(`'${email}' 사용자의 권한이 성공적으로 해제되었습니다.`);
                       }}
-                      className="px-2 py-0.5 bg-rose-950 hover:bg-rose-900 text-rose-300 rounded font-sans text-xs"
+                      className="text-xs px-2.5 py-1"
                     >
                       권한 해제
-                    </button>
+                    </Button>
                   </div>
                 ))
               )}
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </div>
@@ -379,20 +388,19 @@ export function AdminMenusView() {
   return (
     <div className="space-y-4 text-xs">
       {/* 메뉴 등록 바 (요청 8 반영: responsive grid로 가로 튐 완전 해결) */}
-      <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2">
+      <Card variant="subtle" className="p-3.5 space-y-2">
         <span className="font-bold text-white text-xs">➕ 신규 포털 메뉴 등록 & 화면 매핑</span>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <input
-            type="text"
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
+          <Input
             placeholder="메뉴 명칭 (예: 고객지원센터)"
             value={newMenuTitle}
             onChange={(e) => setNewMenuTitle(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
+            className="text-xs"
           />
           <select
             value={newMenuProg}
             onChange={(e) => setNewMenuProg(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono text-xs"
+            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200 font-mono text-xs min-h-[44px] sm:min-h-[36px]"
           >
             <option value="PG-USR-01">첫화면 (PG-USR-01)</option>
             <option value="PG-USR-03">홈 대시보드 (PG-USR-03)</option>
@@ -400,7 +408,9 @@ export function AdminMenusView() {
             <option value="PG-ADM-13">고객지원 (PG-ADM-13)</option>
             <option value="PG-ADM-12">공지사항 (PG-ADM-12)</option>
           </select>
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => {
               if (newMenuTitle) {
                 setMenus([
@@ -417,15 +427,15 @@ export function AdminMenusView() {
                 setNewMenuTitle('');
               }
             }}
-            className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium text-xs shadow"
+            className="w-full text-xs"
           >
             + 메뉴 등록
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
 
       {/* 데스크톱 테이블 */}
-      <div className="hidden md:block bg-slate-950/70 border border-slate-800 rounded-xl overflow-hidden">
+      <div className="hidden md:block bg-slate-950/70 border border-slate-800 rounded-xl overflow-hidden shadow">
         <table className="w-full text-left">
           <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
             <tr>
@@ -440,7 +450,9 @@ export function AdminMenusView() {
           <tbody className="divide-y divide-slate-800 text-slate-300">
             {menus.map((m, idx) => (
               <tr key={m.id} className="hover:bg-slate-900/40">
-                <td className="p-3 font-mono font-bold text-emerald-400">{m.order}</td>
+                <td className="p-3 font-mono font-bold text-emerald-400">
+                  <Badge variant="success" size="sm">{m.order}</Badge>
+                </td>
                 <td className="p-3 font-bold text-slate-200">{m.title}</td>
                 <td className="p-3 font-mono text-indigo-300">{m.progId}</td>
                 <td className="p-3 font-mono text-slate-500">{m.route}</td>
@@ -449,14 +461,14 @@ export function AdminMenusView() {
                     type="checkbox"
                     checked={m.visible}
                     onChange={(e) => setMenus(menus.map((x) => (x.id === m.id ? { ...x, visible: e.target.checked } : x)))}
-                    className="accent-indigo-500 w-4 h-4"
+                    className="accent-indigo-500 w-4 h-4 cursor-pointer"
                   />
                 </td>
                 <td className="p-3 text-center">
-                  <div className="flex justify-center gap-1">
-                    <button onClick={() => moveOrder(idx, 'up')} className="px-2 py-0.5 bg-slate-800 text-slate-300 rounded hover:bg-slate-700">▲</button>
-                    <button onClick={() => moveOrder(idx, 'down')} className="px-2 py-0.5 bg-slate-800 text-slate-300 rounded hover:bg-slate-700">▼</button>
-                    <button onClick={() => setMenus(menus.filter((x) => x.id !== m.id))} className="px-2 py-0.5 bg-rose-950 text-rose-300 rounded ml-2 hover:bg-rose-900">삭제</button>
+                  <div className="flex justify-center items-center gap-1">
+                    <Button variant="secondary" size="sm" onClick={() => moveOrder(idx, 'up')} className="px-2 py-0.5 text-xs">▲</Button>
+                    <Button variant="secondary" size="sm" onClick={() => moveOrder(idx, 'down')} className="px-2 py-0.5 text-xs">▼</Button>
+                    <Button variant="danger" size="sm" onClick={() => setMenus(menus.filter((x) => x.id !== m.id))} className="px-2 py-0.5 text-xs ml-1">삭제</Button>
                   </div>
                 </td>
               </tr>
@@ -468,16 +480,16 @@ export function AdminMenusView() {
       {/* 모바일 카드 뷰 (요청 8 반영: 0px 가로스크롤 보장) */}
       <div className="block md:hidden space-y-2">
         {menus.map((m, idx) => (
-          <div key={m.id} className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+          <Card key={m.id} variant="subtle" className="p-3 space-y-2">
             <div className="flex justify-between items-center">
-              <span className="font-mono text-emerald-400 font-bold">순번 #{m.order}</span>
+              <Badge variant="success" size="sm">순번 #{m.order}</Badge>
               <label className="flex items-center gap-1 text-[11px] text-slate-400 cursor-pointer">
                 <span>사용:</span>
                 <input
                   type="checkbox"
                   checked={m.visible}
                   onChange={(e) => setMenus(menus.map((x) => (x.id === m.id ? { ...x, visible: e.target.checked } : x)))}
-                  className="accent-indigo-500"
+                  className="accent-indigo-500 cursor-pointer"
                 />
               </label>
             </div>
@@ -486,11 +498,11 @@ export function AdminMenusView() {
               연결 화면: <strong className="text-indigo-300">{m.progId}</strong> ({m.route})
             </div>
             <div className="flex gap-2 pt-1 border-t border-slate-900">
-              <button onClick={() => moveOrder(idx, 'up')} className="flex-1 py-1 bg-slate-800 text-slate-200 rounded text-center">▲ 위로</button>
-              <button onClick={() => moveOrder(idx, 'down')} className="flex-1 py-1 bg-slate-800 text-slate-200 rounded text-center">▼ 아래로</button>
-              <button onClick={() => setMenus(menus.filter((x) => x.id !== m.id))} className="px-3 py-1 bg-rose-950 text-rose-300 rounded text-center">삭제</button>
+              <Button variant="secondary" size="sm" onClick={() => moveOrder(idx, 'up')} className="flex-1 text-xs">▲ 위로</Button>
+              <Button variant="secondary" size="sm" onClick={() => moveOrder(idx, 'down')} className="flex-1 text-xs">▼ 아래로</Button>
+              <Button variant="danger" size="sm" onClick={() => setMenus(menus.filter((x) => x.id !== m.id))} className="px-3 text-xs">삭제</Button>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
     </div>

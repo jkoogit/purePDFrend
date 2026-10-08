@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Button, Input, Badge, Card } from '@shared/components/ui';
 
 export interface AuditLogItem {
   id: string;
@@ -81,18 +82,17 @@ export function AdminLogsView() {
   return (
     <div className="space-y-4 text-xs">
       {/* 헤더 및 컨트롤 바 (검색 기능 추가 - 요청 6 반영) */}
-      <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
+      <Card variant="subtle" className="p-3.5 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
         <div>
           <span className="font-bold text-white text-sm">📋 시스템 다차원 감사로그 및 추적 타임라인</span>
           <p className="text-[11px] text-slate-400 mt-0.5">작업자, IP, 리소스 변경 내역을 실시간 검색 및 모니터링합니다.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="text"
+          <Input
             placeholder="작업자, IP, 리소스 검색..."
             value={searchKeyword}
             onChange={(e) => setSearchKeyword(e.target.value)}
-            className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-slate-200 text-xs w-full sm:w-48"
+            className="w-full sm:w-48 text-xs"
           />
           <select
             value={selectedEventType}
@@ -116,7 +116,9 @@ export function AdminLogsView() {
             <option value="BLOCKED">차단 (BLOCKED)</option>
             <option value="WARN">경고 (WARN)</option>
           </select>
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => {
               const csvContent =
                 'data:text/csv;charset=utf-8,' +
@@ -130,15 +132,17 @@ export function AdminLogsView() {
               link.click();
               document.body.removeChild(link);
             }}
-            className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded whitespace-nowrap"
+            className="whitespace-nowrap text-xs"
           >
             CSV 내보내기
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
 
       <div className="flex justify-between items-center text-slate-400 text-[11px] px-1">
-        <span>감사 원장 레코드: <strong className="text-indigo-400">{filteredLogs.length}</strong> / {logs.length}건</span>
+        <span>
+          감사 원장 레코드: <Badge variant="primary" size="sm">{filteredLogs.length}</Badge> / {logs.length}건
+        </span>
       </div>
 
       {/* 데스크톱 테이블 */}
@@ -173,15 +177,13 @@ export function AdminLogsView() {
                 <td className="p-3 text-slate-300 font-sans">{log.targetResource}</td>
                 <td className="p-3 text-slate-400">{log.clientIp}</td>
                 <td className="p-3 text-center">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                    log.result === 'SUCCESS'
-                      ? 'bg-emerald-500/10 text-emerald-400'
-                      : log.result === 'BLOCKED'
-                      ? 'bg-rose-500/10 text-rose-400'
-                      : 'bg-amber-500/10 text-amber-400'
-                  }`}>
+                  <Badge
+                    variant={log.result === 'SUCCESS' ? 'success' : log.result === 'BLOCKED' ? 'danger' : 'warning'}
+                    size="sm"
+                    dot={true}
+                  >
                     {log.result}
-                  </span>
+                  </Badge>
                 </td>
               </tr>
             ))}
@@ -192,22 +194,21 @@ export function AdminLogsView() {
       {/* 모바일 전용 카드 뷰 (요청 6 반영: 0px 가로스크롤 보장) */}
       <div className="block md:hidden space-y-2.5">
         {filteredLogs.map((log) => (
-          <div key={log.id} className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+          <Card key={log.id} variant="subtle" className="p-3 space-y-2">
             <div className="flex justify-between items-center">
-              <span className={`px-2 py-0.5 rounded text-[10px] font-mono ${
-                log.eventType === 'IP_BLOCKED'
-                  ? 'bg-rose-500/10 text-rose-300'
-                  : 'bg-indigo-500/10 text-indigo-300'
-              }`}>
+              <Badge
+                variant={log.eventType === 'IP_BLOCKED' ? 'danger' : 'primary'}
+                size="sm"
+              >
                 {log.eventType}
-              </span>
-              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                log.result === 'SUCCESS'
-                  ? 'bg-emerald-500/10 text-emerald-400'
-                  : 'bg-rose-500/10 text-rose-400'
-              }`}>
+              </Badge>
+              <Badge
+                variant={log.result === 'SUCCESS' ? 'success' : log.result === 'BLOCKED' ? 'danger' : 'warning'}
+                size="sm"
+                dot={true}
+              >
                 {log.result}
-              </span>
+              </Badge>
             </div>
             <div className="font-semibold text-slate-200">{log.targetResource}</div>
             <div className="grid grid-cols-2 gap-1 text-[11px] font-mono text-slate-400 pt-1 border-t border-slate-900">
@@ -215,7 +216,7 @@ export function AdminLogsView() {
               <div className="text-right">IP: <span className="text-slate-300">{log.clientIp}</span></div>
             </div>
             <div className="text-[10px] font-mono text-slate-500 text-right">{log.timestamp}</div>
-          </div>
+          </Card>
         ))}
       </div>
     </div>
