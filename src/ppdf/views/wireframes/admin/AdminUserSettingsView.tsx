@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Button, Input, Textarea, Badge, Card, Modal } from '@shared/components/ui';
 
 export interface UserSettingItem {
   key: string;
@@ -150,167 +151,162 @@ export function AdminUserSettingsView() {
 
   return (
     <div className="space-y-4 text-xs">
-      <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl flex justify-between items-center">
+      <Card variant="subtle" className="p-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <div>
           <span className="font-bold text-white text-sm">⚙️ 사용자 환경설정 항목 및 기본값 관리 (등록/수정/삭제 완비)</span>
           <p className="text-[11px] text-slate-400 mt-0.5">
             사용자 마이페이지 환경설정에 제공되는 기본 설정 항목(테마, 배율, 자동저장, OCR) 및 메타데이터를 관리합니다.
           </p>
         </div>
-        <button
+        <Button
+          variant="primary"
+          size="sm"
           onClick={openCreate}
-          className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium shadow"
+          leftIcon={<span>+</span>}
+          className="text-xs shrink-0 self-start sm:self-auto"
         >
-          + 설정 항목 추가
-        </button>
-      </div>
+          설정 항목 추가
+        </Button>
+      </Card>
 
       {/* 설정 항목 그리드 카드 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {settings.map((item) => (
-          <div key={item.key} className="p-3.5 bg-slate-950 border border-slate-800 rounded-xl space-y-2 flex flex-col justify-between">
+          <Card key={item.key} variant="subtle" className="p-3.5 space-y-2 flex flex-col justify-between">
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-indigo-500/10 text-indigo-300 font-semibold">
+                <Badge variant="primary" size="sm">
                   {item.category}
-                </span>
+                </Badge>
                 <span className="text-slate-500 font-mono text-[10px]">{item.uiType}</span>
               </div>
-              <div className="font-mono text-indigo-200 font-bold text-xs">{item.key}</div>
+              <div className="font-mono text-indigo-300 font-bold text-xs">{item.key}</div>
               <div className="text-slate-200 font-medium text-sm">{item.label}</div>
               <p className="text-slate-400 text-[11px] line-clamp-2 leading-relaxed">{item.desc}</p>
             </div>
 
             <div className="pt-2 border-t border-slate-900 space-y-2">
-              <div className="p-2 bg-slate-900 rounded border border-slate-800 text-emerald-400 font-mono text-[11px]">
+              <div className="p-2 bg-slate-900/90 rounded-lg border border-slate-800 text-emerald-400 font-mono text-[11px]">
                 기본값: <strong className="text-emerald-300">{item.defaultValue}</strong>
               </div>
               <div className="flex justify-end gap-1.5 pt-1">
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => openEdit(item)}
-                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs"
+                  className="text-xs px-2.5 py-1"
                 >
                   수정
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
                   onClick={() => handleDelete(item.key)}
-                  className="px-2.5 py-1 bg-rose-950 hover:bg-rose-900 text-rose-300 rounded text-xs"
+                  className="text-xs px-2.5 py-1"
                 >
                   삭제
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
 
       {/* 설정 등록/수정 모달 */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-slate-900 border border-indigo-500/60 rounded-2xl p-4 sm:p-5 max-w-lg w-full space-y-3.5 shadow-2xl">
-            <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-              <span className="font-bold text-white text-sm">
-                {editingKey ? `✏️ 설정 항목 수정: [${editingKey}]` : '⚙️ 신규 환경설정 메타데이터 등록'}
-              </span>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white">✕</button>
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingKey ? `✏️ 설정 항목 수정: [${editingKey}]` : '⚙️ 신규 환경설정 메타데이터 등록'}
+        size="md"
+        footer={
+          <div className="flex justify-end gap-2 w-full">
+            <Button variant="secondary" size="sm" onClick={() => setShowModal(false)}>취소</Button>
+            <Button variant="primary" size="sm" onClick={handleSave}>저장 완료</Button>
+          </div>
+        }
+      >
+        <div className="space-y-3 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <Input
+                label="설정 키 (Config Key)"
+                disabled={!!editingKey}
+                value={formKey}
+                onChange={(e) => setFormKey(e.target.value)}
+                placeholder="예: AUTO_SYNC_LIMIT"
+                className="font-mono"
+              />
             </div>
-
-            <div className="space-y-2.5">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-slate-400 block mb-1">설정 키 (Config Key)</label>
-                  <input
-                    type="text"
-                    disabled={!!editingKey}
-                    value={formKey}
-                    onChange={(e) => setFormKey(e.target.value)}
-                    placeholder="예: AUTO_SYNC_LIMIT"
-                    className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="text-slate-400 block mb-1">설정 라벨 (Label)</label>
-                  <input
-                    type="text"
-                    value={formLabel}
-                    onChange={(e) => setFormLabel(e.target.value)}
-                    placeholder="예: 자동동기화 한도"
-                    className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-slate-400 block mb-1">카테고리</label>
-                  <select
-                    value={formCategory}
-                    onChange={(e) => setFormCategory(e.target.value as any)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
-                  >
-                    <option value="VIEWER">뷰어 (VIEWER)</option>
-                    <option value="THEME">테마 (THEME)</option>
-                    <option value="EDITOR">편집기 (EDITOR)</option>
-                    <option value="STORAGE">스토리지 (STORAGE)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-slate-400 block mb-1">UI 컨트롤 타입</label>
-                  <select
-                    value={formUiType}
-                    onChange={(e) => setFormUiType(e.target.value as any)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
-                  >
-                    <option value="DROPDOWN">드롭다운 (DROPDOWN)</option>
-                    <option value="RADIO">라디오 버튼 (RADIO)</option>
-                    <option value="CHECKBOX">체크박스 토글 (CHECKBOX)</option>
-                    <option value="SLIDER">슬라이더 (SLIDER)</option>
-                    <option value="TEXT">텍스트 입력 (TEXT)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-slate-400 block mb-1">시스템 기본값 (Default Value)</label>
-                <input
-                  type="text"
-                  value={formDefaultVal}
-                  onChange={(e) => setFormDefaultVal(e.target.value)}
-                  placeholder="예: ON 또는 100%"
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="text-slate-400 block mb-1">선택지 목록 (쉼표 구분)</label>
-                <input
-                  type="text"
-                  value={formOptions}
-                  onChange={(e) => setFormOptions(e.target.value)}
-                  placeholder="예: 100%, 150%, 200%"
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="text-slate-400 block mb-1">설명 및 안내 문구</label>
-                <textarea
-                  rows={2}
-                  value={formDesc}
-                  onChange={(e) => setFormDesc(e.target.value)}
-                  placeholder="설정 항목에 대한 가이드 문구"
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
-              <button onClick={() => setShowModal(false)} className="px-3.5 py-1.5 bg-slate-800 text-slate-400 rounded text-xs">취소</button>
-              <button onClick={handleSave} className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium text-xs">저장 완료</button>
+            <div>
+              <Input
+                label="설정 라벨 (Label)"
+                value={formLabel}
+                onChange={(e) => setFormLabel(e.target.value)}
+                placeholder="예: 자동동기화 한도"
+              />
             </div>
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label className="text-slate-400 block mb-1">카테고리</label>
+              <select
+                value={formCategory}
+                onChange={(e) => setFormCategory(e.target.value as any)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200 text-xs min-h-[44px] sm:min-h-[36px]"
+              >
+                <option value="VIEWER">뷰어 (VIEWER)</option>
+                <option value="THEME">테마 (THEME)</option>
+                <option value="EDITOR">편집기 (EDITOR)</option>
+                <option value="STORAGE">스토리지 (STORAGE)</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-slate-400 block mb-1">UI 컨트롤 타입</label>
+              <select
+                value={formUiType}
+                onChange={(e) => setFormUiType(e.target.value as any)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200 text-xs min-h-[44px] sm:min-h-[36px]"
+              >
+                <option value="DROPDOWN">드롭다운 (DROPDOWN)</option>
+                <option value="RADIO">라디오 버튼 (RADIO)</option>
+                <option value="CHECKBOX">체크박스 토글 (CHECKBOX)</option>
+                <option value="SLIDER">슬라이더 (SLIDER)</option>
+                <option value="TEXT">텍스트 입력 (TEXT)</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <Input
+              label="시스템 기본값 (Default Value)"
+              value={formDefaultVal}
+              onChange={(e) => setFormDefaultVal(e.target.value)}
+              placeholder="예: ON 또는 100%"
+            />
+          </div>
+
+          <div>
+            <Input
+              label="선택지 목록 (쉼표 구분)"
+              value={formOptions}
+              onChange={(e) => setFormOptions(e.target.value)}
+              placeholder="예: 100%, 150%, 200%"
+              className="font-mono"
+            />
+          </div>
+
+          <div>
+            <Textarea
+              label="설명 및 안내 문구"
+              rows={2}
+              value={formDesc}
+              onChange={(e) => setFormDesc(e.target.value)}
+              placeholder="설정 항목에 대한 가이드 문구"
+            />
+          </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Button, Input, Badge, Card } from '@shared/components/ui';
 import { ViewerConfigRegistry } from '../../domain/ViewerConfigRegistry';
 import { IconResourceRegistry } from '../../domain/IconResourceRegistry';
 import { HorizontalSlideContainer } from '../../components/HorizontalSlideContainer';
@@ -124,13 +125,13 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
             <span className="font-semibold text-indigo-400">16대 관리자 운영관리 프로그램 (Admin Modules)</span>
             <span className="text-slate-500 text-[11px]">선택: <strong className="text-white font-mono">{selectedProg}</strong></span>
           </div>
-          <input
-            type="text"
-            placeholder="기능명/ID 빠른 검색 (예: 보안, 사용자, 약관)..."
-            value={filterKeyword}
-            onChange={(e) => setFilterKeyword(e.target.value)}
-            className="bg-slate-950 border border-slate-700 rounded px-2.5 py-1 text-slate-200 text-xs w-full sm:w-64"
-          />
+          <div className="w-full sm:w-64">
+            <Input
+              placeholder="기능명/ID 빠른 검색 (예: 보안, 사용자, 약관)..."
+              value={filterKeyword}
+              onChange={(e) => setFilterKeyword(e.target.value)}
+            />
+          </div>
         </div>
 
         <HorizontalSlideContainer scrollStep={280} className="w-full">
@@ -224,7 +225,7 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
         {/* 13. PG-ADM-15: 단축키 및 도구아이콘 관리 (시스템 기본 vs 사용자 커스텀 우선순위, 도구 아이콘 변경) */}
         {selectedProg === 'PG-ADM-15' && (
           <div className="space-y-4 text-xs">
-            <div className="p-4 bg-slate-950/70 border border-slate-800 rounded-xl space-y-3">
+            <Card variant="subtle" className="p-4 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800">
                 <div>
                   <span className="font-bold text-white text-sm">🎨 뷰어 도구별 아이콘 디자인 리소스 및 단축키 관리</span>
@@ -233,12 +234,12 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={handleResetShortcutsAndIcons} className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded">
+                  <Button variant="secondary" size="sm" onClick={handleResetShortcutsAndIcons} className="text-xs">
                     기본값 복원
-                  </button>
-                  <button className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium">
+                  </Button>
+                  <Button variant="primary" size="sm" className="text-xs">
                     전체 사용자 배포
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -250,44 +251,44 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="flex gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
-                    <button
+                    <Button
+                      variant={shortcutPriority === 'SYSTEM' ? 'primary' : 'ghost'}
+                      size="sm"
                       onClick={() => setShortcutPriority('SYSTEM')}
-                      className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
-                        shortcutPriority === 'SYSTEM' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                      }`}
+                      className="text-xs px-2.5 py-1"
                     >
                       시스템 기본 우선
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant={shortcutPriority === 'CUSTOM' ? 'primary' : 'ghost'}
+                      size="sm"
                       onClick={() => setShortcutPriority('CUSTOM')}
-                      className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
-                        shortcutPriority === 'CUSTOM' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                      }`}
+                      className="text-xs px-2.5 py-1"
                     >
                       사용자 커스텀 우선
-                    </button>
+                    </Button>
                   </div>
                   <div className="flex gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
-                    <button
+                    <Button
+                      variant={shortcutViewMode === 'CARDS' ? 'primary' : 'ghost'}
+                      size="sm"
                       onClick={() => setShortcutViewMode('CARDS')}
-                      className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
-                        shortcutViewMode === 'CARDS' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                      }`}
+                      className="text-xs px-2.5 py-1"
                     >
                       🗂️ 가로형 카드 (자동 줄바꿈)
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant={shortcutViewMode === 'TABLE' ? 'primary' : 'ghost'}
+                      size="sm"
                       onClick={() => setShortcutViewMode('TABLE')}
-                      className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
-                        shortcutViewMode === 'TABLE' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                      }`}
+                      className="text-xs px-2.5 py-1"
                     >
                       📋 테이블 보기
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
-            </div>
+            </Card>
 
             {/* 가로형 카드 목록 - 너비 초과 시 자동 줄바꿈 (요청 2 반영: flex-wrap 기반 가로형 카드) */}
             {shortcutViewMode === 'CARDS' ? (
@@ -300,9 +301,10 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
                   const customIconFile = customUploadedIcons[tool.id];
 
                   return (
-                    <div
+                    <Card
                       key={tool.id}
-                      className="p-3.5 bg-slate-950/90 border border-slate-800 hover:border-indigo-500/50 rounded-xl flex flex-col justify-between gap-2.5 min-w-[280px] flex-1 basis-[320px] max-w-[460px] shadow-md transition-all"
+                      variant="subtle"
+                      className="p-3.5 flex flex-col justify-between gap-2.5 min-w-[280px] flex-1 basis-[320px] max-w-[460px] shadow-md transition-all"
                     >
                       {/* 상단: 아이콘 + 도구명 + ID + 단축키 칩 */}
                       <div className="flex justify-between items-start gap-2">
@@ -315,9 +317,9 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
                             <div className="font-mono text-slate-500 text-[10px]">{tool.id}</div>
                           </div>
                         </div>
-                        <span className="font-mono text-amber-400 font-bold text-xs bg-slate-900 px-2 py-1 rounded border border-slate-800 flex-shrink-0 shadow-inner">
+                        <Badge variant="warning" size="sm" className="font-mono">
                           {currentShortcut || '미설정'}
-                        </span>
+                        </Badge>
                       </div>
 
                       {/* 단축키 복합키 조합 설정 (Ctrl+Shift+Alt 가로형 인라인) */}
@@ -382,7 +384,7 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
                           <select
                             value={currentResKey}
                             onChange={(e) => handleToolIconChange(tool.id, e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 text-xs"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-slate-200 text-xs min-h-[44px] sm:min-h-[32px]"
                           >
                             {availableResources.map((res) => (
                               <option key={res.resourceKey} value={res.resourceKey}>
@@ -393,7 +395,7 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
                         )}
 
                         <div className="flex items-center gap-1.5 pt-0.5">
-                          <label className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded border border-slate-700 text-[10px] cursor-pointer flex items-center gap-1 whitespace-nowrap">
+                          <label className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded border border-slate-700 text-[10px] cursor-pointer flex items-center gap-1 whitespace-nowrap">
                             <span>📎 아이콘 첨부</span>
                             <input
                               type="file"
@@ -416,7 +418,7 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
                           )}
                         </div>
                       </div>
-                    </div>
+                    </Card>
                   );
                 })}
               </div>
@@ -450,9 +452,9 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
                             <div className="flex items-center gap-1.5">
                               <span className="text-xl inline-block w-7 text-center">{tool.icon}</span>
                               {customIconFile && (
-                                <span className="px-1.5 py-0.5 rounded bg-indigo-950 border border-indigo-700/50 text-[10px] text-indigo-300 font-sans">
+                                <Badge variant="primary" size="sm">
                                   📎 파일
-                                </span>
+                                </Badge>
                               )}
                             </div>
                           </td>
@@ -461,7 +463,7 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
                               <select
                                 value={currentResKey}
                                 onChange={(e) => handleToolIconChange(tool.id, e.target.value)}
-                                className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 text-xs font-sans w-full"
+                                className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-slate-200 text-xs font-sans w-full min-h-[44px] sm:min-h-[32px]"
                               >
                                 {availableResources.map((res) => (
                                   <option key={res.resourceKey} value={res.resourceKey}>
@@ -566,7 +568,7 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
         {/* 13. PG-ADM-16: 도구그룹관리 (8대 뷰어 모드별 도구편성 & 변경 시 영향도 검토 Impact Analysis) */}
         {selectedProg === 'PG-ADM-16' && (
           <div className="space-y-4 text-xs">
-            <div className="p-4 bg-slate-950/70 border border-slate-800 rounded-xl space-y-3">
+            <Card variant="subtle" className="p-4 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800">
                 <div>
                   <span className="font-bold text-white text-sm">🗂️ 8대 뷰어 모드별 기본 도구 그룹 편성 관리</span>
@@ -579,12 +581,14 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
                     <input type="checkbox" defaultChecked className="accent-indigo-500" />
                     <span>그룹 간 도구 중복 편성 허용</span>
                   </label>
-                  <button
+                  <Button
+                    variant="primary"
+                    size="sm"
                     onClick={() => setImpactNotice('✅ 도구그룹 기본값이 성공적으로 배포되었습니다. 활성 세션 사용자 3,820명의 툴바에 자동 반영됩니다.')}
-                    className="px-3.5 py-1.5 bg-indigo-600 text-white rounded font-medium"
+                    className="text-xs"
                   >
                     그룹 기본값 배포
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -595,27 +599,27 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
                     <span>⚠️</span>
                     <span>도구 그룹 변경 시 영향도 검토 (Impact Analysis)</span>
                   </span>
-                  <span className="text-[11px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300">실시간 연동 영향도 분석</span>
+                  <Badge variant="primary" size="sm">실시간 연동 영향도 분석</Badge>
                 </div>
                 <p className="text-slate-300 text-[11px]">
                   설정한 도구 그룹을 변경하여 배포할 경우, 사용자의 커스텀 툴바 프리셋에 즉각적인 레이아웃 변동이 발생합니다.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 font-mono text-[11px]">
-                  <div className="p-2 bg-slate-950 rounded border border-slate-800">
+                  <div className="p-2 bg-slate-950 rounded-lg border border-slate-800">
                     <span className="text-slate-500 block">영향받는 활성 사용자:</span>
                     <strong className="text-emerald-400">3,820명</strong>
                   </div>
-                  <div className="p-2 bg-slate-950 rounded border border-slate-800">
+                  <div className="p-2 bg-slate-950 rounded-lg border border-slate-800">
                     <span className="text-slate-500 block">영향받는 뷰어 모드:</span>
                     <strong className="text-sky-400">8대 모드 전체 (View, Annotate, Draw...)</strong>
                   </div>
-                  <div className="p-2 bg-slate-950 rounded border border-slate-800">
+                  <div className="p-2 bg-slate-950 rounded-lg border border-slate-800">
                     <span className="text-slate-500 block">동기화 전파 지연:</span>
                     <strong className="text-indigo-400">&lt; 0.2초 (WebSocket/SSE)</strong>
                   </div>
                 </div>
               </div>
-            </div>
+            </Card>
 
             {impactNotice && (
               <div className="p-3 bg-emerald-950/70 border border-emerald-500/40 rounded-xl text-emerald-200 flex justify-between items-center">
@@ -635,10 +639,10 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
                 { grp: '삽입 (Insert)', count: 3, tools: ['빈 페이지 (➕)', '외부 이미지 (📎)', '스캔 (📷)'] },
                 { grp: '즐겨찾기 (Favorite)', count: 5, tools: ['펜', '형광펜', '댓글', '직사각형', '서명'] },
               ].map((g) => (
-                <div key={g.grp} className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+                <Card key={g.grp} variant="subtle" className="p-3 space-y-2">
                   <div className="flex justify-between items-center pb-1.5 border-b border-slate-800">
                     <span className="font-semibold text-slate-200">{g.grp}</span>
-                    <span className="px-2 py-0.5 bg-slate-800 text-slate-400 rounded text-[10px] font-mono">{g.count}개</span>
+                    <Badge variant="neutral" size="sm">{g.count}개</Badge>
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {g.tools.map((t) => (
@@ -647,7 +651,7 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
                       </span>
                     ))}
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
           </div>
