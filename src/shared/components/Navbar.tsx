@@ -23,6 +23,8 @@ import {
   ChevronRight,
   Pin,
   PinOff,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { ActiveViewId, DomainGroupId } from '../../types';
 
@@ -155,6 +157,37 @@ export default function Navbar({
   const [hoveredBadge, setHoveredBadge] = useState<'db' | 'status' | null>(null);
   const [activeSessionId, setActiveSessionId] = useState<string>('SESSION-0017');
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState<boolean>(false);
+
+  // Theme state (Dark/Light toggle, default: dark, syncs with document.documentElement)
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('purepdfrend_theme');
+      if (saved) return saved === 'dark';
+      return typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    } catch {
+      return true;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (typeof document !== 'undefined') {
+        if (isDarkMode) {
+          document.documentElement.classList.add('dark');
+          document.documentElement.classList.remove('light');
+          localStorage.setItem('purepdfrend_theme', 'dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+          document.documentElement.classList.add('light');
+          localStorage.setItem('purepdfrend_theme', 'light');
+        }
+      }
+    } catch {}
+  }, [isDarkMode]);
+
+  const toggleTheme = () => {
+    setIsDarkMode((prev) => !prev);
+  };
 
   // Emergency Disaster Recovery Modal state
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState<boolean>(false);
@@ -361,6 +394,40 @@ export default function Navbar({
             <span className="inline font-semibold">정밀점검</span>
             {allPassed === true && <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />}
             {allPassed === false && <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping shrink-0" />}
+          </button>
+
+          {/* 와이어프레임 퀵액션 바로가기 버튼 */}
+          <button
+            id="btn-quick-wireframes"
+            onClick={() => {
+              onSelectDomain('studio');
+              onSelectView('wireframes');
+            }}
+            className={`h-8 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-full border cursor-pointer transition-all text-xs font-semibold shadow-xs shrink-0 whitespace-nowrap select-none ${
+              activeView === 'wireframes'
+                ? 'bg-indigo-600 border-indigo-400 text-white shadow-md shadow-indigo-600/30 ring-1 ring-indigo-400/40'
+                : 'bg-slate-900 border-slate-800 text-slate-300 hover:text-white hover:border-indigo-500/50'
+            }`}
+            title="관리자 16개·사용자 9개 와이어프레임 바로가기"
+            aria-label="와이어프레임 바로가기"
+          >
+            <Layers className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+            <span className="hidden xs:inline">와이어프레임</span>
+          </button>
+
+          {/* Sun / Moon 원클릭 다크/라이트 테마 스위처 */}
+          <button
+            id="btn-theme-toggle"
+            onClick={toggleTheme}
+            className="w-8 h-8 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 hover:border-slate-700 text-slate-300 hover:text-amber-300 flex items-center justify-center transition-all cursor-pointer shadow-xs shrink-0 select-none"
+            title={isDarkMode ? '라이트 모드로 전환 (현재 다크)' : '다크 모드로 전환 (현재 라이트)'}
+            aria-label={isDarkMode ? '라이트 모드로 전환' : '다크 모드로 전환'}
+          >
+            {isDarkMode ? (
+              <Sun className="w-4 h-4 text-amber-400 transition-transform hover:rotate-45" />
+            ) : (
+              <Moon className="w-4 h-4 text-indigo-400 transition-transform hover:-rotate-12" />
+            )}
           </button>
 
           {/* Header Pin / Unpin Toggle Button (아이콘 전용, 텍스트 제거) */}
@@ -640,6 +707,21 @@ export default function Navbar({
                   </span>
                 )}
               </div>
+
+              {/* Mobile Drawer Theme Toggle (44px Minimum Touch Target Guaranteed) */}
+              <button
+                id="btn-mobile-drawer-theme-toggle"
+                onClick={toggleTheme}
+                className="w-full min-h-[44px] px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 font-semibold text-xs flex items-center justify-between shadow-xs active:scale-98 transition-all"
+              >
+                <div className="flex items-center gap-2">
+                  {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-400" />}
+                  <span>{isDarkMode ? '라이트 테마로 전환' : '다크 테마로 전환'}</span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                  {isDarkMode ? 'DARK' : 'LIGHT'}
+                </span>
+              </button>
 
               <button
                 onClick={() => {
