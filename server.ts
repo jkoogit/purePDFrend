@@ -2640,6 +2640,269 @@ app.post('/api/ocr/test', async (req, res) => {
   }
 });
 
+// ---------------------- 8. ADMIN SYSTEM SERVICES (PG-ADM-01 & PG-ADM-03) ----------------------
+
+// In-memory persistent state for PG-ADM-01 (보안 IP 관리)
+let securityIpConfig = {
+  whitelist: [
+    '192.168.1.0/24 (사내 본사망)',
+    '211.234.120.0/24 (IDC 보안 VPN)',
+  ],
+  blacklist: [
+    '45.33.32.156 (무차별 대입 공격 12회 차단)',
+    '185.220.101.5 (Tor Exit Node 실시간 차단)',
+  ],
+  twoFactorEnforced: true,
+  geoBlockEnabled: false,
+  offlineTokenDays: 30,
+  idleTimeout: '60분',
+};
+
+// GET /api/admin/security/ips
+app.get('/api/admin/security/ips', (req, res) => {
+  res.json({
+    success: true,
+    ...securityIpConfig,
+  });
+});
+
+// POST /api/admin/security/ips
+app.post('/api/admin/security/ips', (req, res) => {
+  const { type, ip, reason } = req.body;
+  if (!ip || typeof ip !== 'string') {
+    return res.status(400).json({ success: false, error: '유효한 IP 주소 또는 CIDR 대역을 입력해주세요.' });
+  }
+
+  const cleanIp = ip.trim();
+  if (type === 'black') {
+    const entry = reason ? `${cleanIp} (${reason})` : `${cleanIp} (수동 차단)`;
+    if (!securityIpConfig.blacklist.includes(entry)) {
+      securityIpConfig.blacklist.push(entry);
+    }
+  } else {
+    const entry = reason ? `${cleanIp} (${reason})` : `${cleanIp} (수동 등록)`;
+    if (!securityIpConfig.whitelist.includes(entry)) {
+      securityIpConfig.whitelist.push(entry);
+    }
+  }
+
+  res.json({
+    success: true,
+    message: `${type === 'black' ? '블랙리스트' : '화이트리스트'}에 등록되었습니다.`,
+    ...securityIpConfig,
+  });
+});
+
+// DELETE /api/admin/security/ips
+app.delete('/api/admin/security/ips', (req, res) => {
+  const { type, ip } = req.body;
+  if (!ip) {
+    return res.status(400).json({ success: false, error: '삭제할 IP를 지정해주세요.' });
+  }
+
+  if (type === 'black') {
+    securityIpConfig.blacklist = securityIpConfig.blacklist.filter((item) => item !== ip);
+  } else {
+    securityIpConfig.whitelist = securityIpConfig.whitelist.filter((item) => item !== ip);
+  }
+
+  res.json({
+    success: true,
+    message: '성공적으로 삭제되었습니다.',
+    ...securityIpConfig,
+  });
+});
+
+// POST /api/admin/security/config
+app.post('/api/admin/security/config', (req, res) => {
+  const { twoFactorEnforced, geoBlockEnabled, offlineTokenDays, idleTimeout } = req.body;
+  if (twoFactorEnforced !== undefined) securityIpConfig.twoFactorEnforced = !!twoFactorEnforced;
+  if (geoBlockEnabled !== undefined) securityIpConfig.geoBlockEnabled = !!geoBlockEnabled;
+  if (offlineTokenDays !== undefined) securityIpConfig.offlineTokenDays = Number(offlineTokenDays) || 30;
+  if (idleTimeout !== undefined) securityIpConfig.idleTimeout = String(idleTimeout);
+
+  res.json({
+    success: true,
+    message: '보안 정책 구성이 업데이트되었습니다.',
+    ...securityIpConfig,
+  });
+});
+
+// In-memory persistent state for PG-ADM-03 (사용자 관리)
+let adminUsers = [
+  {
+    id: 'user_0921@corp.com',
+    name: '홍길동',
+    avatarUrl: '',
+    avatarColor: 'from-blue-500 to-indigo-600',
+    status: '정상',
+    offlineAllowed: true,
+    offlineDaysLeft: 29,
+    storageType: 'Synology NAS',
+    storagePath: '/volume1/pdf_docs',
+    storageUsage: '45.2 GB / 100 GB',
+    roles: ['ROLE_EDITOR', 'ROLE_USER'],
+  },
+  {
+    id: 'guest_8812@gmail.com',
+    name: '김영희',
+    avatarUrl: '',
+    avatarColor: 'from-amber-500 to-rose-600',
+    status: '제한',
+    offlineAllowed: false,
+    offlineDaysLeft: 0,
+    storageType: 'Google Drive',
+    storagePath: 'My Drive/purepdf',
+    storageUsage: '12.8 GB / 30 GB',
+    roles: ['ROLE_USER'],
+  },
+  {
+    id: 'dev_lead@purepdf.kr',
+    name: '이수진',
+    avatarUrl: '',
+    avatarColor: 'from-emerald-500 to-teal-600',
+    status: '정상',
+    offlineAllowed: true,
+    offlineDaysLeft: 14,
+    storageType: 'QNAP NAS (SFTP)',
+    storagePath: '/share/research',
+    storageUsage: '88.1 GB / 200 GB',
+    roles: ['ROLE_ADMIN', 'ROLE_EDITOR'],
+  },
+  {
+    id: 'dormant_user@daum.net',
+    name: '박철수',
+    avatarUrl: '',
+    avatarColor: 'from-slate-500 to-slate-700',
+    status: '휴면',
+    offlineAllowed: false,
+    offlineDaysLeft: 0,
+    storageType: 'Local WebDAV',
+    storagePath: '/webdav/personal',
+    storageUsage: '2.1 GB / 10 GB',
+    roles: ['ROLE_USER'],
+  },
+];
+
+// GET /api/admin/users
+app.get('/api/admin/users', async (req, res) => {
+  try {
+    // Optionally query PostgreSQL aiagent.agent_user_account for cross-checking
+    try {
+      const dbUsersRes: any = await executeSql('SELECT user_id, email, user_name, account_status, org_group FROM aiagent.agent_user_account LIMIT 10;');
+      if (dbUsersRes && dbUsersRes.rows && dbUsersRes.rows.length > 0) {
+        // Merge or supplement if not already present
+        for (const row of dbUsersRes.rows) {
+          const exists = adminUsers.some((u) => u.id === row.email || u.id === row.user_id);
+          if (!exists) {
+            adminUsers.push({
+              id: row.email || row.user_id,
+              name: row.user_name || 'DB 사용자',
+              avatarUrl: '',
+              avatarColor: 'from-purple-500 to-indigo-600',
+              status: row.account_status === 'ACTIVE' ? '정상' : '제한',
+              offlineAllowed: true,
+              offlineDaysLeft: 30,
+              storageType: 'PostgreSQL DB Cloud',
+              storagePath: '/cloud/user_docs',
+              storageUsage: '1.2 GB / 50 GB',
+              roles: ['ROLE_USER'],
+            });
+          }
+        }
+      }
+    } catch {
+      // Graceful degradation: Use in-memory adminUsers
+    }
+
+    res.json({
+      success: true,
+      users: adminUsers,
+      totalCount: adminUsers.length,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/admin/users
+app.post('/api/admin/users', (req, res) => {
+  const { id, name, roles, offlineAllowed, offlineDaysLeft, storageType, storagePath } = req.body;
+  if (!id || !name) {
+    return res.status(400).json({ success: false, error: '아이디(이메일)와 이름을 입력해주세요.' });
+  }
+
+  const existing = adminUsers.find((u) => u.id === id);
+  if (existing) {
+    return res.status(400).json({ success: false, error: '이미 존재하는 사용자 ID입니다.' });
+  }
+
+  const newUser = {
+    id,
+    name,
+    avatarUrl: '',
+    avatarColor: 'from-cyan-500 to-blue-600',
+    status: '정상' as const,
+    offlineAllowed: offlineAllowed ?? true,
+    offlineDaysLeft: offlineDaysLeft ?? 30,
+    storageType: storageType || 'Local WebDAV',
+    storagePath: storagePath || '/storage/default',
+    storageUsage: '0.0 GB / 20 GB',
+    roles: Array.isArray(roles) && roles.length > 0 ? roles : ['ROLE_USER'],
+  };
+
+  adminUsers.unshift(newUser);
+
+  res.status(201).json({
+    success: true,
+    user: newUser,
+    message: '새로운 사용자가 등록되었습니다.',
+  });
+});
+
+// PATCH /api/admin/users/:id
+app.patch('/api/admin/users/:id', (req, res) => {
+  const { id } = req.params;
+  const userIndex = adminUsers.findIndex((u) => u.id === id);
+  if (userIndex === -1) {
+    return res.status(404).json({ success: false, error: '사용자를 찾을 수 없습니다.' });
+  }
+
+  const { status, roles, offlineAllowed, offlineDaysLeft, name } = req.body;
+  const current = adminUsers[userIndex];
+
+  if (status !== undefined) current.status = status;
+  if (roles !== undefined && Array.isArray(roles)) current.roles = roles;
+  if (offlineAllowed !== undefined) current.offlineAllowed = !!offlineAllowed;
+  if (offlineDaysLeft !== undefined) current.offlineDaysLeft = Number(offlineDaysLeft);
+  if (name !== undefined) current.name = String(name);
+
+  adminUsers[userIndex] = current;
+
+  res.json({
+    success: true,
+    user: current,
+    message: '사용자 정보가 성공적으로 수정되었습니다.',
+  });
+});
+
+// DELETE /api/admin/users/:id
+app.delete('/api/admin/users/:id', (req, res) => {
+  const { id } = req.params;
+  const initialLength = adminUsers.length;
+  adminUsers = adminUsers.filter((u) => u.id !== id);
+
+  if (adminUsers.length === initialLength) {
+    return res.status(404).json({ success: false, error: '삭제할 사용자를 찾을 수 없습니다.' });
+  }
+
+  res.json({
+    success: true,
+    message: '사용자가 성공적으로 삭제되었습니다.',
+    remainingCount: adminUsers.length,
+  });
+});
+
 // ---------------------- VITE & STATIC SERVING ----------------------
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {

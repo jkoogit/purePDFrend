@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Input, Badge, Card, Modal } from '@shared/components/ui';
 
 export interface AdminUserItem {
@@ -79,20 +79,119 @@ export function AdminUsersView() {
   const [filterRole, setFilterRole] = useState<string>('ALL');
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [notice, setNotice] = useState<string | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newUserId, setNewUserId] = useState('');
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserRoles, setNewUserRoles] = useState<string[]>(['ROLE_USER']);
 
-  const toggleUserRole = (userId: string, role: string) => {
-    setUsers(
-      users.map((u) => {
-        if (u.id !== userId) return u;
-        const has = u.roles.includes(role);
-        const updatedRoles = has ? u.roles.filter((r) => r !== role) : [...u.roles, role];
-        return { ...u, roles: updatedRoles };
-      })
-    );
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch('/api/admin/users');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.users)) {
+        setUsers(data.users);
+      }
+    } catch (e: any) {
+      console.warn('사용자 목록 로드 예외 (로컬 기본값 유지):', e.message);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const toggleUserRole = async (userId: string, role: string) => {
+    const target = users.find((u) => u.id === userId);
+    if (!target) return;
+
+    const has = target.roles.includes(role);
+    const updatedRoles = has ? target.roles.filter((r) => r !== role) : [...target.roles, role];
+
+    setUsers(users.map((u) => (u.id === userId ? { ...u, roles: updatedRoles } : u)));
     if (selectedUser && selectedUser.id === userId) {
-      const has = selectedUser.roles.includes(role);
-      const updatedRoles = has ? selectedUser.roles.filter((r) => r !== role) : [...selectedUser.roles, role];
       setSelectedUser({ ...selectedUser, roles: updatedRoles });
+    }
+
+    try {
+      await fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roles: updatedRoles }),
+      });
+      setNotice(`'${target.name}' 권한이 업데이트되었습니다.`);
+      setTimeout(() => setNotice(null), 2500);
+    } catch (e: any) {
+      console.warn('사용자 권한 업데이트 예외:', e.message);
+    }
+  };
+
+  const handleUpdateUserStatus = async (userId: string, newStatus: '정상' | '제한' | '휴면') => {
+    setUsers(users.map((u) => (u.id === userId ? { ...u, status: newStatus } : u)));
+    if (selectedUser && selectedUser.id === userId) {
+      setSelectedUser({ ...selectedUser, status: newStatus });
+    }
+
+    try {
+      await fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      setNotice(`상태가 '${newStatus}'(으)로 변경되었습니다.`);
+      setTimeout(() => setNotice(null), 2500);
+    } catch (e: any) {
+      console.warn('상태 업데이트 예외:', e.message);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm(`'${userId}' 계정을 삭제하시겠습니까?`)) return;
+
+    setUsers(users.filter((u) => u.id !== userId));
+    if (selectedUser && selectedUser.id === userId) {
+      setSelectedUser(null);
+    }
+
+    try {
+      await fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
+        method: 'DELETE',
+      });
+      setNotice('사용자 계정이 성공적으로 삭제되었습니다.');
+      setTimeout(() => setNotice(null), 2500);
+    } catch (e: any) {
+      console.warn('사용자 삭제 예외:', e.message);
+    }
+  };
+
+  const handleCreateUser = async () => {
+    if (!newUserId.trim() || !newUserName.trim()) return;
+
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: newUserId.trim(),
+          name: newUserName.trim(),
+          roles: newUserRoles,
+          offlineAllowed: true,
+          offlineDaysLeft: 30,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.user) {
+        setUsers([data.user, ...users]);
+        setIsAddModalOpen(false);
+        setNewUserId('');
+        setNewUserName('');
+        setNewUserRoles(['ROLE_USER']);
+        setNotice('새로운 사용자가 등록되었습니다.');
+        setTimeout(() => setNotice(null), 3000);
+      } else {
+        alert(data.error || '사용자 등록 실패');
+      }
+    } catch (e: any) {
+      alert('사용자 등록 오류: ' + e.message);
     }
   };
 
@@ -162,9 +261,18 @@ export function AdminUsersView() {
             </div>
           </div>
 
-          <span className="text-slate-400 text-[11px] self-end md:self-auto font-mono">
-            조회 결과: <strong className="text-blue-400">{filteredUsers.length}</strong> / {users.length}명
-          </span>
+          <div className="flex items-center gap-2 self-end md:self-auto">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setIsAddModalOpen(true)}
+            >
+              + 회원 등록
+            </Button>
+            <span className="text-slate-400 text-[11px] font-mono">
+              <strong className="text-blue-400">{filteredUsers.length}</strong> / {users.length}명
+            </span>
+          </div>
         </div>
       </Card>
 
@@ -277,6 +385,69 @@ export function AdminUsersView() {
         ))}
       </div>
 
+      {/* 신규 회원 등록 모달 */}
+      {isAddModalOpen && (
+        <Modal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          title="새로운 회원 등록"
+          description="관리자 권한으로 시스템 신규 회원을 직접 등록합니다."
+          footer={
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setIsAddModalOpen(false)}>
+                취소
+              </Button>
+              <Button variant="primary" size="sm" onClick={handleCreateUser}>
+                등록 완료
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-3">
+            <div>
+              <label className="block text-slate-300 text-xs mb-1">사용자 ID (이메일)</label>
+              <Input
+                type="email"
+                placeholder="user@example.com"
+                value={newUserId}
+                onChange={(e) => setNewUserId(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-slate-300 text-xs mb-1">회원 이름</label>
+              <Input
+                type="text"
+                placeholder="홍길동"
+                value={newUserName}
+                onChange={(e) => setNewUserName(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-slate-300 text-xs mb-1">기본 역할</label>
+              <div className="grid grid-cols-2 gap-2">
+                {AVAILABLE_ROLES.map((r) => (
+                  <label key={r} className="flex items-center gap-2 p-2 bg-slate-900 rounded-lg border border-slate-800 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newUserRoles.includes(r)}
+                      onChange={() => {
+                        if (newUserRoles.includes(r)) {
+                          setNewUserRoles(newUserRoles.filter((item) => item !== r));
+                        } else {
+                          setNewUserRoles([...newUserRoles, r]);
+                        }
+                      }}
+                      className="accent-blue-500 w-3.5 h-3.5 cursor-pointer"
+                    />
+                    <span className="font-mono text-xs text-slate-300">{r}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {/* 사용자 상세화면 조회 Modal */}
       {selectedUser && (
         <Modal
@@ -296,9 +467,18 @@ export function AdminUsersView() {
           }
           description="회원 상세정보 및 다중 권한 관리"
           footer={
-            <Button variant="primary" size="sm" onClick={() => setSelectedUser(null)}>
-              확인 및 닫기
-            </Button>
+            <div className="flex items-center justify-between w-full">
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => handleDeleteUser(selectedUser.id)}
+              >
+                계정 삭제
+              </Button>
+              <Button variant="primary" size="sm" onClick={() => setSelectedUser(null)}>
+                확인 및 닫기
+              </Button>
+            </div>
           }
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -308,9 +488,21 @@ export function AdminUsersView() {
                 <div>계정 식별자: <span className="font-mono text-slate-200">{selectedUser.id}</span></div>
                 <div className="flex items-center gap-2">
                   <span>회원 상태:</span>
-                  <Badge variant={selectedUser.status === '정상' ? 'success' : 'danger'} size="sm">
-                    {selectedUser.status}
-                  </Badge>
+                  <div className="flex gap-1">
+                    {(['정상', '제한', '휴면'] as const).map((st) => (
+                      <button
+                        key={st}
+                        onClick={() => handleUpdateUserStatus(selectedUser.id, st)}
+                        className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all cursor-pointer ${
+                          selectedUser.status === st
+                            ? 'bg-blue-600 text-white shadow'
+                            : 'bg-slate-800 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {st}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div>오프라인 토큰: <span className="font-mono text-slate-200">{selectedUser.offlineAllowed ? `${selectedUser.offlineDaysLeft}일 유효` : '비활성'}</span></div>
               </div>
