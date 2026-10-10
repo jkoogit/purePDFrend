@@ -181,12 +181,43 @@
   ],
   "tasks": [
     {
+      "task_id": "TASK-0027-02",
+      "session_id": "SESSION-0027",
+      "task_name": "[0027-02] 통합 디자인 토큰 tokens.ts 추출 및 와이어프레임 디자인시스템 쇼케이스 구축",
+      "status_cd": "정리완료",
+      "priority": "HIGH",
+      "assigned_agent": "gemini",
+      "git_branch": "task/0027_01_글로벌헤더_테마스위치_관리자API_jkoogit",
+      "started_at": "2026-10-10T17:24:39.317Z",
+      "ended_at": null,
+      "doc_payload": {
+        "review_doc": "docs/10.리뷰/261010_047_통합_디자인_토큰_추출_및_쇼케이스_구축_코드리뷰.md",
+        "plan_items": [
+          "1. 설계 문서 선반영 (05-28_통합_디자인_토큰_및_컴포넌트_쇼케이스_상세설계서.md)",
+          "2. src/styles/tokens.ts 신설 (Brand, Slate Gray, Semantic 3단계 색상 및 4pt 그리드/44px 터치)",
+          "3. DesignSystemShowcase.tsx 인터랙티브 쇼케이스 구현",
+          "4. WireframeStudio.tsx 상단 탭에 쇼케이스 탭 신설",
+          "5. 단위 테스트 및 정적 린트/컴파일 검증"
+        ],
+        "backlogs": [
+          "BACKLOG-0027-01: 23개 와이어프레임 화면 AdminShell / UserShell 전면 교체 (Phase 2)",
+          "BACKLOG-0027-02: PDF MVP 핵심 서비스 화면 바인딩 (Phase 3)"
+        ]
+      },
+      "created_sys": "agent-harness",
+      "created_by": "jkoogit",
+      "updated_sys": "agent-harness",
+      "updated_by": "jkoogit",
+      "version": 2,
+      "status": "REVIEWED"
+    },
+    {
       "task_id": "TASK-0027-01",
       "session_id": "SESSION-0027",
       "task_name": "[0027-01] 상단 글로벌 헤더 테마 스위치 인터페이스 구축 및 관리자 실제 API 연동 1단계",
-      "status_cd": "정리",
+      "status_cd": "완료",
       "started_at": "2026-10-08T17:25:22.559Z",
-      "ended_at": null,
+      "ended_at": "2026-10-10T17:01:18.997Z",
       "doc_payload": {
         "plan_items": [
           "1. 상단 글로벌 네비게이션 테마 스위처 인터페이스 구현",
@@ -202,7 +233,9 @@
       "updated_sys": "agent-harness",
       "updated_by": "jkoogit",
       "version": 1,
-      "updated_at": "2026-10-08T17:46:21.162Z"
+      "updated_at": "2026-10-08T17:46:21.162Z",
+      "status": "COMPLETED",
+      "completed_at": "2026-10-10T17:01:18.996Z"
     },
     {
       "task_id": "TASK-0026-02",
@@ -975,6 +1008,82 @@
       "completion_tokens": 1050,
       "total_tokens": 2870,
       "created_at": "2026-10-08T17:46:21.158Z"
+    },
+    {
+      "trace_id": "TRACE-0027-01-00-04",
+      "session_id": "SESSION-0027",
+      "task_id": "TASK-0027-01",
+      "loop_id": null,
+      "step_index": 4,
+      "agent_name": "gemini",
+      "model_name": "models/gemini-3.8-flash",
+      "operator_account": "jkoogit",
+      "user_email": "jkoogit@gmail.com",
+      "user_prompt": "#태스크정리 [0027-01] 상단 글로벌 헤더 테마 스위치 인터페이스 구축 및 관리자 실제 API 연동 1단계",
+      "agent_response": "#[0027-04] [0027-01] 상단 글로벌 헤더 테마 스위치 인터페이스 구축 및 관리자 실제 API 연동 1단계 - 태스크 정리 보고\n\n### 1. 서비스 전수 점검 및 시스템 무결성 종합 감사 결과\n- **무결성 종합 감사 (/api/agent/audit/integrity)**: **100점 만점 [A+ (PERFECT)]** 달성\n  - 고아 태스크/루프/트레이스/문서 레코드: **0건 (ALL PASSED)**\n  - 로컬 스토어 vs 원격 DB 정합성 (Parity): **100% 일치** (세션 1, 태스크 1, 트레이스 3)\n  - 기술문서 206개 전수 SHA-256 해시: **206건 100% 매칭 완료** (해시 불일치 0, 미인덱스 0)\n  - 정책 03-09 토큰 쿼터(429/RESOURCE_EXHAUSTED) 영구 격리: **위반 0건 준수**\n\n### 2. 코드리뷰 문서 발행 및 인덱스 현행화\n- **리뷰 문서 발행**: `docs/10.리뷰/261010_046_글로벌헤더_테마스위처_및_관리자_실제_API_연동_1단계_코드리뷰.md` 작성 완료\n- **리뷰 인덱스 현행화**: `docs/10.리뷰/README_리뷰.md`에 10-46 등록 완료\n- **학습 인덱스 현행화**: `docs/15.학습/README_학습.md`에 15-23 등록 완료\n\n### 3. 하네스 스토어 및 PostgreSQL DB 동기화\n- **로컬 스토어 (`data/local_agent_store.json`)**: `TASK-0027-01` 상태를 `정리`로 현행화\n- **원격 DB (`aiagent.harness_task_meta`)**: `TASK-0027-01` (`status_cd = '정리'`) 무손실 동기화 완료\n\n### 4. GitHub Git Data API 원격 커밋, PR 및 브랜치 승급 완결\n- **신규 Git Commit 생성**: `d33b5684319ef94da7cdef8317306ad32e891464`\n- **원격 작업 브랜치 푸시**: `refs/heads/task/0027_01_글로벌헤더_테마스위치_관리자API_jkoogit` 최신 커밋 반영\n- **Pull Request 발행 및 머지**: **PR #78** 생성 (`[TASK-0027-01] [0027-01] 상단 글로벌 헤더 테마 스위치 인터페이스 구축 및 관리자 실제 API 연동 1단계`) 후 `dev` 브랜치 자동 머지 완료 (Status: 200)\n- **브랜치 승급 배포**: `dev` -> `stg` (Status: 201) 및 `stg` -> `main` (Status: 201) 배포 머지 완료 (3대 브랜치 최신 커밋 100% 동기화)\n\n### 5. 후속 프롬프트 안내\n`#태스크정리` 단계가 성공적으로 완결되었으므로, 다음 단계는 태스크 상태를 최종 `완료`로 종결하는 `#태스크승급`입니다.\n\n```bash\n#태스크승급 [0027-01] 상단 글로벌 헤더 테마 스위치 인터페이스 구축 및 관리자 실제 API 연동 1단계\n```",
+      "response_summary": "TASK-0027-01 정리완료: 서비스 전수점검 100점 만점 통과, 리뷰 문서 10-46 발행, GitHub 커밋 d33b5684 푸시, PR #78 머지 및 dev/stg/main 승급 완료",
+      "prompt_tokens": 1690,
+      "completion_tokens": 950,
+      "total_tokens": 2640,
+      "created_at": "2026-10-10T16:54:32.757Z"
+    },
+    {
+      "trace_id": "TRACE-0027-01-00-05",
+      "session_id": "SESSION-0027",
+      "task_id": "TASK-0027-01",
+      "loop_id": null,
+      "step_index": 5,
+      "agent_name": "gemini",
+      "model_name": "models/gemini-3.8-flash",
+      "operator_account": "jkoogit",
+      "user_email": "jkoogit@gmail.com",
+      "user_prompt": "#태스크승급 [0027-01] 상단 글로벌 헤더 테마 스위치 인터페이스 구축 및 관리자 실제 API 연동 1단계",
+      "agent_response": "#[0027-05] [0027-01] 상단 글로벌 헤더 테마 스위치 인터페이스 구축 및 관리자 실제 API 연동 1단계 - 태스크승급 보고\n\n### 1. 미반영 대화턴 전수 보정 및 DB 영속화 (Trace Reconcile)\n- **화해 대상 세션**: `SESSION-0027`\n- **보정 결과**: 세션 내 누적된 모든 미반영 대화턴이 원격 PostgreSQL DB(`aiagent.agent_conversation_trace`)에 100% 무손실 영속화 완료\n\n---\n\n### 2. 원격 브랜치 배포 승급 및 최신 커밋 일치 검증\nGitHub REST API(`POST /repos/:owner/:repo/merges`)를 통해 `dev` ➔ `stg` ➔ `main` 브랜치 배포 승급 및 일치 여부를 검증하였습니다:\n- **원격 dev 브랜치 최신 커밋**: `2b505c75f1e328060fd2593e7456e9805c2902fb`\n- **원격 stg 브랜치 최신 커밋**: `2b505c75f1e328060fd2593e7456e9805c2902fb`\n- **원격 main 브랜치 최신 커밋**: `2b505c75f1e328060fd2593e7456e9805c2902fb`\n- **3대 브랜치 일치 상태**: **✅ 100% 일치 (SHA 일치 확인 완료: TRUE)**\n\n---\n\n### 3. 하네스 스토어 상태 승급 현행화\n- **태스크 식별자**: `TASK-0027-01`\n- **태스크 명칭**: `[0027-01] 상단 글로벌 헤더 테마 스위치 인터페이스 구축 및 관리자 실제 API 연동 1단계`\n- **승급 후 상태**: `완료 (COMPLETED)`\n- **로컬 스토어 & 원격 DB**: `data/local_agent_store.json` 및 `aiagent.harness_task_meta` 동시 갱신 완료\n\n---\n\n### 4. 태스크 작업 결과 종합 리뷰\n\n#### [문서 작성]\n| 그룹 | 문서명 | 한줄 설명 |\n| :--- | :--- | :--- |\n| **설계** | `docs/05.설계/05-27_상단_글로벌_헤더_테마_스위처_및_관리자_API_1단계_설계서.md` | 테마 스위처 상태머신, DOM 클래스 동기화 및 PG-ADM-01/03 API 듀얼 영속화 설계 |\n| **리뷰** | `docs/10.리뷰/261010_046_글로벌헤더_테마스위처_및_관리자_실제_API_연동_1단계_코드리뷰.md` | 글로벌 헤더 테마 스위처 및 관리자 실제 API 연동 1단계 완료 코드리뷰 |\n| **학습** | `docs/15.학습/15-23_글로벌_헤더_테마_스위처_및_관리자_실제_API_연동_패턴_해설.md` | Sun/Moon 테마 토글 상태머신, 와이어프레임 퀵액션 및 듀얼 영속화 패턴 해설 |\n\n#### [백엔드 (API & 서비스)]\n- **PG-ADM-01 보안 IP 관리 REST API** [TASK-0027-01]: `/api/admin/security/ips` GET, POST, DELETE 및 보안 설정 업데이트 엔드포인트 구축\n- **PG-ADM-03 사용자 계정 관리 REST API** [TASK-0027-01]: `/api/admin/users` GET, POST, PATCH, DELETE 및 PostgreSQL `aiagent.agent_user_account` 연계 구축\n\n#### [프론트엔드 (UI/UX)]\n- **상단 글로벌 네비게이션 테마 스위처** [TASK-0027-01]: Sun/Moon 원클릭 다크/라이트 테마 토글 버튼, `localStorage` 영속화 및 와이어프레임 퀵액션 버튼 탑재\n- **모바일 햄버거 드로어 테마 스위치 바** [TASK-0027-01]: 44px 최소 터치 타깃 가드레일을 준수한 모바일 전용 테마 스위처 배치\n- **PG-ADM-01 보안 관리 UI 실연동** [TASK-0027-01]: 화이트리스트/블랙리스트 CRUD 및 2FA/Geo-Blocking/오프라인 수명주기 실시간 양방향 통신\n- **PG-ADM-03 사용자 관리 UI 실연동** [TASK-0027-01]: 회원 목록 조회, 신규 등록 모달, 다중 역할 체크박스, 상태 원클릭 변경, 계정 삭제 및 모바일 Break-to-Card 완결\n\n#### [테스트]\n- **통합 단위 테스트 (`tests/admin_api_and_theme.test.ts`)** [TASK-0027-01]: 보안 IP CRUD, 사용자 관리 CRUD, 테마 상태머신 등 5대 테스트 케이스 100% 통과 (273ms)\n\n---\n\n### 5. 세션 내 잔여 태스크 및 후속 프롬프트 안내\n\n#### 잔여 태스크 현황\n1. **[TASK-0027-01]** 상단 글로벌 헤더 테마 스위치 인터페이스 구축 및 관리자 실제 API 연동 1단계: **✅ 완료 (배포 승급 종결)**\n2. **[TASK-0027-02]** 관리자 시스템서비스 2단계 실제 API 연동 (PG-ADM-02 메뉴/권한 및 PG-ADM-04 로그/감사): **대기 중**\n\n#### 후속 선택지 안내\n- **선택지 1 (후속 태스크 진행 시)**:\n```bash\n#태스크시작 [0027-02] 관리자 시스템서비스 2단계 메뉴권한 및 감사로그 실제 API 연동 계획수립\n```\n\n- **선택지 2 (이번 세션 마감 및 회고 진행 시)**:\n```bash\n#세션정리 [0027] 상단_글로벌_헤더_테마_스위치_인터페이스_구축_및_관리자_실제_API_연동_1단계\n```",
+      "response_summary": "TASK-0027-01 승급완료: 세션 대화턴 전수 보정, dev/stg/main 3대 브랜치 최신 커밋 100% 일치 확인, 태스크 상태 완료 승급",
+      "prompt_tokens": 1720,
+      "completion_tokens": 980,
+      "total_tokens": 2700,
+      "created_at": "2026-10-10T17:01:20.003Z"
+    }
+  ],
+  "turns": [
+    {
+      "trace_id": "TRACE-0027-01-00-06",
+      "session_id": "SESSION-0027",
+      "task_id": "TASK-0027-01",
+      "loop_id": null,
+      "step_index": 6,
+      "agent_name": "gemini",
+      "model_name": "models/gemini-3.8-flash",
+      "operator_account": "jkoogit",
+      "agent_account": "jkoogit@gmail.com",
+      "user_email": "jkoogit@gmail.com",
+      "user_prompt": "현재 시스템 구성이 에이전트개발을위한 인프라서비스와 구현대상 서비스인 pdf관리 서비스가 함께 페키지를 기준으로 분리하여 구현하고있어.  \n와이어프레임으로 도출한 설계화면을 서비스화면으로 전환하기 전에, \n디자인정책이 반영된 통일성과 안정성을 기반으로 한 컴포넌트 기반의 프론트 화면으로 전환하려는거야. \n(잔환한 화면으로 사용자, 설정, 관리자 서비스를 구현할계획.)\n\n아직 이전 작업과정에서 셈플 정책(모아보고)을 기반으로한 전환 결과를 확인못하고있는데. \n언제 확인할수 있지?\n아직 안된것 같은데 \n전환계획과 절차를 검토해줘. \n\n{참고방안\nPhase 1: 토큰 추출 (지금 당장)\nsrc/styles/tokens.ts 하나 생성\n- colors: brand / gray / semantic 3단계로 축소 (현재 Tailwind를 그대로 쓰면 50개 색이 난립)\n- typography: display / body / mono 3타입만\n- radius, shadow, spacing 4pt 시스템\n\n WireframeStudio에 있는 23개 화면의 모든 색을 이 토큰으로 강제 치환.\n\nPhase 2: 컴포넌트 3계층\n• Primitive: Button, Input, Card, Dialog, Badge -> src/components/ui/에 shadcn 기반으로 통일\n • Composite: VirtualizedPageList, BBoxCanvas, SecurityPolicyPanel -> PDF 도메인 전용, props는 오직 token과 data만 받음\n • Layout: AdminShell, UserShell, StudioShell 3개로 전부 통일. 현재 14개 admin이 각자 다른 레이아웃 쓰는 걸 막음 \n\nPhase 3: PDF 기능 바인딩\n• MVP는 USR-03(뷰어) + USR-04(BBox) + USR-05(레이아웃 편집) 3개만 디자인 시스템에 붙여서 완성. 나머지는 디자인 토큰 적용 후 순차 확장.\n  } 이런 절차참고",
+      "agent_response": "#[0027-06] 와이어프레임 설계화면의 디자인시스템 기반 서비스화면 전환계획 및 단계별 검토 보고\n\n### 1. 전환 결과 체감 부재의 원인 진단 및 현재 상태 안내\n- **진단 배경**: 이전 세션(SESSION-0026)에서 정책 03-23 및 8종 기준 컴포넌트 풀(`Button`, `Input`, `Card`, `Badge` 등)을 수립하였으나, 여전히 '완결된 전환 화면'을 체감하기 어려웠던 이유는 다음 3가지 핵심 누락 때문입니다:\n  1. **단일 진실 공급원 토큰 파일(`tokens.ts`) 부재**: Tailwind 클래스가 23개 화면마다 산발적으로 직결되어 있어 색상/여백이 통일되지 못함.\n  2. **3대 통합 레이아웃 쉘(`Shell`) 부재**: 16개 관리자 화면과 9개 사용자 화면이 각자 다른 컨테이너/패딩/헤더 구조를 지녀 일관된 룩앤필을 형성하지 못함.\n  3. **디자인 시스템 쇼케이스 부재**: 정책이 반영된 컴포넌트와 토큰의 실제 동작 상태를 한눈에 볼 수 있는 쇼케이스 탭이 제공되지 않음.\n- **현재 화면 확인 경로**: 상단 글로벌 헤더 우측 `와이어프레임` 바로가기 버튼 또는 상단 도메인 `PDF 스튜디오` -> `와이어프레임` 서브탭에서 프로토타입 상태 확인 가능.\n\n### 2. 제안해주신 3단계 전환 참고방안(Phase 1~3) 상세 검토 및 채택\n- **Phase 1: 토큰 추출 및 단일화 (`src/styles/tokens.ts` 신설)**:\n  - 색상 3단계 축소: Brand(Primary Blue/Sky), Slate Gray(950/900/800/700), Semantic(Emerald, Amber, Rose, Sky)\n  - 타이포그래피 3스케일: Display, Body, Tabular Mono\n  - 4pt 그리드 시스템 및 44px 터치 가드레일 엄격 바인딩\n- **Phase 2: 컴포넌트 3계층 아키텍처 구축**:\n  - Primitive: `src/shared/components/ui/`의 shadcn 기반 완성도 제고\n  - Layout: `AdminShell`, `UserShell`, `StudioShell` 3대 쉘로 전면 일원화\n  - Composite: PDF 도메인 전용 컴포넌트(`VirtualizedPageList`, `BBoxCanvas` 등) 추출\n- **Phase 3: PDF MVP 핵심 서비스 화면 바인딩**:\n  - 1차: PG-USR-03(대용량 가상 뷰어), PG-USR-04(2Way BBox 교정기), PG-USR-05(레이아웃 편집기) 3개 화면 우선 완성\n  - 2차: 사용자 잔여 화면 및 시스템서비스(관리자) 16개 화면 순차 확장\n\n### 3. 확인 가능 시점 및 마일스톤 로드맵\n- **마일스톤 1 (즉시 확인, 차기 태스크)**: `tokens.ts` 추출 및 와이어프레임 스튜디오 내 `[🎨 디자인시스템 쇼케이스]` 탭 신설 -> 토큰/컴포넌트 실물 즉시 확인 가능.\n- **마일스톤 2**: `AdminShell`, `UserShell` 도입으로 23개 화면의 레이아웃 통일 완결.\n- **마일스톤 3**: PG-USR-03/04/05 MVP 3대 서비스 화면의 실제 데이터 및 인터랙션 바인딩 완료.",
+      "response_summary": "와이어프레임 설계화면의 디자인시스템 기반 서비스화면 전환계획 및 단계별 검토, 체감 부재 원인 분석, Phase 1~3 로드맵 보고",
+      "prompt_tokens": 1750,
+      "completion_tokens": 1250,
+      "total_tokens": 3000,
+      "created_at": "2026-10-10T17:19:28.685Z"
+    },
+    {
+      "trace_id": "TRACE-0027-02-00-01",
+      "session_id": "SESSION-0027",
+      "task_id": "TASK-0027-02",
+      "loop_id": null,
+      "step_index": 7,
+      "agent_name": "gemini",
+      "model_name": "models/gemini-3.8-flash",
+      "operator_account": "jkoogit",
+      "agent_account": "jkoogit@gmail.com",
+      "user_email": "jkoogit@gmail.com",
+      "user_prompt": "#태스크시작 [0027-02] 통합 디자인 토큰 tokens.ts 추출 및 와이어프레임 디자인시스템 쇼케이스 구축",
+      "agent_response": "#[0027-07] [0027-02] 통합 디자인 토큰 tokens.ts 추출 및 와이어프레임 디자인시스템 쇼케이스 구축 - 계획수립 보고\n\n### [00] 태스크 분석 및 실행 계획 보고\n\n#### 1. 도메인 분석 및 아키텍처 영향도 평가\n- **대상 세션/태스크**: `SESSION-0027` / `TASK-0027-02`\n- **영향 영역**:\n  1. **디자인 시스템 토큰 계층 (`src/styles/tokens.ts`)**:\n     - 브랜드(Brand), 슬레이트 그레이(Slate Gray), 상태(Semantic) 3단계 색상 팔레트 상수 정의\n     - 타이포그래피(Display, Body, Tabular Mono) 및 4pt 그리드(간격, 라운딩, 그림자) 단일 진실 공급원(SSOT) 구축\n     - 44px 모바일 최소 터치 타깃 가드레일 상수화\n  2. **와이어프레임 스튜디오 내 쇼케이스 탭 (`WireframeStudio.tsx`, `DesignSystemShowcase.tsx`)**:\n     - 와이어프레임 스튜디오 상단 도메인 바에 `[🎨 디자인시스템 쇼케이스]` 탭 신설\n     - 실시간 다크/라이트 테마와 연동되어 토큰 팔레트와 8대 Primitive UI(`Button`, `Input`, `Textarea`, `Card`, `Badge`, `Modal`, `KeyCap`, `ToolIcon`) 실물을 직접 조작·검증할 수 있는 인터랙티브 갤러리 뷰 구축\n  3. **원자 컴포넌트 풀 정비 (`src/shared/components/ui/`)**:\n     - 8종 컴포넌트가 `tokens.ts`의 엄격한 스타일 토큰을 공유하도록 인터페이스 정비\n  4. **TDD 단위 검증 (`tests/tokens_and_showcase.test.ts`)**:\n     - 토큰 상수 무결성, 44px 터치타깃 기준 만족, 쇼케이스 렌더링 무결성 정적/단위 테스트\n\n#### 2. 구체적 작업 항목 (작업별 번호 항목)\n1. **[작업 1 - 설계/문서] 설계 문서 선반영**:\n   - `docs/05.설계/05-28_통합_디자인_토큰_및_컴포넌트_쇼케이스_상세설계서.md` 작성\n2. **[작업 2 - 프론트엔드] 단일 진실 공급원 `src/styles/tokens.ts` 신설**:\n   - Brand, Slate Gray, Semantic 3단계 색상, 3스케일 타이포, 4pt 메트릭스 및 터치 가드레일 정의\n3. **[작업 3 - 프론트엔드] 인터랙티브 `DesignSystemShowcase.tsx` 구현**:\n   - 색상 팔레트 swatch 카드, 타이포그래피 스케일 미리보기, 44px 터치 타깃 검증기\n   - 8종 원자 컴포넌트(버튼 6종, 인풋, 배지, 모달 팝업, 키캡, 툴아이콘) 라이브 인터랙션 데모\n4. **[작업 4 - 프론트엔드] `WireframeStudio.tsx` 쇼케이스 탭 통합**:\n   - `[📱 사용자 (9)]`, `[🛠 관리자 (16)]`, `[🎨 디자인시스템 쇼케이스]` 3단 스위처 완성\n5. **[작업 5 - 단위 검증] TDD 단위 테스트 작성 및 정적 린트/컴파일 검증**:\n   - `tests/tokens_and_showcase.test.ts` 작성 및 `compile_applet`, `lint_applet` 무결성 확인\n\n#### 3. 사전 확인 및 작업 범위(Scope) 점검\n- **태스크 작업 대상**:\n  - 본 태스크는 **Phase 1(토큰 추출) 및 쇼케이스 탭 신설**에 집중하여 사용자가 디자인시스템 실물을 즉시 눈으로 확인할 수 있도록 구현합니다.\n- **범위 제외 항목 (후속 태스크 및 백로그 연계)**:\n  - 14개 관리자 및 9개 사용자 와이어프레임의 내부 레이아웃을 `AdminShell`/`UserShell`로 전면 교체하는 작업(Phase 2)은 본 태스크 완료 후 후속 태스크(`TASK-0027-03`)로 진행합니다.\n  - PDF 뷰어/BBox 실제 서비스 바인딩(Phase 3)은 차기 세션(`SESSION-0028`)으로 이관합니다.\n  - *\"태스크 작업 범위를 벗어난 23개 화면 전면 쉘 교체는 본 태스크 완료 후 다음 태스크로 진행할까요?\"* (승인 시 본 계획대로 진행)\n\n#### 4. 루프 분석 (Loop Analysis)\n- **타당성 검토**: 8종 Primitive UI의 토큰 바인딩 및 쇼케이스 렌더링은 단위 기능별 루프로 처리 가능.\n- **목표 및 데이터 분석**: `tokens.ts`의 토큰 객체를 각 컴포넌트의 Tailwind 클래스로 매핑.\n- **평가 기준**: WCAG 44px 터치 충족, TypeScript 타입 0 에러, Vite 빌드 성공.\n\n승인 시 다음 프롬프트로 실제 코드 구현(#태스크처리)을 전개합니다.\n\n```bash\n#태스크처리 [0027-02] 통합 디자인 토큰 tokens.ts 추출 및 와이어프레임 디자인시스템 쇼케이스 구축\n```",
+      "response_summary": "TASK-0027-02 계획수립: src/styles/tokens.ts 신설, WireframeStudio 디자인시스템 쇼케이스 탭 신설, 8종 컴포넌트 갤러리 구현 계획 보고",
+      "prompt_tokens": 1820,
+      "completion_tokens": 1150,
+      "total_tokens": 2970,
+      "created_at": "2026-10-10T17:24:39.317Z"
     }
   ]
 }
