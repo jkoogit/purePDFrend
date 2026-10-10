@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { AdminWireframes } from './AdminWireframes';
 import { UserWireframes } from './UserWireframes';
+import { DesignSystemShowcase } from './DesignSystemShowcase';
 import { HorizontalSlideContainer } from '../../components/HorizontalSlideContainer';
 
 export function WireframeStudio() {
-  const [activeTab, setActiveTab] = useState<'admin' | 'user'>('user');
+  const [activeTab, setActiveTab] = useState<'showcase' | 'user' | 'admin'>('showcase');
   const [viewportMode, setViewportMode] = useState<'full' | 'tablet' | 'mobile'>('full');
 
   return (
@@ -17,13 +18,13 @@ export function WireframeStudio() {
           </div>
           <div>
             <h1 className="text-base font-bold text-white flex items-center gap-2">
-              <span>purePDFrend 와이어프레임 스튜디오</span>
-              <span className="text-[11px] font-mono px-2 py-0.5 bg-indigo-500/20 text-indigo-400 rounded-full border border-indigo-500/30">
-                PROTOTYPE v1.0
+              <span>purePDFrend 와이어프레임 & 디자인시스템 스튜디오</span>
+              <span className="text-[11px] font-mono px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30">
+                DS v1.0
               </span>
             </h1>
             <p className="text-xs text-slate-400">
-              관리자 16개 기능 & 사용자 9개 핵심 화면 반응형 레이아웃 프로토타입
+              통합 디자인 토큰(tokens.ts), 컴포넌트 쇼케이스 및 25개 화면 레이아웃 프로토타입
             </p>
           </div>
         </div>
@@ -34,6 +35,19 @@ export function WireframeStudio() {
             {/* 도메인 전환 버튼 */}
             <div className="bg-slate-950 p-1 rounded-xl border border-slate-800 flex items-center text-xs shrink-0">
               <button
+                id="btn-tab-showcase"
+                onClick={() => setActiveTab('showcase')}
+                className={`px-3.5 py-2 min-h-[40px] rounded-lg font-medium transition-all shrink-0 flex items-center gap-1.5 ${
+                  activeTab === 'showcase'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-semibold'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span>🎨</span>
+                <span>디자인시스템 쇼케이스</span>
+              </button>
+              <button
+                id="btn-tab-user-wireframes"
                 onClick={() => setActiveTab('user')}
                 className={`px-3.5 py-2 min-h-[40px] rounded-lg font-medium transition-all shrink-0 flex items-center gap-1.5 ${
                   activeTab === 'user'
@@ -42,9 +56,10 @@ export function WireframeStudio() {
                 }`}
               >
                 <span>📱</span>
-                <span>사용자 서비스 (9개 화면)</span>
+                <span>사용자 서비스 (9개)</span>
               </button>
               <button
+                id="btn-tab-admin-wireframes"
                 onClick={() => setActiveTab('admin')}
                 className={`px-3.5 py-2 min-h-[40px] rounded-lg font-medium transition-all shrink-0 flex items-center gap-1.5 ${
                   activeTab === 'admin'
@@ -53,7 +68,7 @@ export function WireframeStudio() {
                 }`}
               >
                 <span>🛠</span>
-                <span>관리자 서비스 (16개 화면)</span>
+                <span>관리자 서비스 (16개)</span>
               </button>
             </div>
 
@@ -104,7 +119,9 @@ export function WireframeStudio() {
             : 'w-full'
         }`}
       >
-        {activeTab === 'user' ? (
+        {activeTab === 'showcase' ? (
+          <DesignSystemShowcase />
+        ) : activeTab === 'user' ? (
           <UserWireframes isMobileMode={viewportMode === 'mobile'} />
         ) : (
           <AdminWireframes isMobileMode={viewportMode === 'mobile'} />
