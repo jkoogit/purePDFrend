@@ -144,13 +144,16 @@ export async function runComprehensiveServiceCheck(): Promise<{ allPassed: boole
 
   // 2-2. 토큰 사용량 집계
   const usageRes = await fetchApi('/api/agent/usage');
-  const totalTokens = usageRes.body?.usageSummary?.[0]?.total_tokens;
-  const usagePassed = usageRes.status === 200 && !!totalTokens && parseInt(totalTokens, 10) > 0;
+  const totalTokens = usageRes.body?.usageSummary?.reduce(
+    (acc: number, item: any) => acc + (parseInt(item.total_tokens || '0', 10) || 0),
+    0
+  ) || 0;
+  const usagePassed = usageRes.status === 200 && totalTokens > 0;
   results.push({
     step: '2단계',
     name: '토큰 사용량 집계 API (/api/agent/usage)',
     passed: usagePassed,
-    message: usagePassed ? `원격 DB 기반 토큰 집계 정상 (${totalTokens} Tokens, 33턴)` : '집계 누락 또는 오류',
+    message: usagePassed ? `원격 DB 기반 토큰 집계 정상 (${totalTokens.toLocaleString()} Tokens)` : '집계 누락 또는 오류',
     durationMs: usageRes.durationMs,
   });
 

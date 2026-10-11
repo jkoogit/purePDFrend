@@ -4,6 +4,7 @@ import { Button } from '../../../shared/components/ui/Button';
 import { Badge } from '../../../shared/components/ui/Badge';
 import { Card } from '../../../shared/components/ui/Card';
 import { Input } from '../../../shared/components/ui/Input';
+import { PdfrendLogo } from '../../../shared/components/PdfrendLogo';
 
 export function DesignSystemShowcase() {
   const [activeSubTab, setActiveSubTab] = useState<'tokens' | 'primitives' | 'comparison'>('tokens');
@@ -154,21 +155,29 @@ export function DesignSystemShowcase() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="p-3 rounded-lg border border-slate-200 bg-white text-slate-900 space-y-1.5 shadow-sm">
+                <div className="p-3 rounded-lg border border-slate-200 bg-white text-slate-900 space-y-2 shadow-sm">
                   <div className="flex items-center justify-between text-xs font-bold">
                     <span>☀️ 주간 (Light)</span>
                     <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                   </div>
+                  <div className="flex items-center gap-2 py-1">
+                    <PdfrendLogo size={28} theme="light" />
+                    <span className="text-xs font-black tracking-tight text-slate-900">PDFrend</span>
+                  </div>
                   <div className="text-[11px] text-slate-600">밝고 선명한 주간 독서 환경</div>
                   <div className="text-[10px] font-mono text-slate-500 pt-1 border-t border-slate-100">
-                    bg: #f8fafc | text: #0f172a
+                    bg: #ffffff | text: #0f172a
                   </div>
                 </div>
 
-                <div className="p-3 rounded-lg border border-slate-800 bg-slate-950 text-slate-100 space-y-1.5 shadow-sm">
+                <div className="p-3 rounded-lg border border-slate-800 bg-slate-950 text-slate-100 space-y-2 shadow-sm">
                   <div className="flex items-center justify-between text-xs font-bold">
                     <span>🌙 야간 (Dark)</span>
                     <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
+                  </div>
+                  <div className="flex items-center gap-2 py-1">
+                    <PdfrendLogo size={28} theme="dark" />
+                    <span className="text-xs font-black tracking-tight text-white">PDFrend</span>
                   </div>
                   <div className="text-[11px] text-slate-400">눈부심 없는 OLED 다크 모드</div>
                   <div className="text-[10px] font-mono text-slate-500 pt-1 border-t border-slate-900">
@@ -176,10 +185,14 @@ export function DesignSystemShowcase() {
                   </div>
                 </div>
 
-                <div className="p-3 rounded-lg border border-sky-900/60 bg-[#070e22] text-[#f0f6ff] space-y-1.5 shadow-sm ring-1 ring-sky-500/20">
+                <div className="p-3 rounded-lg border border-sky-900/60 bg-[#070e22] text-[#f0f6ff] space-y-2 shadow-sm ring-1 ring-sky-500/20">
                   <div className="flex items-center justify-between text-xs font-bold text-sky-300">
                     <span>🌅 여명 (Dawn)</span>
                     <span className="w-2.5 h-2.5 rounded-full bg-sky-400" />
+                  </div>
+                  <div className="flex items-center gap-2 py-1">
+                    <PdfrendLogo size={28} theme="dawn" />
+                    <span className="text-xs font-black tracking-tight text-sky-100">PDFrend</span>
                   </div>
                   <div className="text-[11px] text-slate-300">새벽 미드나잇 블루 고대비</div>
                   <div className="text-[10px] font-mono text-sky-400/80 pt-1 border-t border-sky-950">
@@ -187,10 +200,14 @@ export function DesignSystemShowcase() {
                   </div>
                 </div>
 
-                <div className="p-3 rounded-lg border border-slate-800 bg-slate-900/80 text-slate-100 space-y-1.5 shadow-sm">
+                <div className="p-3 rounded-lg border border-slate-800 bg-slate-900/80 text-slate-100 space-y-2 shadow-sm">
                   <div className="flex items-center justify-between text-xs font-bold text-emerald-400">
                     <span>💻 시스템 (System)</span>
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                  </div>
+                  <div className="flex items-center gap-2 py-1">
+                    <PdfrendLogo size={28} theme="dark" />
+                    <span className="text-xs font-black tracking-tight text-white">PDFrend</span>
                   </div>
                   <div className="text-[11px] text-slate-400">OS 화면 설정 실시간 자동 동기화</div>
                   <div className="text-[10px] font-mono text-emerald-500 pt-1 border-t border-slate-800">

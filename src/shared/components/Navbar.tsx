@@ -373,7 +373,13 @@ export default function Navbar({
   };
 
   return (
-    <header className="sticky top-0 z-40 flex flex-col w-full bg-slate-950/95 border-b border-slate-800 backdrop-blur-md">
+    <header className={`sticky top-0 z-40 flex flex-col w-full border-b backdrop-blur-md transition-colors duration-200 ${
+      resolvedTheme === 'light'
+        ? 'bg-white/95 border-slate-200 text-slate-900 shadow-sm'
+        : resolvedTheme === 'dawn'
+        ? 'bg-[#070e22]/95 border-[#1e3066] text-white shadow-md shadow-sky-950/20'
+        : 'bg-slate-950/95 border-slate-800 text-white shadow-md'
+    }`}>
       {/* 1. Main Global Header (1단 글로벌 바: 브랜드 + 3대 시스템 스위처 + 공통 툴) */}
       <div className="h-14 sm:h-16 px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4">
         {/* Left: Brand & Identity */}
@@ -381,14 +387,18 @@ export default function Navbar({
           <div
             className="flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none"
             onClick={() => handleSystemSwitch('service')}
-            title="pdfrend 서비스 첫화면으로 이동"
+            title="PDFrend 서비스 첫화면으로 이동"
           >
             <PdfrendLogo size={36} theme={resolvedTheme} />
             <div className="flex flex-col justify-center min-w-0">
-              <span className="font-black text-white tracking-tight text-sm sm:text-base whitespace-nowrap leading-tight">
+              <span className={`font-black tracking-tight text-sm sm:text-base whitespace-nowrap leading-tight ${
+                resolvedTheme === 'light' ? 'text-slate-900' : 'text-white'
+              }`}>
                 PDFrend
               </span>
-              <span className="text-[10px] text-slate-400 font-medium hidden sm:inline leading-none mt-0.5">
+              <span className={`text-[10px] font-medium hidden sm:inline leading-none mt-0.5 ${
+                resolvedTheme === 'light' ? 'text-slate-500' : 'text-slate-400'
+              }`}>
                 PDF 제작 & OCR 교정 스튜디오
               </span>
             </div>
