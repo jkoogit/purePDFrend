@@ -135,6 +135,70 @@ export function DesignSystemShowcase() {
                 ))}
               </div>
             </div>
+
+            {/* 4모드 테마 시스템 (Light, Dark, Dawn, System) */}
+            <div className="space-y-3 pt-3 border-t border-slate-800">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-sky-400" />
+                    4모드 테마 시스템 및 여명(Dawn) 블루 팔레트
+                  </h4>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    주간(Light), 야간(Dark), 여명(Dawn), 시스템설정(System) 4단계 테마 동적 바인딩
+                  </p>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 bg-sky-500/20 text-sky-400 border border-sky-500/30 rounded">
+                  4-Mode Theme Engine
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="p-3 rounded-lg border border-slate-200 bg-white text-slate-900 space-y-1.5 shadow-sm">
+                  <div className="flex items-center justify-between text-xs font-bold">
+                    <span>☀️ 주간 (Light)</span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                  </div>
+                  <div className="text-[11px] text-slate-600">밝고 선명한 주간 독서 환경</div>
+                  <div className="text-[10px] font-mono text-slate-500 pt-1 border-t border-slate-100">
+                    bg: #f8fafc | text: #0f172a
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg border border-slate-800 bg-slate-950 text-slate-100 space-y-1.5 shadow-sm">
+                  <div className="flex items-center justify-between text-xs font-bold">
+                    <span>🌙 야간 (Dark)</span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
+                  </div>
+                  <div className="text-[11px] text-slate-400">눈부심 없는 OLED 다크 모드</div>
+                  <div className="text-[10px] font-mono text-slate-500 pt-1 border-t border-slate-900">
+                    bg: #020617 | text: #f8fafc
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg border border-sky-900/60 bg-[#070e22] text-[#f0f6ff] space-y-1.5 shadow-sm ring-1 ring-sky-500/20">
+                  <div className="flex items-center justify-between text-xs font-bold text-sky-300">
+                    <span>🌅 여명 (Dawn)</span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-sky-400" />
+                  </div>
+                  <div className="text-[11px] text-slate-300">새벽 미드나잇 블루 고대비</div>
+                  <div className="text-[10px] font-mono text-sky-400/80 pt-1 border-t border-sky-950">
+                    bg: #070e22 | accent: #38bdf8
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg border border-slate-800 bg-slate-900/80 text-slate-100 space-y-1.5 shadow-sm">
+                  <div className="flex items-center justify-between text-xs font-bold text-emerald-400">
+                    <span>💻 시스템 (System)</span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                  </div>
+                  <div className="text-[11px] text-slate-400">OS 화면 설정 실시간 자동 동기화</div>
+                  <div className="text-[10px] font-mono text-emerald-500 pt-1 border-t border-slate-800">
+                    matchMedia prefers-color-scheme
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* 4pt 스페이싱 & 모서리 규율 */}
