@@ -13,7 +13,6 @@ import {
   Bot,
   AlertTriangle,
   Stethoscope,
-  RefreshCw,
   X,
   Menu,
   Network,
@@ -25,8 +24,16 @@ import {
   PinOff,
   Sun,
   Moon,
+  Sunrise,
+  Monitor,
+  Lock,
+  UserCheck,
+  ChevronDown,
+  FileBox,
 } from 'lucide-react';
-import { ActiveViewId, DomainGroupId } from '../../types';
+import { ActiveViewId, DomainGroupId, SystemDomainId, UserSystemRole } from '../../types';
+import { ThemeMode, ResolvedTheme, THEME_MODES, resolveThemeMode, applyThemeToDocument } from '../../styles/tokens';
+import { PdfrendLogo } from './PdfrendLogo';
 
 export type AppTab = 'agent' | 'system' | 'viewer' | 'ocr';
 
@@ -125,7 +132,47 @@ export const DOMAIN_GROUPS: {
 
 export const ALL_VIEWS: DomainViewItem[] = DOMAIN_GROUPS.flatMap((g) => g.views);
 
-interface NavbarProps {
+export interface SystemDomainConfig {
+  id: SystemDomainId;
+  label: string;
+  shortLabel: string;
+  icon: any;
+  requiredRole: UserSystemRole[];
+  description: string;
+  themeColor: string;
+}
+
+export const SYSTEM_DOMAINS: SystemDomainConfig[] = [
+  {
+    id: 'service',
+    label: 'PDF 서비스',
+    shortLabel: '서비스',
+    icon: FileBox,
+    requiredRole: ['ROLE_USER', 'ROLE_OPERATOR', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN'],
+    description: 'PDF 뷰어, 편집, 듀얼 OCR 및 주석 비즈니스 포털',
+    themeColor: 'from-blue-600 to-indigo-600',
+  },
+  {
+    id: 'settings',
+    label: '서비스설정',
+    shortLabel: '설정',
+    icon: Settings,
+    requiredRole: ['ROLE_OPERATOR', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN'],
+    description: '25개 와이어프레임 및 단축키/폰트/약관 환경설정 스튜디오',
+    themeColor: 'from-sky-600 to-cyan-600',
+  },
+  {
+    id: 'harness',
+    label: '에이전트관리',
+    shortLabel: '마스터',
+    icon: Bot,
+    requiredRole: ['ROLE_ADMIN', 'ROLE_SUPER_ADMIN'],
+    description: '하네스 작업그래프, 토큰 쿼터, 3계층 무결성 감사 마스터 시스템',
+    themeColor: 'from-violet-600 to-purple-600',
+  },
+];
+
+export interface NavbarProps {
   activeView: ActiveViewId;
   onSelectView: (view: ActiveViewId) => void;
   activeDomain: DomainGroupId;
@@ -135,6 +182,15 @@ interface NavbarProps {
   onSelectTab?: (tab: AppTab) => void;
   isHeaderPinned?: boolean;
   onTogglePinHeader?: () => void;
+  // 3대 시스템 도메인 전환 (service: PDF 서비스, settings: 서비스설정, harness: 에이전트관리)
+  activeSystem?: SystemDomainId;
+  onSelectSystem?: (system: SystemDomainId) => void;
+  // 사용자 권한 체계
+  userRole?: UserSystemRole;
+  onSelectRole?: (role: UserSystemRole) => void;
+  // 4모드 테마
+  themeMode?: ThemeMode;
+  onChangeThemeMode?: (mode: ThemeMode) => void;
 }
 
 interface CheckResultItem {
@@ -153,40 +209,95 @@ export default function Navbar({
   dbStatus,
   isHeaderPinned = true,
   onTogglePinHeader,
+  activeSystem = 'service',
+  onSelectSystem,
+  userRole = 'ROLE_ADMIN',
+  onSelectRole,
+  themeMode: propThemeMode,
+  onChangeThemeMode,
 }: NavbarProps) {
   const [hoveredBadge, setHoveredBadge] = useState<'db' | 'status' | null>(null);
-  const [activeSessionId, setActiveSessionId] = useState<string>('SESSION-0017');
+  const [activeSessionId, setActiveSessionId] = useState<string>('SESSION-0028');
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState<boolean>(false);
 
-  // Theme state (Dark/Light toggle, default: dark, syncs with document.documentElement)
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+  // 4-Mode Theme State (Light / Dark / Dawn / System)
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    if (propThemeMode) return propThemeMode;
     try {
-      const saved = localStorage.getItem('purepdfrend_theme');
-      if (saved) return saved === 'dark';
-      return typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const saved = localStorage.getItem('purepdfrend_theme_mode');
+      if (saved && ['light', 'dark', 'dawn', 'system'].includes(saved)) {
+        return saved as ThemeMode;
+      }
+      const legacy = localStorage.getItem('purepdfrend_theme');
+      if (legacy === 'light' || legacy === 'dark') return legacy;
+      return 'system';
     } catch {
-      return true;
+      return 'dark';
     }
   });
 
-  useEffect(() => {
-    try {
-      if (typeof document !== 'undefined') {
-        if (isDarkMode) {
-          document.documentElement.classList.add('dark');
-          document.documentElement.classList.remove('light');
-          localStorage.setItem('purepdfrend_theme', 'dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-          document.documentElement.classList.add('light');
-          localStorage.setItem('purepdfrend_theme', 'light');
-        }
-      }
-    } catch {}
-  }, [isDarkMode]);
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => resolveThemeMode(themeMode));
+  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
+  const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false);
+  const [permissionAlert, setPermissionAlert] = useState<{ message: string; required: string } | null>(null);
 
-  const toggleTheme = () => {
-    setIsDarkMode((prev) => !prev);
+  useEffect(() => {
+    const resolved = applyThemeToDocument(themeMode);
+    setResolvedTheme(resolved);
+    try {
+      localStorage.setItem('purepdfrend_theme_mode', themeMode);
+      localStorage.setItem('purepdfrend_theme', resolved);
+    } catch {}
+
+    if (themeMode === 'system' && typeof window !== 'undefined' && window.matchMedia) {
+      const media = window.matchMedia('(prefers-color-scheme: dark)');
+      const listener = () => {
+        const res = applyThemeToDocument('system');
+        setResolvedTheme(res);
+      };
+      media.addEventListener('change', listener);
+      return () => media.removeEventListener('change', listener);
+    }
+  }, [themeMode]);
+
+  const handleSelectThemeMode = (mode: ThemeMode) => {
+    setThemeMode(mode);
+    onChangeThemeMode?.(mode);
+    setIsThemeMenuOpen(false);
+  };
+
+  const cycleTheme = () => {
+    const modes: ThemeMode[] = ['light', 'dark', 'dawn', 'system'];
+    const nextIdx = (modes.indexOf(themeMode) + 1) % modes.length;
+    handleSelectThemeMode(modes[nextIdx]);
+  };
+
+  // System Switching Handler with Role Verification
+  const handleSystemSwitch = (targetSystem: SystemDomainId) => {
+    const targetConfig = SYSTEM_DOMAINS.find((s) => s.id === targetSystem);
+    if (!targetConfig) return;
+
+    const hasPermission = targetConfig.requiredRole.includes(userRole);
+    if (!hasPermission) {
+      const requiredName = targetSystem === 'settings' ? '서비스설정(ROLE_OPERATOR 이상)' : '마스터관리자(ROLE_ADMIN 이상)';
+      setPermissionAlert({
+        message: `'${targetConfig.label}' 시스템은 접근 권한이 제한되어 있습니다.`,
+        required: requiredName,
+      });
+      return;
+    }
+
+    onSelectSystem?.(targetSystem);
+    if (targetSystem === 'settings') {
+      onSelectDomain('studio');
+      onSelectView('wireframes');
+    } else if (targetSystem === 'harness') {
+      if (activeDomain === 'studio' && activeView === 'wireframes') {
+        onSelectDomain('harness');
+        onSelectView('graph');
+      }
+    }
+    setIsMobileDrawerOpen(false);
   };
 
   // Emergency Disaster Recovery Modal state
@@ -234,7 +345,6 @@ export default function Navbar({
     onSelectDomain(domainId);
     const group = DOMAIN_GROUPS.find((g) => g.id === domainId);
     if (group && group.views.length > 0) {
-      // If current view does not belong to new domain, switch to first view
       const belongs = group.views.some((v) => v.id === activeView);
       if (!belongs) {
         onSelectView(group.views[0].id);
@@ -248,67 +358,139 @@ export default function Navbar({
     setIsMobileDrawerOpen(false);
   };
 
+  // Theme Icon Helper
+  const renderThemeIcon = (mode: ThemeMode, className: string = 'w-4 h-4') => {
+    switch (mode) {
+      case 'light':
+        return <Sun className={`${className} text-amber-400`} />;
+      case 'dark':
+        return <Moon className={`${className} text-indigo-400`} />;
+      case 'dawn':
+        return <Sunrise className={`${className} text-sky-400`} />;
+      case 'system':
+        return <Monitor className={`${className} text-emerald-400`} />;
+    }
+  };
+
   return (
     <header className="sticky top-0 z-40 flex flex-col w-full bg-slate-950/95 border-b border-slate-800 backdrop-blur-md">
-      {/* 1. Main Global Header */}
-      <div className="h-14 sm:h-16 px-4 sm:px-6 flex items-center justify-between">
-        {/* Brand & Identity */}
-        <div className="flex items-center gap-3 sm:gap-6">
+      {/* 1. Main Global Header (1단 글로벌 바: 브랜드 + 3대 시스템 스위처 + 공통 툴) */}
+      <div className="h-14 sm:h-16 px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4">
+        {/* Left: Brand & Identity */}
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <div
-            className="flex items-center gap-2.5 cursor-pointer select-none"
-            onClick={() => handleViewClick('graph', 'harness')}
+            className="flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none"
+            onClick={() => handleSystemSwitch('service')}
+            title="pdfrend 서비스 첫화면으로 이동"
           >
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-black text-sm sm:text-base shadow-lg shadow-indigo-500/20 shrink-0">
-              P
-            </div>
+            <PdfrendLogo size={36} theme={resolvedTheme} />
             <div className="flex flex-col justify-center min-w-0">
               <span className="font-black text-white tracking-tight text-sm sm:text-base whitespace-nowrap leading-tight">
-                purePDFrend
+                PDFrend
+              </span>
+              <span className="text-[10px] text-slate-400 font-medium hidden sm:inline leading-none mt-0.5">
+                PDF 제작 & OCR 교정 스튜디오
               </span>
             </div>
           </div>
+        </div>
 
-          {/* Desktop 3-Domain Segmented Tabs (1단 메뉴 가로슬라이드) */}
-          <div className="hidden md:flex items-center border-l border-slate-800 pl-3 lg:pl-5 min-w-0 flex-1 max-w-2xl">
-            <ScrollSnapCarousel
-              dragEnabled={true}
-              wheelEnabled={true}
-              magnetic={true}
-              showArrows={false}
-              showGradients={true}
-              gradientWidth="w-4"
-              scrollStep={160}
-              ariaLabel="1단 도메인 메뉴 슬라이드"
+        {/* Center: 권한 기반 3대 시스템 전환 인터페이스 (System Switcher) & 역할 시뮬레이터 */}
+        <div className="hidden md:flex items-center gap-1.5 lg:gap-2 bg-slate-900/90 border border-slate-800/90 p-1 rounded-xl shadow-inner shrink-0">
+          {SYSTEM_DOMAINS.map((sys) => {
+            const isActive = activeSystem === sys.id;
+            const hasPermission = sys.requiredRole.includes(userRole);
+            const Icon = sys.icon;
+
+            return (
+              <button
+                key={sys.id}
+                id={`btn-system-switch-${sys.id}`}
+                onClick={() => handleSystemSwitch(sys.id)}
+                className={`min-h-[38px] px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 select-none ${
+                  isActive
+                    ? 'bg-gradient-to-r ' + sys.themeColor + ' text-white shadow-md ring-1 ring-white/20'
+                    : hasPermission
+                    ? 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                    : 'text-slate-500 hover:text-slate-400 hover:bg-slate-900/50 cursor-pointer opacity-70'
+                }`}
+                title={`${sys.label}: ${sys.description}${!hasPermission ? ' (권한 필요)' : ''}`}
+              >
+                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : hasPermission ? 'text-indigo-400' : 'text-slate-500'}`} />
+                <span>{sys.label}</span>
+                {!hasPermission && <Lock className="w-3 h-3 text-amber-500/80 shrink-0 ml-0.5" />}
+              </button>
+            );
+          })}
+
+          {/* 역할 시뮬레이터 (Role Switcher Tag) */}
+          <div className="relative pl-1 border-l border-slate-800">
+            <button
+              id="btn-role-simulator-dropdown"
+              onClick={() => setIsRoleMenuOpen((prev) => !prev)}
+              className="min-h-[36px] px-2.5 py-1 rounded-lg bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800 text-slate-300 hover:text-white text-[11px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="권한 시뮬레이터: 다양한 사용자 역할로 시스템 전환 검증"
             >
-              <nav className="flex items-center gap-1.5 py-1 whitespace-nowrap no-scrollbar">
-                {DOMAIN_GROUPS.map((group) => {
-                  const isDomainActive = activeDomain === group.id;
-                  return (
-                    <button
-                      key={group.id}
-                      id={`domain-tab-${group.id}`}
-                      onClick={() => handleSelectDomainAndFirstView(group.id)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 shrink-0 select-none snap-start ${
-                        isDomainActive
-                          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 ring-1 ring-indigo-400/40'
-                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
-                      }`}
-                      title={group.description}
-                    >
-                      {group.id === 'harness' && <Bot className="w-3.5 h-3.5 text-indigo-300 shrink-0" />}
-                      {group.id === 'knowledge' && <FileText className="w-3.5 h-3.5 text-indigo-300 shrink-0" />}
-                      {group.id === 'studio' && <Cpu className="w-3.5 h-3.5 text-indigo-300 shrink-0" />}
-                      <span className="break-keep">{group.name}</span>
-                    </button>
-                  );
-                })}
-              </nav>
-            </ScrollSnapCarousel>
+              <UserCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="font-semibold text-emerald-400">
+                {userRole === 'ROLE_USER' && '일반사용자'}
+                {userRole === 'ROLE_OPERATOR' && '서비스설정자'}
+                {userRole === 'ROLE_ADMIN' && '마스터관리자'}
+                {userRole === 'ROLE_SUPER_ADMIN' && '최고관리자'}
+              </span>
+              <ChevronDown className="w-3 h-3 text-slate-400" />
+            </button>
+
+            {isRoleMenuOpen && (
+              <div className="absolute right-0 top-full mt-1.5 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-2 py-1 text-[10px] text-slate-400 font-bold border-b border-slate-800">
+                  권한 시뮬레이션
+                </div>
+                <button
+                  onClick={() => {
+                    onSelectRole?.('ROLE_USER');
+                    setIsRoleMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-2.5 py-2 rounded-lg flex items-center justify-between text-xs transition-colors ${
+                    userRole === 'ROLE_USER' ? 'bg-indigo-600/30 text-indigo-300 font-bold' : 'text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <span>일반사용자 (ROLE_USER)</span>
+                  <span className="text-[10px] text-slate-500">서비스전용</span>
+                </button>
+                <button
+                  onClick={() => {
+                    onSelectRole?.('ROLE_OPERATOR');
+                    setIsRoleMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-2.5 py-2 rounded-lg flex items-center justify-between text-xs transition-colors ${
+                    userRole === 'ROLE_OPERATOR' ? 'bg-indigo-600/30 text-indigo-300 font-bold' : 'text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <span>서비스설정자 (OPERATOR)</span>
+                  <span className="text-[10px] text-sky-400">설정접근</span>
+                </button>
+                <button
+                  onClick={() => {
+                    onSelectRole?.('ROLE_ADMIN');
+                    setIsRoleMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-2.5 py-2 rounded-lg flex items-center justify-between text-xs transition-colors ${
+                    userRole === 'ROLE_ADMIN' || userRole === 'ROLE_SUPER_ADMIN'
+                      ? 'bg-indigo-600/30 text-indigo-300 font-bold'
+                      : 'text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <span>마스터관리자 (ADMIN)</span>
+                  <span className="text-[10px] text-violet-400">전체접근</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Right Status Indicators & Action Tools */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           {/* DB Connection Indicator */}
           <div
             className="relative"
@@ -359,92 +541,104 @@ export default function Navbar({
                       </span>
                     )}
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">동기화 테이블:</span>
-                    <span className="font-mono text-slate-300">agent_docs_meta (30건)</span>
-                  </div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* 비-LLM 긴급 Push 및 DR 관제실 모달 버튼 (상시 접근 가능) */}
+          {/* 비-LLM 긴급 Push 및 DR 관제실 모달 버튼 */}
           <button
             id="btn-emergency-recovery-panel"
             onClick={() => setIsEmergencyModalOpen(true)}
-            className="h-8 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-full bg-amber-950/70 border border-amber-600/80 hover:border-amber-400 hover:bg-amber-900/70 cursor-pointer transition-all text-amber-300 text-xs font-semibold shadow-sm shrink-0 whitespace-nowrap select-none"
+            className="h-8 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-full bg-amber-950/70 border border-amber-600/80 hover:border-amber-400 hover:bg-amber-900/70 cursor-pointer transition-all text-amber-300 text-xs font-semibold shadow-xs shrink-0 whitespace-nowrap select-none"
             title="비-LLM 긴급 소스 GitHub Push 및 세션 DR 관제실"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
             <ShieldAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="inline font-semibold">DR 긴급관제</span>
+            <span className="hidden sm:inline font-semibold">DR 긴급관제</span>
           </button>
 
-          {/* Comprehensive Service Health Check Button (모바일 및 PC 상시 표시) */}
+          {/* Comprehensive Service Health Check Button */}
           <button
             id="btn-service-health-check"
             onClick={() => {
               setIsCheckModalOpen(true);
               if (!checkResults) runServiceCheck();
             }}
-            className="h-8 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-full bg-emerald-950/70 border border-emerald-700/80 hover:border-emerald-400 hover:bg-emerald-900/60 cursor-pointer transition-all text-emerald-300 text-xs font-semibold shadow-sm shrink-0 whitespace-nowrap select-none"
+            className="h-8 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-full bg-emerald-950/70 border border-emerald-700/80 hover:border-emerald-400 hover:bg-emerald-900/60 cursor-pointer transition-all text-emerald-300 text-xs font-semibold shadow-xs shrink-0 whitespace-nowrap select-none"
             title="서비스 전수 점검 및 가드레일 진단"
           >
             <Stethoscope className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span className="inline font-semibold">정밀점검</span>
+            <span className="hidden sm:inline font-semibold">정밀점검</span>
             {allPassed === true && <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />}
             {allPassed === false && <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping shrink-0" />}
           </button>
 
-          {/* 와이어프레임 퀵액션 바로가기 버튼 */}
-          <button
-            id="btn-quick-wireframes"
-            onClick={() => {
-              onSelectDomain('studio');
-              onSelectView('wireframes');
-            }}
-            className={`h-8 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-full border cursor-pointer transition-all text-xs font-semibold shadow-xs shrink-0 whitespace-nowrap select-none ${
-              activeView === 'wireframes'
-                ? 'bg-indigo-600 border-indigo-400 text-white shadow-md shadow-indigo-600/30 ring-1 ring-indigo-400/40'
-                : 'bg-slate-900 border-slate-800 text-slate-300 hover:text-white hover:border-indigo-500/50'
-            }`}
-            title="관리자 16개·사용자 9개 와이어프레임 바로가기"
-            aria-label="와이어프레임 바로가기"
-          >
-            <Layers className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-            <span className="hidden xs:inline">와이어프레임</span>
-          </button>
+          {/* 4모드 테마 스위처 (주간 / 야간 / 여명 / 시스템설정) */}
+          <div className="relative">
+            <button
+              id="btn-theme-toggle"
+              onClick={() => setIsThemeMenuOpen((prev) => !prev)}
+              onDoubleClick={cycleTheme}
+              className="h-8 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-full bg-slate-900 border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800 text-slate-300 hover:text-white transition-all cursor-pointer shadow-xs shrink-0 whitespace-nowrap select-none"
+              title={`테마 전환: ${THEME_MODES[themeMode].label} (현재) - 클릭 시 4모드 선택, 더블클릭 시 즉시 순환`}
+              aria-label={`테마 전환 (현재: ${THEME_MODES[themeMode].label})`}
+            >
+              {renderThemeIcon(themeMode, 'w-3.5 h-3.5 text-indigo-400 shrink-0')}
+              <span className="font-semibold text-xs text-slate-200 flex items-center gap-1">
+                <span>테마</span>
+                <span className="text-slate-400 font-normal hidden xs:inline">({THEME_MODES[themeMode].label})</span>
+              </span>
+              <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
+            </button>
 
-          {/* Sun / Moon 원클릭 다크/라이트 테마 스위처 */}
-          <button
-            id="btn-theme-toggle"
-            onClick={toggleTheme}
-            className="w-8 h-8 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 hover:border-slate-700 text-slate-300 hover:text-amber-300 flex items-center justify-center transition-all cursor-pointer shadow-xs shrink-0 select-none"
-            title={isDarkMode ? '라이트 모드로 전환 (현재 다크)' : '다크 모드로 전환 (현재 라이트)'}
-            aria-label={isDarkMode ? '라이트 모드로 전환' : '다크 모드로 전환'}
-          >
-            {isDarkMode ? (
-              <Sun className="w-4 h-4 text-amber-400 transition-transform hover:rotate-45" />
-            ) : (
-              <Moon className="w-4 h-4 text-indigo-400 transition-transform hover:-rotate-12" />
+            {/* 4모드 테마 팝오버 선택기 */}
+            {isThemeMenuOpen && (
+              <div className="absolute right-0 top-full mt-1.5 w-44 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-2 py-1 text-[10px] text-slate-400 font-bold border-b border-slate-800 flex items-center justify-between">
+                  <span>4모드 테마 선택</span>
+                  <span className="font-mono text-indigo-400 text-[9px]">{resolvedTheme}</span>
+                </div>
+                {(Object.keys(THEME_MODES) as ThemeMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => handleSelectThemeMode(mode)}
+                    className={`w-full min-h-[36px] text-left px-2.5 py-1.5 rounded-lg flex items-center gap-2 transition-colors ${
+                      themeMode === mode ? 'bg-indigo-600/30 text-indigo-200 font-bold' : 'text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    {renderThemeIcon(mode, 'w-3.5 h-3.5')}
+                    <div className="flex-1">
+                      <div className="leading-tight">{THEME_MODES[mode].label}</div>
+                      <div className="text-[9px] text-slate-400 leading-tight">{THEME_MODES[mode].description}</div>
+                    </div>
+                  </button>
+                ))}
+                <div className="pt-1 mt-1 border-t border-slate-800">
+                  <button
+                    onClick={() => {
+                      cycleTheme();
+                    }}
+                    className="w-full text-center py-1 text-[10px] text-indigo-400 hover:text-indigo-300 font-medium"
+                  >
+                    ⚡ 다음 테마로 즉시 순환
+                  </button>
+                </div>
+              </div>
             )}
-          </button>
+          </div>
 
-          {/* Header Pin / Unpin Toggle Button (아이콘 전용, 텍스트 제거) */}
+          {/* Header Pin / Unpin Toggle Button */}
           {onTogglePinHeader && (
             <button
               id="btn-toggle-pin-header"
               onClick={onTogglePinHeader}
-              className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all cursor-pointer shadow-xs shrink-0 ${
+              className={`min-h-[44px] min-w-[44px] sm:min-h-[36px] sm:min-w-[36px] w-9 h-9 rounded-lg border flex items-center justify-center transition-all cursor-pointer shadow-xs shrink-0 ${
                 isHeaderPinned
                   ? 'bg-indigo-950/70 border-indigo-700/60 text-indigo-300 hover:bg-indigo-900/60 hover:border-indigo-400'
                   : 'bg-slate-900/90 border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`}
-              title={
-                isHeaderPinned
-                  ? '상단 헤더 고정 중 (본문 바디만 스크롤) - 클릭 시 고정 해제하여 전체화면 스크롤'
-                  : '상단 헤더 고정 해제됨 (전체화면 스크롤) - 클릭 시 상단 헤더 고정'
-              }
+              title={isHeaderPinned ? '헤더 고정 해제' : '상단 헤더 고정'}
               aria-label={isHeaderPinned ? '헤더 고정 해제' : '헤더 고정'}
             >
               {isHeaderPinned ? (
@@ -459,7 +653,7 @@ export default function Navbar({
           <button
             id="btn-mobile-menu-drawer"
             onClick={() => setIsMobileDrawerOpen(true)}
-            aria-label="모바일 도메인 메뉴 열기"
+            aria-label="모바일 시스템 및 도메인 메뉴 열기"
             className="md:hidden w-11 h-11 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 active:scale-95 transition-all"
           >
             <Menu className="w-5 h-5" />
@@ -467,43 +661,116 @@ export default function Navbar({
         </div>
       </div>
 
-      {/* 2. Sub-Navigation Bar (1단 메뉴 & 각 메뉴별 2단 메뉴 가로슬라이드 적용) */}
-      
-      {/* [Desktop] 2단 메뉴: 활성 도메인의 서브 뷰 가로슬라이드 (하단 레이어 max-w-7xl px-3 sm:px-6 lg:px-8 정렬) */}
-      <div className="hidden md:flex h-10 border-t border-slate-800/80 bg-slate-900/50">
-        <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex items-center justify-between text-xs min-w-0">
-          <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-4">
-            <span className="text-slate-400 font-medium flex items-center gap-1.5 shrink-0 select-none">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-              {currentDomainGroup.name}:
-            </span>
-            <div className="min-w-0 flex-1">
+      {/* 2. Sub-Navigation Bar (activeSystem이 'harness'일 때 하네스 도메인 및 서브뷰 노출) */}
+      {activeSystem === 'harness' && (
+        <>
+          {/* [Desktop] 2단 메뉴: 활성 도메인의 서브 뷰 가로슬라이드 */}
+          <div className="hidden md:flex h-10 border-t border-slate-800/80 bg-slate-900/50">
+            <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex items-center justify-between text-xs min-w-0">
+              <div className="flex items-center gap-3 min-w-0 flex-1 pr-4">
+                {/* 1단 도메인 칩 */}
+                <div className="flex items-center gap-1 shrink-0">
+                  {DOMAIN_GROUPS.map((group) => {
+                    const isDomainActive = activeDomain === group.id;
+                    return (
+                      <button
+                        key={group.id}
+                        id={`domain-tab-${group.id}`}
+                        onClick={() => handleSelectDomainAndFirstView(group.id)}
+                        className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 shrink-0 select-none ${
+                          isDomainActive
+                            ? 'bg-violet-600 text-white shadow-sm ring-1 ring-violet-400/40'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                        }`}
+                      >
+                        {group.id === 'harness' && <Bot className="w-3 h-3 text-violet-300" />}
+                        {group.id === 'knowledge' && <FileText className="w-3 h-3 text-violet-300" />}
+                        {group.id === 'studio' && <Cpu className="w-3 h-3 text-violet-300" />}
+                        <span>{group.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <span className="text-slate-600">|</span>
+
+                {/* 2단 서브뷰 목록 */}
+                <div className="min-w-0 flex-1">
+                  <ScrollSnapCarousel
+                    dragEnabled={true}
+                    wheelEnabled={true}
+                    magnetic={true}
+                    showArrows={false}
+                    showGradients={true}
+                    gradientWidth="w-5"
+                    scrollStep={180}
+                    ariaLabel="데스크톱 2단 서브메뉴 슬라이드"
+                  >
+                    <div className="flex items-center gap-1.5 py-1 whitespace-nowrap no-scrollbar">
+                      {currentDomainGroup.views.map((item) => {
+                        const isActive = activeView === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            id={`sub-view-tab-${item.id}`}
+                            onClick={() => onSelectView(item.id)}
+                            className={`px-3 py-1 rounded-lg text-xs font-medium transition-all shrink-0 select-none snap-start ${
+                              isActive
+                                ? 'bg-indigo-600 text-white font-semibold shadow-sm ring-1 ring-indigo-400/40'
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/70 border border-transparent'
+                            }`}
+                            title={item.description}
+                          >
+                            <span>{item.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </ScrollSnapCarousel>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 text-[11px] text-slate-400 font-mono shrink-0">
+                <span className="flex items-center gap-1 text-emerald-400 font-semibold">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  AGENTS.md 준거 거버넌스 활성
+                </span>
+                <span>|</span>
+                <span className="text-slate-400 truncate max-w-[180px] lg:max-w-[280px]" title={activeSessionId}>
+                  {activeSessionId}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* [Mobile] 1단 도메인 + 2단 서브뷰 */}
+          <div className="md:hidden border-t border-slate-800/90 bg-slate-950/90">
+            <div className="w-full max-w-7xl mx-auto">
               <ScrollSnapCarousel
+                className="h-10"
+                gradientWidth="w-5"
+                showArrows={false}
                 dragEnabled={true}
                 wheelEnabled={true}
                 magnetic={true}
-                showArrows={false}
-                showGradients={true}
-                gradientWidth="w-5"
-                scrollStep={180}
-                ariaLabel="데스크톱 2단 서브메뉴 슬라이드"
+                scrollStep={160}
+                ariaLabel="모바일 1단 도메인 선택 메뉴"
               >
-                <div className="flex items-center gap-1.5 py-1 whitespace-nowrap no-scrollbar">
-                  {currentDomainGroup.views.map((item) => {
-                    const isActive = activeView === item.id;
+                <div className="flex items-center gap-1.5 whitespace-nowrap px-3 sm:px-6 py-1.5 no-scrollbar">
+                  {DOMAIN_GROUPS.map((group) => {
+                    const isDomainActive = activeDomain === group.id;
                     return (
                       <button
-                        key={item.id}
-                        id={`sub-view-tab-${item.id}`}
-                        onClick={() => onSelectView(item.id)}
-                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-all shrink-0 select-none snap-start ${
-                          isActive
-                            ? 'bg-indigo-600 text-white font-semibold shadow-sm ring-1 ring-indigo-400/40'
-                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/70 border border-transparent'
+                        key={group.id}
+                        id={`mobile-domain-tab-${group.id}`}
+                        onClick={() => handleSelectDomainAndFirstView(group.id)}
+                        className={`h-7 px-3 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 shrink-0 select-none snap-start ${
+                          isDomainActive
+                            ? 'bg-violet-600 text-white shadow-sm ring-1 ring-violet-400/50'
+                            : 'bg-slate-900 border border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
                         }`}
-                        title={item.description}
                       >
-                        <span>{item.label}</span>
+                        <span>{group.name}</span>
                       </button>
                     );
                   })}
@@ -511,95 +778,8 @@ export default function Navbar({
               </ScrollSnapCarousel>
             </div>
           </div>
-
-          <div className="flex items-center gap-3 text-[11px] text-slate-400 font-mono shrink-0">
-            <span className="flex items-center gap-1 text-emerald-400 font-semibold">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              AGENTS.md 준거 거버넌스 활성
-            </span>
-            <span>|</span>
-            <span className="text-slate-400 truncate max-w-[180px] lg:max-w-[280px]" title={activeSessionId}>
-              {activeSessionId}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* [Mobile] 1단 메뉴: 3대 도메인 그룹 가로슬라이드 (하단 레이어 px-3 sm:px-6 정렬) */}
-      <div className="md:hidden border-t border-slate-800/90 bg-slate-950/90">
-        <div className="w-full max-w-7xl mx-auto">
-          <ScrollSnapCarousel
-            className="h-10"
-            gradientWidth="w-5"
-            showArrows={false}
-            dragEnabled={true}
-            wheelEnabled={true}
-            magnetic={true}
-            scrollStep={160}
-            ariaLabel="모바일 1단 도메인 선택 메뉴"
-          >
-            <div className="flex items-center gap-1.5 whitespace-nowrap px-3 sm:px-6 py-1.5 no-scrollbar">
-              {DOMAIN_GROUPS.map((group) => {
-                const isDomainActive = activeDomain === group.id;
-                return (
-                  <button
-                    key={group.id}
-                    id={`mobile-domain-tab-${group.id}`}
-                    onClick={() => handleSelectDomainAndFirstView(group.id)}
-                    className={`h-7 px-3 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 shrink-0 select-none snap-start ${
-                      isDomainActive
-                        ? 'bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-400/50'
-                        : 'bg-slate-900 border border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
-                    }`}
-                  >
-                    {group.id === 'harness' && <Bot className="w-3.5 h-3.5 text-indigo-300" />}
-                    {group.id === 'knowledge' && <FileText className="w-3.5 h-3.5 text-indigo-300" />}
-                    {group.id === 'studio' && <Cpu className="w-3.5 h-3.5 text-indigo-300" />}
-                    <span>{group.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </ScrollSnapCarousel>
-        </div>
-      </div>
-
-      {/* [Mobile] 2단 메뉴: 선택된 도메인의 서브 뷰 가로슬라이드 (하단 레이어 px-3 sm:px-6 정렬, 왼쪽 벽 붙음 방지) */}
-      <div className="md:hidden border-t border-slate-800/70 bg-slate-900/70">
-        <div className="w-full max-w-7xl mx-auto">
-          <ScrollSnapCarousel
-            className="h-11"
-            gradientWidth="w-6"
-            showArrows={false}
-            dragEnabled={true}
-            wheelEnabled={true}
-            magnetic={true}
-            scrollStep={160}
-            ariaLabel="모바일 2단 서브 뷰 선택 메뉴"
-          >
-            <div className="flex items-center gap-1.5 whitespace-nowrap px-3 sm:px-6 py-1.5 no-scrollbar">
-              {currentDomainGroup.views.map((item) => {
-                const isActive = activeView === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    id={`mobile-sub-view-tab-${item.id}`}
-                    onClick={() => handleViewClick(item.id, currentDomainGroup.id)}
-                    className={`min-h-[32px] px-3 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 select-none snap-start ${
-                      isActive
-                        ? 'bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-400/50'
-                        : 'bg-slate-800/70 border border-slate-700/60 text-slate-300 hover:text-white hover:bg-slate-800'
-                    }`}
-                    title={item.description}
-                  >
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </ScrollSnapCarousel>
-        </div>
-      </div>
+        </>
+      )}
 
       {/* 3. Mobile Right Sliding Drawer (Portal to document.body) */}
       {isMobileDrawerOpen && typeof document !== 'undefined' && createPortal(
@@ -611,118 +791,164 @@ export default function Navbar({
           />
 
           {/* Sliding Panel */}
-          <div className="relative w-80 max-w-[85vw] h-full bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col z-[9999] animate-in slide-in-from-right duration-200">
+          <div className="relative w-80 max-w-[88vw] h-full bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col z-[9999] animate-in slide-in-from-right duration-200">
             {/* Drawer Header */}
             <div className="h-16 px-4 border-b border-slate-800 flex items-center justify-between bg-slate-950 shrink-0">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-black text-sm shadow-md shadow-indigo-500/20 shrink-0">
-                  P
-                </div>
+                <PdfrendLogo size={32} theme={resolvedTheme} />
                 <div className="flex flex-col justify-center min-w-0">
                   <span className="font-black text-white tracking-tight text-sm whitespace-nowrap leading-tight">
-                    purePDFrend
+                    PDFrend
                   </span>
-                  <div className="flex items-center gap-1.5 mt-0.5 leading-none">
-                    <span className="px-1.5 py-0.5 text-[9px] font-semibold rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60 font-mono shrink-0">
-                      v2.1 IA
-                    </span>
-                    <span className="text-[9px] text-slate-400 font-mono truncate max-w-[130px]">
-                      대용량 스캔 PDF & 하네스
-                    </span>
-                  </div>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    시스템 및 권한 전환
+                  </span>
                 </div>
               </div>
               <button
                 onClick={() => setIsMobileDrawerOpen(false)}
                 aria-label="메뉴 닫기"
-                className="w-10 h-10 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 active:scale-95 transition-all shrink-0"
+                className="w-11 h-11 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 active:scale-95 transition-all shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Drawer Body: 3 Domain Groups */}
+            {/* Drawer Body: 3대 시스템 전환 & 권한 시뮬레이션 */}
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
-              {DOMAIN_GROUPS.map((group) => (
-                <div key={group.id} className="space-y-2">
-                  <div className="flex items-center justify-between px-1">
-                    <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
-                      {group.name}
-                    </div>
-                    <span className="text-[10px] text-slate-500 font-mono">
-                      {group.views.length}개 뷰
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 px-1">{group.description}</p>
+              {/* 시스템 선택 */}
+              <div className="space-y-2">
+                <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider px-1">
+                  시스템 전환
+                </div>
+                <div className="space-y-1.5">
+                  {SYSTEM_DOMAINS.map((sys) => {
+                    const isActive = activeSystem === sys.id;
+                    const hasPermission = sys.requiredRole.includes(userRole);
+                    const Icon = sys.icon;
 
-                  <div className="space-y-1 mt-1">
-                    {group.views.map((view) => {
-                      const isSelected = activeView === view.id;
-                      const IconComponent = view.icon;
-                      return (
-                        <button
-                          key={view.id}
-                          onClick={() => handleViewClick(view.id, group.id)}
-                          className={`w-full min-h-[44px] px-3 py-2.5 rounded-xl text-left flex items-center justify-between transition-all ${
-                            isSelected
-                              ? 'bg-indigo-600/20 border border-indigo-500/50 text-white'
-                              : 'bg-slate-950/40 border border-slate-800/60 text-slate-300 hover:bg-slate-800'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <div
-                              className={`p-2 rounded-lg ${
-                                isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400'
-                              }`}
-                            >
-                              <IconComponent className="w-4 h-4" />
+                    return (
+                      <button
+                        key={sys.id}
+                        onClick={() => handleSystemSwitch(sys.id)}
+                        className={`w-full min-h-[48px] px-3.5 py-2.5 rounded-xl text-left flex items-center justify-between transition-all ${
+                          isActive
+                            ? 'bg-gradient-to-r ' + sys.themeColor + ' text-white shadow-md'
+                            : hasPermission
+                            ? 'bg-slate-950/60 border border-slate-800 text-slate-200 hover:bg-slate-800'
+                            : 'bg-slate-950/30 border border-slate-900 text-slate-500 opacity-60'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Icon className="w-4 h-4 shrink-0" />
+                          <div>
+                            <div className="text-xs font-bold flex items-center gap-1.5">
+                              <span>{sys.label}</span>
+                              {!hasPermission && <Lock className="w-3 h-3 text-amber-400" />}
                             </div>
-                            <div>
-                              <div className="text-xs font-semibold">{view.label}</div>
-                              <div className="text-[10px] text-slate-400 truncate max-w-[170px]">
-                                {view.description}
-                              </div>
+                            <div className="text-[10px] text-slate-400 leading-tight">
+                              {sys.description}
                             </div>
                           </div>
-                          <ChevronRight className="w-4 h-4 text-slate-500" />
-                        </button>
-                      );
-                    })}
-                  </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-slate-400" />
+                      </button>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
-
-            {/* Drawer Footer: System Status & Diagnostic Action */}
-            <div className="p-4 border-t border-slate-800 bg-slate-950/80 space-y-3">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400">데이터베이스 상태:</span>
-                {dbStatus === 'CONNECTED' ? (
-                  <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> 정상 연결
-                  </span>
-                ) : (
-                  <span className="text-amber-400 font-semibold flex items-center gap-1">
-                    <AlertTriangle className="w-3.5 h-3.5" /> 로컬 캐시 모드
-                  </span>
-                )}
               </div>
 
-              {/* Mobile Drawer Theme Toggle (44px Minimum Touch Target Guaranteed) */}
-              <button
-                id="btn-mobile-drawer-theme-toggle"
-                onClick={toggleTheme}
-                className="w-full min-h-[44px] px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 font-semibold text-xs flex items-center justify-between shadow-xs active:scale-98 transition-all"
-              >
-                <div className="flex items-center gap-2">
-                  {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-400" />}
-                  <span>{isDarkMode ? '라이트 테마로 전환' : '다크 테마로 전환'}</span>
+              {/* 역할 시뮬레이터 */}
+              <div className="space-y-2">
+                <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider px-1">
+                  사용자 역할 시뮬레이션
                 </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                  {isDarkMode ? 'DARK' : 'LIGHT'}
-                </span>
-              </button>
+                <div className="grid grid-cols-1 gap-1.5">
+                  {[
+                    { id: 'ROLE_USER', label: '일반사용자', desc: 'PDF 서비스만 접근 가능' },
+                    { id: 'ROLE_OPERATOR', label: '서비스설정자', desc: '서비스설정(와이어프레임) 접근 가능' },
+                    { id: 'ROLE_ADMIN', label: '마스터관리자', desc: '에이전트관리 마스터 전체 접근' },
+                  ].map((r) => (
+                    <button
+                      key={r.id}
+                      onClick={() => onSelectRole?.(r.id as UserSystemRole)}
+                      className={`min-h-[44px] px-3 py-2 rounded-lg text-left text-xs transition-colors flex items-center justify-between ${
+                        userRole === r.id
+                          ? 'bg-emerald-600/20 border border-emerald-500/50 text-emerald-300 font-bold'
+                          : 'bg-slate-950/40 border border-slate-800/80 text-slate-300 hover:bg-slate-800'
+                      }`}
+                    >
+                      <div>
+                        <div className="font-semibold">{r.label}</div>
+                        <div className="text-[10px] text-slate-400">{r.desc}</div>
+                      </div>
+                      {userRole === r.id && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
+              {/* 4모드 테마 선택 */}
+              <div className="space-y-2">
+                <div className="text-xs font-bold text-sky-400 uppercase tracking-wider px-1">
+                  4모드 테마 설정
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {(Object.keys(THEME_MODES) as ThemeMode[]).map((mode) => (
+                    <button
+                      key={mode}
+                      onClick={() => handleSelectThemeMode(mode)}
+                      className={`min-h-[44px] px-3 py-2 rounded-xl flex items-center gap-2 text-xs font-semibold transition-all ${
+                        themeMode === mode
+                          ? 'bg-indigo-600 text-white shadow-md'
+                          : 'bg-slate-950/50 border border-slate-800 text-slate-300 hover:bg-slate-800'
+                      }`}
+                    >
+                      {renderThemeIcon(mode, 'w-4 h-4')}
+                      <span>{THEME_MODES[mode].label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 하네스 뷰 전환 (activeSystem === 'harness' 일 때 모바일 드로어에 표시) */}
+              {activeSystem === 'harness' && (
+                <div className="space-y-3 pt-2 border-t border-slate-800">
+                  <div className="text-xs font-bold text-violet-400 uppercase tracking-wider px-1">
+                    하네스 뷰 목록
+                  </div>
+                  {DOMAIN_GROUPS.map((group) => (
+                    <div key={group.id} className="space-y-1">
+                      <div className="text-[11px] font-semibold text-slate-400 px-1">{group.name}</div>
+                      <div className="space-y-1">
+                        {group.views.map((v) => {
+                          const IconComp = v.icon;
+                          const isSel = activeView === v.id;
+                          return (
+                            <button
+                              key={v.id}
+                              onClick={() => handleViewClick(v.id, group.id)}
+                              className={`w-full min-h-[40px] px-3 py-2 rounded-lg text-left flex items-center justify-between text-xs transition-colors ${
+                                isSel ? 'bg-violet-600/30 text-white font-bold' : 'text-slate-300 hover:bg-slate-800/80'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <IconComp className="w-3.5 h-3.5 text-violet-400" />
+                                <span>{v.label}</span>
+                              </div>
+                              <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Drawer Footer */}
+            <div className="p-4 border-t border-slate-800 bg-slate-950/80 space-y-2">
               <button
                 onClick={() => {
                   setIsMobileDrawerOpen(false);
@@ -751,122 +977,45 @@ export default function Navbar({
         document.body
       )}
 
-      {/* 4. Comprehensive Service Health Check Modal (Portal to document.body, strictly viewport bound & centered) */}
-      {isCheckModalOpen && typeof document !== 'undefined' && createPortal(
-        <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-md z-[9999] flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in duration-150"
-          onClick={() => setIsCheckModalOpen(false)}
-        >
+      {/* 권한 제한 알림 모달 */}
+      {permissionAlert && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <div
-            className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh] sm:max-h-[80vh] my-auto animate-in zoom-in-95 duration-150 relative z-10"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="px-4 py-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/80 shrink-0">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shrink-0">
-                  <Stethoscope className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2 truncate">
-                    서비스 전수 점검 & 가드레일
-                    {allPassed === true && (
-                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
-                        100% 통과
-                      </span>
-                    )}
-                    {allPassed === false && (
-                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 shrink-0">
-                        점검필요
-                      </span>
-                    )}
-                  </h3>
-                  <p className="text-[10px] text-slate-400 truncate">
-                    인프라/DB, 정합성, 감사, 문서 GIN 검색 진단
-                  </p>
-                </div>
+            className="fixed inset-0 bg-black/80 backdrop-blur-xs"
+            onClick={() => setPermissionAlert(null)}
+          />
+          <div className="relative w-full max-w-sm bg-slate-900 border border-amber-500/40 rounded-2xl p-5 shadow-2xl z-50 text-slate-100 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 text-amber-400">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center border border-amber-500/30">
+                <Lock className="w-5 h-5" />
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <button
-                  onClick={runServiceCheck}
-                  disabled={checking}
-                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1 transition-colors disabled:opacity-50"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 text-slate-400 ${checking ? 'animate-spin text-emerald-400' : ''}`} />
-                  <span className="hidden sm:inline">{checking ? '점검중' : '재점검'}</span>
-                </button>
-                <button
-                  onClick={() => setIsCheckModalOpen(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                  aria-label="닫기"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+              <div>
+                <h3 className="font-bold text-sm text-white">접근 권한 제한</h3>
+                <p className="text-[11px] text-amber-300/80">필요 권한: {permissionAlert.required}</p>
               </div>
             </div>
 
-            {/* Modal Body */}
-            <div className="p-3.5 sm:p-5 overflow-y-auto no-scrollbar space-y-2.5 flex-1">
-              {checking && !checkResults ? (
-                <div className="py-10 flex flex-col items-center justify-center gap-3 text-slate-400">
-                  <RefreshCw className="w-7 h-7 text-emerald-400 animate-spin" />
-                  <p className="text-xs">4단계 서비스 전수 점검을 수행하고 있습니다...</p>
-                </div>
-              ) : checkResults && checkResults.length > 0 ? (
-                <div className="space-y-2">
-                  {checkResults.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className={`p-2.5 rounded-xl border transition-all flex items-start justify-between gap-2.5 ${
-                        item.passed
-                          ? 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700'
-                          : 'bg-rose-950/20 border-rose-900/60'
-                      }`}
-                    >
-                      <div className="flex items-start gap-2 min-w-0 flex-1">
-                        <div className="mt-0.5 shrink-0">
-                          {item.passed ? (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                          ) : (
-                            <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-slate-800 text-slate-300 shrink-0">
-                              {item.step}
-                            </span>
-                            <span className="text-xs font-bold text-white break-keep">{item.name}</span>
-                          </div>
-                          <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed break-words break-keep">
-                            {item.message}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-[9px] font-mono text-slate-500 whitespace-nowrap shrink-0 mt-0.5">
-                        {item.durationMs}ms
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-8 text-center text-xs text-slate-400">
-                  점검 결과가 없습니다. 재점검을 실행해 주세요.
-                </div>
-              )}
-            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              {permissionAlert.message}
+              <br />
+              현재 역할은 <span className="font-bold text-white font-mono">[{userRole}]</span> 입니다. 헤더의 권한 시뮬레이터를 통해 권한을 상향 조정하시거나 시스템 관리자에게 문의하세요.
+            </p>
 
-            {/* Modal Footer */}
-            <div className="px-4 py-2.5 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between text-[10px] text-slate-400 shrink-0">
-              <div className="flex items-center gap-1.5 truncate">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span className="truncate">CLI: <code className="text-slate-200 font-mono px-1 py-0.2 bg-slate-800 rounded">npm run check:service</code></span>
-              </div>
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
               <button
-                onClick={() => setIsCheckModalOpen(false)}
-                className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-colors shadow-sm shrink-0"
+                onClick={() => setPermissionAlert(null)}
+                className="min-h-[44px] px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold"
               >
-                닫기
+                확인
+              </button>
+              <button
+                onClick={() => {
+                  onSelectRole?.('ROLE_ADMIN');
+                  setPermissionAlert(null);
+                }}
+                className="min-h-[44px] px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+              >
+                관리자로 권한 상향
               </button>
             </div>
           </div>
@@ -874,53 +1023,90 @@ export default function Navbar({
         document.body
       )}
 
-      {/* 5. Emergency Disaster Recovery (DR) & Push Modal (Portal to document.body) */}
+      {/* 비-LLM 긴급 Push 및 DR 관제실 모달 */}
       {isEmergencyModalOpen && typeof document !== 'undefined' && createPortal(
-        <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-md z-[9999] flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in duration-150"
-          onClick={() => setIsEmergencyModalOpen(false)}
-        >
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <div
-            className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] my-auto animate-in zoom-in-95 duration-150 relative z-10"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950 shrink-0">
+            className="fixed inset-0 bg-black/80 backdrop-blur-xs animate-in fade-in duration-150"
+            onClick={() => setIsEmergencyModalOpen(false)}
+          />
+          <div className="relative w-full max-w-4xl max-h-[90vh] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-4 overflow-y-auto z-50">
+            <button
+              onClick={() => setIsEmergencyModalOpen(false)}
+              className="absolute top-4 right-4 z-50 p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <EmergencyRecoveryPanel />
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* 서비스 정밀점검 모달 */}
+      {isCheckModalOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-black/75 backdrop-blur-xs animate-in fade-in duration-150"
+            onClick={() => setIsCheckModalOpen(false)}
+          />
+          <div className="relative w-full max-w-lg bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-5 z-50 text-slate-100 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2.5">
-                <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 shrink-0">
-                  <ShieldAlert className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    비-LLM 세션 재해복구(DR) 및 긴급 백업 관제실
-                  </h3>
-                  <p className="text-[10px] text-slate-400">
-                    토큰 소진, 세션 행(Hang) 또는 브라우저 먹통 발생 시 LLM을 거치지 않고 소스를 원격에 즉시 안전 보존합니다.
-                  </p>
-                </div>
+                <Stethoscope className="w-5 h-5 text-emerald-400" />
+                <h3 className="font-bold text-sm text-white">4단계 서비스 전수진단 및 가드레일</h3>
               </div>
               <button
-                onClick={() => setIsEmergencyModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                aria-label="닫기"
+                onClick={() => setIsCheckModalOpen(false)}
+                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Modal Body: EmergencyRecoveryPanel Component */}
-            <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
-              <EmergencyRecoveryPanel />
+            <div className="py-4 space-y-3">
+              {checking ? (
+                <div className="flex flex-col items-center justify-center py-8 space-y-3">
+                  <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                  <p className="text-xs text-slate-400">시스템 전체 무결성을 진단하는 중입니다...</p>
+                </div>
+              ) : checkResults ? (
+                <div className="space-y-2.5">
+                  {checkResults.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-start justify-between gap-3 text-xs"
+                    >
+                      <div>
+                        <div className="font-bold flex items-center gap-1.5 text-white">
+                          <span>{item.name}</span>
+                          <span className="text-[10px] text-slate-500 font-mono">({item.step})</span>
+                        </div>
+                        <p className="text-slate-400 text-[11px] mt-0.5">{item.message}</p>
+                      </div>
+                      <div className="shrink-0 flex items-center gap-1 font-mono text-[11px]">
+                        {item.passed ? (
+                          <span className="text-emerald-400 font-bold flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> 통과
+                          </span>
+                        ) : (
+                          <span className="text-rose-400 font-bold flex items-center gap-1">
+                            <AlertTriangle className="w-3.5 h-3.5" /> 실패
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 text-center py-6">진단 결과가 없습니다.</p>
+              )}
             </div>
 
-            {/* Modal Footer */}
-            <div className="px-5 py-2.5 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between text-[11px] text-slate-400 shrink-0">
-              <span className="text-amber-400/90 font-mono">
-                REST API: <code>POST /api/agent/emergency/push</code> (무중단 백엔드 직접 전송)
-              </span>
+            <div className="flex justify-end pt-3 border-t border-slate-800">
               <button
-                onClick={() => setIsEmergencyModalOpen(false)}
-                className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs transition-colors shadow-sm"
+                onClick={() => setIsCheckModalOpen(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg"
               >
                 닫기
               </button>
@@ -932,4 +1118,3 @@ export default function Navbar({
     </header>
   );
 }
-
