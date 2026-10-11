@@ -73,3 +73,43 @@ div:not([data-carousel-track]):not(nav):not(.no-scrollbar)::-webkit-scrollbar-th
 div:not([data-carousel-track]):not(nav):not(.no-scrollbar)::-webkit-scrollbar-thumb:hover {
   background: rgba(99, 102, 241, 0.5);
 }
+
+/* 4모드 테마 전역 CSS 변수 및 스타일 */
+:root {
+  --app-bg: #020617;
+  --app-text: #f8fafc;
+  --app-border: #1e293b;
+  --app-card: #0f172a;
+}
+
+html.light, html[data-theme="light"] {
+  --app-bg: #f8fafc;
+  --app-text: #0f172a;
+  --app-border: #e2e8f0;
+  --app-card: #ffffff;
+}
+
+html.dark, html[data-theme="dark"] {
+  --app-bg: #020617;
+  --app-text: #f8fafc;
+  --app-border: #1e293b;
+  --app-card: #0f172a;
+}
+
+html.dawn, html[data-theme="dawn"] {
+  --app-bg: #070e22;
+  --app-text: #f0f6ff;
+  --app-border: #1e3066;
+  --app-card: #0e1a38;
+}
+
+/* 여명(dawn) 테마 전용 은은한 네이비 틴트 배경 오버라이드 지원 */
+html.dawn body {
+  background-color: #070e22 !important;
+  color: #f0f6ff !important;
+}
+
+html.light body {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
