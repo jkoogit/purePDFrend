@@ -2,13 +2,75 @@
  * purePDFrend 통합 디자인 토큰 시스템 (Design Tokens)
  * 단일 진실 공급원 (Single Source of Truth)
  * 
- * - Color System: Brand (Blue), Gray (Slate), Semantic (Success, Warning, Danger, Info)
+ * - Color System: Brand (Blue), Gray (Slate), Semantic (Success, Warning, Danger, Info), Dawn (Midnight Blue)
+ * - 4-Mode Theme System: light, dark, dawn, system
  * - Typography System: Display, Body, Mono (엄격한 스케일)
  * - Spacing System: 4pt Grid 기반 (0, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64px)
  * - Radius System: Zero-pill discipline (none, sm, md, lg, xl - max 16px)
  * - Elevation & Shadow System: Subtle, Card, Popover, Modal
  * - Touch Targets: 모바일 최소 44px 보장
  */
+
+export type ThemeMode = 'light' | 'dark' | 'dawn' | 'system';
+export type ResolvedTheme = 'light' | 'dark' | 'dawn';
+
+export interface ThemeConfig {
+  id: ThemeMode;
+  label: string;
+  iconName: 'Sun' | 'Moon' | 'Sunrise' | 'Monitor';
+  description: string;
+}
+
+export const THEME_MODES: Record<ThemeMode, ThemeConfig> = {
+  light: {
+    id: 'light',
+    label: '주간',
+    iconName: 'Sun',
+    description: '밝고 선명한 주간 라이트 모드',
+  },
+  dark: {
+    id: 'dark',
+    label: '야간',
+    iconName: 'Moon',
+    description: '눈이 편안한 OLED 다크 모드',
+  },
+  dawn: {
+    id: 'dawn',
+    label: '여명',
+    iconName: 'Sunrise',
+    description: '새벽 감성의 미드나잇 블루 고대비 모드',
+  },
+  system: {
+    id: 'system',
+    label: '시스템',
+    iconName: 'Monitor',
+    description: 'OS 화면 설정에 따라 자동 전환',
+  },
+};
+
+/** OS prefers-color-scheme 기반으로 시스템 테마를 실제 light/dark로 해석 */
+export function resolveThemeMode(mode: ThemeMode): ResolvedTheme {
+  if (mode === 'system') {
+    if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+    return 'light';
+  }
+  return mode;
+}
+
+/** HTML root DOM에 테마 클래스 및 data 속성 동기화 */
+export function applyThemeToDocument(mode: ThemeMode): ResolvedTheme {
+  const resolved = resolveThemeMode(mode);
+  if (typeof document !== 'undefined') {
+    const root = document.documentElement;
+    root.classList.remove('light', 'dark', 'dawn', 'theme-light', 'theme-dark', 'theme-dawn');
+    root.classList.add(resolved, `theme-${resolved}`);
+    root.setAttribute('data-theme', resolved);
+    root.setAttribute('data-theme-mode', mode);
+  }
+  return resolved;
+}
 
 export const tokens = {
   // 1. 색상 시스템 (Colors)
@@ -42,6 +104,19 @@ export const tokens = {
       850: '#172033', // Deep Layer
       900: '#0f172a', // Background Dark
       950: '#020617', // Canvas Deepest
+    },
+
+    // 여명 (Dawn) 모드 색상 체계 (Midnight Blue / Dawn Cyan-Indigo)
+    dawn: {
+      canvas: '#070e22',
+      panel: '#0e1a38',
+      card: '#132247',
+      cardHover: '#182b57',
+      border: '#1e3066',
+      borderHover: '#2a448c',
+      textMain: '#f0f6ff',
+      textMuted: '#94a3b8',
+      accent: '#38bdf8',
     },
 
     // 시맨틱 상태 색상

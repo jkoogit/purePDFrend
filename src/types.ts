@@ -127,6 +127,14 @@ export interface SystemSettings {
 }
 
 
+export type SystemDomainId = 'service' | 'settings' | 'harness';
+
+export type UserSystemRole =
+  | 'ROLE_USER'
+  | 'ROLE_OPERATOR'
+  | 'ROLE_ADMIN'
+  | 'ROLE_SUPER_ADMIN';
+
 export type DomainGroupId = 'harness' | 'knowledge' | 'studio';
 
 export type ActiveViewId =
