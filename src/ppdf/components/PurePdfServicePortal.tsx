@@ -30,6 +30,8 @@ export interface PurePdfServicePortalProps {
   userRole?: UserSystemRole;
   onSelectRole?: (role: UserSystemRole) => void;
   systemAdminEmail?: string;
+  themeMode?: ThemeMode;
+  onChangeThemeMode?: (mode: ThemeMode) => void;
 }
 
 export default function PurePdfServicePortal({
@@ -38,6 +40,8 @@ export default function PurePdfServicePortal({
   userRole = 'ROLE_USER',
   onSelectRole,
   systemAdminEmail = 'jkoogit@gmail.com',
+  themeMode: propThemeMode,
+  onChangeThemeMode,
 }: PurePdfServicePortalProps) {
   // 1. 사용자 인증(로그인) 상태 (기본값: 비로그인 상태로 진입하여 로그인 시 권한별 버튼 동적 표시)
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -49,6 +53,7 @@ export default function PurePdfServicePortal({
 
   // 4모드 테마 상태
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    if (propThemeMode) return propThemeMode;
     try {
       const saved = localStorage.getItem('purepdfrend_theme_mode');
       if (saved && ['light', 'dark', 'dawn', 'system'].includes(saved)) {
@@ -59,6 +64,12 @@ export default function PurePdfServicePortal({
       return 'dark';
     }
   });
+
+  useEffect(() => {
+    if (propThemeMode && propThemeMode !== themeMode) {
+      setThemeMode(propThemeMode);
+    }
+  }, [propThemeMode]);
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => resolveThemeMode(themeMode));
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
 
@@ -83,6 +94,7 @@ export default function PurePdfServicePortal({
 
   const handleSelectThemeMode = (mode: ThemeMode) => {
     setThemeMode(mode);
+    onChangeThemeMode?.(mode);
     setIsThemeMenuOpen(false);
   };
 
@@ -259,12 +271,20 @@ export default function PurePdfServicePortal({
       {/* =================================================================== */}
       {/* 1. 서비스 상단 인증 & 사용자 권한별 시스템 전환 바 */}
       {/* =================================================================== */}
-      <div className="relative z-50 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className={`relative z-50 border rounded-2xl p-4 shadow-xl backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors duration-200 ${
+        resolvedTheme === 'light'
+          ? 'bg-white/95 border-slate-200 text-slate-900 shadow-slate-200/60'
+          : resolvedTheme === 'dawn'
+          ? 'bg-[#070e22]/95 border-[#1e3066] text-white shadow-sky-950/30'
+          : 'bg-slate-900/90 border-slate-800 text-white shadow-indigo-950/20'
+      }`}>
         {/* 서비스 타이틀 & 슬로건 */}
         <div className="flex items-center gap-3">
           <PdfrendLogo size={40} theme={resolvedTheme} />
           <div>
-            <h1 className="text-base font-bold text-white flex items-center gap-2">
+            <h1 className={`text-base font-bold flex items-center gap-2 ${
+              resolvedTheme === 'light' ? 'text-slate-900' : 'text-white'
+            }`}>
               <span>PDFrend</span>
             </h1>
           </div>

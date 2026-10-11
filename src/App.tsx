@@ -18,6 +18,7 @@ import {
   SystemDomainId,
   UserSystemRole,
 } from './types';
+import { ThemeMode, resolveThemeMode, applyThemeToDocument } from './styles/tokens';
 
 export default function App() {
   // 1. 3대 시스템 도메인 상태 (기본값: 'service' - 엔드유저 PDF 서비스 첫화면 기본 표시)
@@ -62,7 +63,33 @@ export default function App() {
     } catch {}
   };
 
-  // 3. 하네스 거버넌스 도메인 및 뷰 상태
+  // 3. 4모드 통합 테마 상태 (light / dark / dawn / system)
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    try {
+      const saved = localStorage.getItem('purepdfrend_theme_mode');
+      if (saved && ['light', 'dark', 'dawn', 'system'].includes(saved)) {
+        return saved as ThemeMode;
+      }
+      return 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+
+  const handleSelectThemeMode = (mode: ThemeMode) => {
+    setThemeMode(mode);
+    applyThemeToDocument(mode);
+    try {
+      localStorage.setItem('purepdfrend_theme_mode', mode);
+      localStorage.setItem('purepdfrend_theme', resolveThemeMode(mode));
+    } catch {}
+  };
+
+  useEffect(() => {
+    applyThemeToDocument(themeMode);
+  }, [themeMode]);
+
+  // 4. 하네스 거버넌스 도메인 및 뷰 상태
   const [activeDomain, setActiveDomain] = useState<DomainGroupId>('harness');
   const [activeView, setActiveView] = useState<ActiveViewId>('graph');
   const [traceFilter, setTraceFilter] = useState<string>('');
@@ -166,11 +193,19 @@ export default function App() {
     });
   };
 
+  const resolvedTheme = resolveThemeMode(themeMode);
+
   return (
     <div
       className={`${
         isHeaderPinned ? 'h-screen overflow-hidden' : 'min-h-screen overflow-x-hidden'
-      } bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white transition-colors duration-150`}
+      } flex flex-col font-sans selection:bg-indigo-500 selection:text-white transition-colors duration-200 ${
+        resolvedTheme === 'light'
+          ? 'bg-slate-50 text-slate-900'
+          : resolvedTheme === 'dawn'
+          ? 'bg-[#070e22] text-slate-100'
+          : 'bg-slate-950 text-slate-100'
+      }`}
     >
       {/* Top Global Navigation with System & Role Switcher (사용자서비스 시스템에서는 에이전트 top 메뉴 제거) */}
       {activeSystem !== 'service' && (
@@ -187,6 +222,8 @@ export default function App() {
             onSelectSystem={handleSelectSystem}
             userRole={userRole}
             onSelectRole={handleSelectRole}
+            themeMode={themeMode}
+            onChangeThemeMode={handleSelectThemeMode}
           />
         </div>
       )}
@@ -208,6 +245,8 @@ export default function App() {
                 userRole={userRole}
                 onSelectRole={handleSelectRole}
                 systemAdminEmail="jkoogit@gmail.com"
+                themeMode={themeMode}
+                onChangeThemeMode={handleSelectThemeMode}
               />
             </div>
           )}
