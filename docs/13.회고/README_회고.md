@@ -20,6 +20,7 @@
 | `13-18` | `13-18_SESSION-261005-0024_세션종합_KPT_회고록.md` | SESSION-261005-0024 세션 종합 KPT 회고록 | Keep(화면 본질 집중 2대 시나리오 카드 제거, 모바일 Table-to-Card 0px 가로스크롤 표준화, 시나리오설계 소스 안전 제거, 10개 대화턴 무손실 영속화), Problem(구형 프로토타입 뷰 잔류, 복합 필터 상태 중복 위험), Try(시스템서비스 PG-ADM-01~16 와이어프레임 본격 착수, IndexedDB 큐 실제 엔진 결합) |
 | `13-19` | `13-19_SESSION-261006-0025_세션종합_KPT_회고록.md` | SESSION-261006-0025 세션 종합 KPT 회고록 | Keep(사용자 피드백 즉각수용, 복합기능키 Ctrl+Shift, 가로형 카드 플로우, 내부/외부 API연동 단일화 15개 최적화, 13개 대화턴 영속화), Problem(답변완료 시 수정버튼 숨김 혼선, 모바일 줄바꿈 세분화), Try(시스템서비스 실제 백엔드 연동, IndexedDB 큐 엔진 결합) |
 | `13-20` | `13-20_SESSION-261008-0026_세션종합_KPT_회고록.md` | SESSION-261008-0026 세션 종합 KPT 회고록 | Keep(8종 기준컴포넌트풀 구축, PG-ADM-01~16 16대 전면대입, 44px 모바일터치, Git Data API Push, 대화턴 화해 완결), Problem(와이어프레임과 실제API 간극, 상단 테마토글 부재), Try(상단 글로벌 테마토글 추가, PG-ADM-01/03 실제 DB 연동) |
+| `13-21` | `13-21_SESSION-261011-0027_세션종합_KPT_회고록.md` | SESSION-261011-0027 세션 종합 KPT 회고록 | Keep(SSOT tokens.ts 정의, 디자인시스템 쇼케이스 탭 구축, 글로벌 테마스위처, PG-ADM-01/03 실제 PostgreSQL REST 연동, 3대 브랜치 일치), Problem(23개 와이어프레임 개별 쉘 파편화, PDF 핵심 뷰어 바인딩 대기), Try(3대 통합 쉘 AdminShell/UserShell/StudioShell 구축, PDF MVP 3대 화면 토큰 바인딩) |
 
 ```mermaid
 pie title 회고 이슈 비중
