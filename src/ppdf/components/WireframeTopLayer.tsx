@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Plus,
 } from 'lucide-react';
+import { WireframeTopDropdown } from './WireframeTopDropdown';
 
 export interface WireframeTopLayerProps {
   currentProgramId: string;
@@ -340,7 +341,15 @@ export function WireframeTopLayer({
         </div>
       </div>
 
-      {/* 2. 우측 컨트롤 & 사용자 프로필 영역 (탑레이어에는 프로필 아이콘만 표시) */}
+      {/* 2. 중앙 와이어프레임 25개 목록 드롭다운 */}
+      <div className="flex justify-center flex-1 my-1 sm:my-0">
+        <WireframeTopDropdown
+          currentProgId={currentProgramId}
+          onSelectProgram={(_type, progId) => onNavigate && onNavigate(progId)}
+        />
+      </div>
+
+      {/* 3. 우측 컨트롤 & 사용자 프로필 영역 (탑레이어에는 프로필 아이콘만 표시) */}
       <div className="flex items-center gap-2 flex-wrap flex-1 sm:flex-initial justify-end whitespace-nowrap min-w-fit">
         {/* 모바일 모드 시 스크롤 고정핀 & 전체화면 모드 아이콘 표시 */}
         {isMobileMode && (

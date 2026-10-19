@@ -149,6 +149,15 @@ export default function App() {
     fetchGraph();
   }, []);
 
+  // 전역 와이어프레임 퀵 점프 네비게이션 리스너 (사용자/관리자 25개 와이어프레임 직접 이동)
+  useEffect(() => {
+    const handleWireframeJump = () => {
+      setActiveSystem('settings');
+    };
+    window.addEventListener('purepdfrend-navigate-wireframe', handleWireframeJump);
+    return () => window.removeEventListener('purepdfrend-navigate-wireframe', handleWireframeJump);
+  }, []);
+
   // Update Settings Handler
   const handleUpdateSettings = async (newSettings: SystemSettings) => {
     const res = await fetch('/api/settings', {

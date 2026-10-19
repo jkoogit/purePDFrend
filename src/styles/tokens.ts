@@ -247,3 +247,55 @@ export const tokenClassMap = {
   touchButton: 'min-h-[44px] flex items-center justify-center select-none',
   focusRing: 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50',
 };
+
+/** 4모드 테마 적응형 스타일 헬퍼 */
+export function getThemeAdaptiveClasses(theme: ResolvedTheme = 'dark') {
+  switch (theme) {
+    case 'light':
+      return {
+        shellBg: 'bg-slate-50 text-slate-900',
+        container: 'bg-white border-slate-200 shadow-md text-slate-900',
+        panel: 'bg-slate-100/90 border-slate-200 text-slate-800',
+        card: 'bg-white border-slate-200 shadow-xs hover:border-blue-400 text-slate-900',
+        cardActive: 'bg-blue-50/80 border-blue-500 shadow-xs text-blue-950',
+        header: 'bg-white/95 border-slate-200 text-slate-900',
+        border: 'border-slate-200',
+        textMain: 'text-slate-900',
+        textMuted: 'text-slate-500',
+        badge: 'bg-slate-100 text-slate-700 border-slate-200',
+        input: 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400',
+        dropdown: 'bg-white border-slate-200 text-slate-900 shadow-xl',
+      };
+    case 'dawn':
+      return {
+        shellBg: 'bg-[#070e22] text-white',
+        container: 'bg-[#0e1a38] border-[#1e3066] shadow-xl shadow-sky-950/20 text-white',
+        panel: 'bg-[#0b152d]/90 border-[#1e3066] text-slate-200',
+        card: 'bg-[#132247]/90 border-[#1e3066] shadow-xs hover:border-sky-400 text-white',
+        cardActive: 'bg-[#182b57] border-sky-400 shadow-md shadow-sky-500/20 text-sky-100',
+        header: 'bg-[#070e22]/95 border-[#1e3066] text-white',
+        border: 'border-[#1e3066]',
+        textMain: 'text-white',
+        textMuted: 'text-sky-300/70',
+        badge: 'bg-sky-950/60 text-sky-300 border-sky-800/60',
+        input: 'bg-[#070e22] border-[#1e3066] text-white placeholder:text-sky-400/50',
+        dropdown: 'bg-[#0e1a38] border-[#1e3066] text-white shadow-2xl',
+      };
+    case 'dark':
+    default:
+      return {
+        shellBg: 'bg-slate-950 text-slate-100',
+        container: 'bg-slate-900 border-slate-800 shadow-xl text-slate-100',
+        panel: 'bg-slate-950/80 border-slate-800/80 text-slate-300',
+        card: 'bg-slate-900/90 border-slate-800 shadow-xs hover:border-slate-700 text-slate-200',
+        cardActive: 'bg-slate-850 border-blue-500/50 shadow-md text-white',
+        header: 'bg-slate-950/95 border-slate-800 text-white',
+        border: 'border-slate-800',
+        textMain: 'text-white',
+        textMuted: 'text-slate-400',
+        badge: 'bg-slate-800 text-slate-300 border-slate-700',
+        input: 'bg-slate-950 border-slate-800 text-white placeholder:text-slate-500',
+        dropdown: 'bg-slate-900 border-slate-700 text-slate-100 shadow-2xl',
+      };
+  }
+}
