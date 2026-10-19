@@ -3,7 +3,6 @@ import {
   BookOpen,
   ChevronRight,
   ChevronLeft,
-  ArrowUpRight,
   LogIn,
   LogOut,
   X,
@@ -12,17 +11,20 @@ import {
   HelpCircle,
   MessageSquare,
   Sparkle,
+  Sparkles,
   Sun,
   Moon,
   Sunrise,
   Monitor,
-  ChevronDown,
+  UserPlus,
+  ShieldCheck,
 } from 'lucide-react';
 import { UserSystemRole } from '../../types';
 import { ThemeMode, ResolvedTheme, THEME_MODES, resolveThemeMode, applyThemeToDocument } from '../../styles/tokens';
 import { PdfrendLogo } from '../../shared/components/PdfrendLogo';
 import { VirtualViewerStudio } from './VirtualViewerStudio';
 import { HorizontalSlideContainer } from './HorizontalSlideContainer';
+import { WireframeTopDropdown } from './WireframeTopDropdown';
 
 export interface PurePdfServicePortalProps {
   onNavigateToAgent?: () => void;
@@ -45,6 +47,7 @@ export default function PurePdfServicePortal({
 }: PurePdfServicePortalProps) {
   // 1. 사용자 인증(로그인) 상태 (기본값: 비로그인 상태로 진입하여 로그인 시 권한별 버튼 동적 표시)
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [portalActiveTab, setPortalActiveTab] = useState<'dashboard' | 'landing'>('dashboard');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginTab, setLoginTab] = useState<'signin' | 'signup'>('signin');
   const [loginEmail, setLoginEmail] = useState('user@purepdfrend.io');
@@ -255,6 +258,7 @@ export default function PurePdfServicePortal({
   // One-click Role Login Simulator Handler
   const handleLoginWithRole = (targetRole: UserSystemRole, displayName: string, email: string) => {
     setIsLoggedIn(true);
+    setPortalActiveTab('dashboard');
     setUserName(displayName);
     setLoginEmail(email);
     onSelectRole?.(targetRole);
@@ -263,6 +267,7 @@ export default function PurePdfServicePortal({
 
   const handleLogout = () => {
     setIsLoggedIn(false);
+    setPortalActiveTab('landing');
     onSelectRole?.('ROLE_USER');
   };
 
@@ -278,7 +283,7 @@ export default function PurePdfServicePortal({
           ? 'bg-[#070e22]/95 border-[#1e3066] text-white shadow-sky-950/30'
           : 'bg-slate-900/90 border-slate-800 text-white shadow-indigo-950/20'
       }`}>
-        {/* 서비스 타이틀 & 슬로건 */}
+        {/* 1-1. 서비스 타이틀 & 슬로건 */}
         <div className="flex items-center gap-3">
           <PdfrendLogo size={40} theme={resolvedTheme} />
           <div>
@@ -290,8 +295,19 @@ export default function PurePdfServicePortal({
           </div>
         </div>
 
-        {/* 우측 로그인 상태 & 권한별 시스템 전환 인터페이스 */}
-        <div className="flex items-center gap-2.5 flex-wrap justify-end">
+        {/* 1-2. top 영역 가운데 와이어프레임 서비스목록 드롭다운 (25개 바로가기) */}
+        <div className="flex justify-center flex-1 my-1 md:my-0">
+          <WireframeTopDropdown
+            currentProgId={isLoggedIn ? 'PG-USR-03' : 'PG-USR-01'}
+            theme={resolvedTheme}
+            onSelectProgram={(_type, _progId) => {
+              onNavigateToSettings?.();
+            }}
+          />
+        </div>
+
+        {/* 1-3. 우측 시스템 전환 & 인증 아이콘 바 (시스템설정, 에이전트관리, 로그인시스템 아이콘 표시) */}
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           {isLoggedIn ? (
             <>
               {/* 로그인 사용자 프로필 칩 */}
@@ -302,123 +318,378 @@ export default function PurePdfServicePortal({
                 <div className="flex flex-col">
                   <span className="font-semibold text-slate-200 leading-tight">{userName} 님</span>
                   <span className="text-[10px] text-emerald-400 font-mono leading-tight">
-                    {userRole === 'ROLE_USER' && '일반사용자 (서비스전용)'}
-                    {userRole === 'ROLE_OPERATOR' && '서비스설정자 (설정권한)'}
-                    {userRole === 'ROLE_ADMIN' && '마스터관리자 (전체권한)'}
-                    {userRole === 'ROLE_SUPER_ADMIN' && '최고관리자 (전체권한)'}
+                    {userRole === 'ROLE_USER' && '일반사용자'}
+                    {userRole === 'ROLE_OPERATOR' && '서비스설정자'}
+                    {userRole === 'ROLE_ADMIN' && '마스터관리자'}
+                    {userRole === 'ROLE_SUPER_ADMIN' && '최고관리자'}
                   </span>
                 </div>
               </div>
 
-              {/* [권한별 전환 버튼 1: 서비스설정 시스템] (ROLE_OPERATOR, ROLE_ADMIN, ROLE_SUPER_ADMIN 전용) */}
+              {/* [아이콘화 1: 서비스설정 시스템] (ROLE_OPERATOR, ROLE_ADMIN, ROLE_SUPER_ADMIN 전용) */}
               {(userRole === 'ROLE_OPERATOR' || userRole === 'ROLE_ADMIN' || userRole === 'ROLE_SUPER_ADMIN') && (
                 <button
                   id="btn-portal-goto-settings"
                   onClick={onNavigateToSettings}
-                  className="min-h-[40px] px-3.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-sky-600/25 transition-all cursor-pointer active:scale-95"
-                  title="서비스설정 시스템(25개 와이어프레임 & 시스템 설정 스튜디오)으로 전환"
+                  className="w-10 h-10 rounded-xl bg-sky-600 hover:bg-sky-500 text-white flex items-center justify-center shadow-md shadow-sky-600/25 transition-all cursor-pointer active:scale-95 shrink-0"
+                  title="서비스설정 시스템 (25개 와이어프레임 & 시스템 설정 스튜디오)"
+                  aria-label="서비스설정 시스템"
                 >
-                  <Settings className="w-3.5 h-3.5" />
-                  <span>서비스설정 시스템</span>
-                  <ArrowUpRight className="w-3 h-3 opacity-80" />
+                  <Settings className="w-5 h-5" />
                 </button>
               )}
 
-              {/* [권한별 전환 버튼 2: 에이전트관리 마스터] (ROLE_ADMIN, ROLE_SUPER_ADMIN 전용) */}
+              {/* [아이콘화 2: 에이전트관리 마스터] (ROLE_ADMIN, ROLE_SUPER_ADMIN 전용) */}
               {(userRole === 'ROLE_ADMIN' || userRole === 'ROLE_SUPER_ADMIN') && (
                 <button
                   id="btn-portal-goto-agent"
                   onClick={onNavigateToAgent}
-                  className="min-h-[40px] px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-violet-600/25 transition-all cursor-pointer active:scale-95"
-                  title="에이전트관리 마스터 시스템(작업그래프/토큰쿼터/지식원장)으로 전환"
+                  className="w-10 h-10 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white flex items-center justify-center shadow-md shadow-violet-600/25 transition-all cursor-pointer active:scale-95 shrink-0"
+                  title="에이전트관리 마스터 (하네스/토큰쿼터/작업그래프/지식원장)"
+                  aria-label="에이전트관리 마스터"
                 >
-                  <Bot className="w-3.5 h-3.5" />
-                  <span>에이전트관리 (마스터)</span>
-                  <ArrowUpRight className="w-3 h-3 opacity-80" />
+                  <Bot className="w-5 h-5" />
                 </button>
               )}
 
-              {/* 로그아웃 버튼 */}
+              {/* [아이콘화 3: 로그아웃 버튼] */}
               <button
                 onClick={handleLogout}
-                className="min-h-[40px] px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
                 title="로그아웃"
+                aria-label="로그아웃"
               >
-                <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">로그아웃</span>
+                <LogOut className="w-4 h-4" />
               </button>
             </>
           ) : (
             <>
-              {/* 비로그인(게스트) 상태 로그인 버튼 */}
+              {/* [아이콘화 4: 비로그인 로그인시스템 버튼] */}
               <button
                 id="btn-portal-open-login"
                 onClick={() => {
                   setLoginTab('signin');
                   setShowLoginModal(true);
                 }}
-                className="min-h-[40px] px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-indigo-600/25 transition-all cursor-pointer active:scale-95"
+                className="w-10 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-md shadow-indigo-600/25 transition-all cursor-pointer active:scale-95 shrink-0"
+                title="로그인시스템 / 권한선택"
+                aria-label="로그인시스템"
               >
-                <LogIn className="w-4 h-4" />
-                <span>로그인 / 권한선택</span>
+                <LogIn className="w-5 h-5" />
               </button>
+
+              {/* 회원가입 아이콘 버튼 */}
               <button
                 onClick={() => {
                   setLoginTab('signup');
                   setShowLoginModal(true);
                 }}
-                className="min-h-[40px] px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs transition-colors cursor-pointer"
+                className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                title="회원가입"
+                aria-label="회원가입"
               >
-                회원가입
+                <UserPlus className="w-4 h-4" />
               </button>
-
-              {/* [요청 5 반영] 테마 설정 버튼: 회원가입 뒤로 배치 */}
-              <div className="relative z-50">
-                <button
-                  id="btn-portal-theme-toggle"
-                  onClick={() => setIsThemeMenuOpen((prev) => !prev)}
-                  onDoubleClick={cycleTheme}
-                  className="min-h-[40px] h-10 flex items-center gap-1.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 hover:border-slate-600 font-semibold text-xs transition-all cursor-pointer shadow-sm shrink-0 whitespace-nowrap"
-                  title={`테마 설정: ${THEME_MODES[themeMode].label} (현재) - 클릭 시 4모드 선택`}
-                >
-                  {renderThemeIcon(themeMode, 'w-3.5 h-3.5 shrink-0')}
-                  <span>테마 ({THEME_MODES[themeMode].label})</span>
-                  <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
-                </button>
-
-                {isThemeMenuOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-44 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-1.5 z-[100] text-xs animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-2 py-1 text-[10px] text-slate-400 font-bold border-b border-slate-800 flex items-center justify-between">
-                      <span>4모드 테마 선택</span>
-                      <span className="font-mono text-indigo-400 text-[9px]">{resolvedTheme}</span>
-                    </div>
-                    {(Object.keys(THEME_MODES) as ThemeMode[]).map((mode) => (
-                      <button
-                        key={mode}
-                        onClick={() => handleSelectThemeMode(mode)}
-                        className={`w-full min-h-[36px] text-left px-2.5 py-1.5 rounded-lg flex items-center gap-2 transition-colors cursor-pointer ${
-                          themeMode === mode ? 'bg-indigo-600/30 text-indigo-200 font-bold' : 'text-slate-300 hover:bg-slate-800'
-                        }`}
-                      >
-                        {renderThemeIcon(mode, 'w-3.5 h-3.5')}
-                        <div className="flex-1">
-                          <div className="leading-tight">{THEME_MODES[mode].label}</div>
-                          <div className="text-[9px] text-slate-400 leading-tight">{THEME_MODES[mode].description}</div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
             </>
           )}
+
+          {/* 4모드 테마 전환 아이콘 버튼 */}
+          <div className="relative z-50">
+            <button
+              id="btn-portal-theme-toggle"
+              onClick={() => setIsThemeMenuOpen((prev) => !prev)}
+              onDoubleClick={cycleTheme}
+              className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 hover:border-slate-600 flex items-center justify-center transition-all cursor-pointer shadow-sm shrink-0"
+              title={`테마 설정: ${THEME_MODES[themeMode].label} (더블클릭: 빠른전환, 클릭: 메뉴)`}
+              aria-label="테마 설정"
+            >
+              {renderThemeIcon(themeMode, 'w-4 h-4 shrink-0')}
+            </button>
+
+            {isThemeMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-44 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-1.5 z-[100] text-xs animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-2 py-1 text-[10px] text-slate-400 font-bold border-b border-slate-800 flex items-center justify-between">
+                  <span>4모드 테마 선택</span>
+                  <span className="font-mono text-indigo-400 text-[9px]">{resolvedTheme}</span>
+                </div>
+                {(Object.keys(THEME_MODES) as ThemeMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => handleSelectThemeMode(mode)}
+                    className={`w-full min-h-[36px] text-left px-2.5 py-1.5 rounded-lg flex items-center gap-2 transition-colors cursor-pointer ${
+                      themeMode === mode ? 'bg-indigo-600/30 text-indigo-200 font-bold' : 'text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    {renderThemeIcon(mode, 'w-3.5 h-3.5')}
+                    <div className="flex-1">
+                      <div className="leading-tight">{THEME_MODES[mode].label}</div>
+                      <div className="text-[9px] text-slate-400 leading-tight">{THEME_MODES[mode].description}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* =================================================================== */}
-      {/* 2. [서비스설정 > 사용자서비스 > 첫화면 (PG-USR-01) 전개 영역] */}
+      {/* 2. 로그인 상태 및 서브 탭 분기 */}
       {/* =================================================================== */}
-      <div className="space-y-5 text-xs">
+      {isLoggedIn && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPortalActiveTab('dashboard')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                portalActiveTab === 'dashboard'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 ring-1 ring-white/20'
+                  : 'bg-slate-900/80 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+              }`}
+            >
+              <span>👤</span>
+              <span>내 작업 대시보드 (PG-USR-03)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPortalActiveTab('landing')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                portalActiveTab === 'landing'
+                  ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30 ring-1 ring-white/20'
+                  : 'bg-slate-900/80 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+              }`}
+            >
+              <span>📢</span>
+              <span>서비스 안내 & 롤링 배너 (PG-USR-01)</span>
+            </button>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1.5 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>로그인 인증 완료</span>
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* A. 로그인 대시보드 (PG-USR-03: 홈화면) */}
+      {isLoggedIn && portalActiveTab === 'dashboard' ? (
+        <div className="space-y-6 animate-fadeIn">
+          {/* A-1. 환영 프로필 & 계정 현황 카드 */}
+          <div className={`p-5 rounded-2xl border shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+            resolvedTheme === 'light'
+              ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 text-slate-900'
+              : 'bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border-slate-800 text-white'
+          }`}>
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-500/25 shrink-0">
+                {userName.charAt(0)}
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <h2 className="text-lg font-bold">안녕하세요, <span className="text-sky-400">{userName}</span> 님!</h2>
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold">
+                    {userRole === 'ROLE_USER' && '일반사용자'}
+                    {userRole === 'ROLE_OPERATOR' && '서비스설정자'}
+                    {userRole === 'ROLE_ADMIN' && '마스터관리자'}
+                    {userRole === 'ROLE_SUPER_ADMIN' && '최고관리자'}
+                  </span>
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono">
+                    Enterprise Pro
+                  </span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/20 flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3 text-sky-400" />
+                    <span>2FA 보안 인증됨</span>
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400">
+                  purePDFrend 대시보드에서 7대 PDF 핵심 도구, 800쪽 대용량 가상화 뷰어 및 최근 문서를 빠르게 관리하세요.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => handleOpenSampleDoc('ISO 32000-2 표준 가이드북')}
+                className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition-all cursor-pointer active:scale-95"
+              >
+                <BookOpen className="w-4 h-4" />
+                <span>800쪽 뷰어로 열기</span>
+              </button>
+            </div>
+          </div>
+
+          {/* A-2. 4대 주요 지표 통계 그리드 */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm flex items-center justify-between">
+              <div>
+                <div className="text-[11px] text-slate-400 font-medium">내 보관 문서</div>
+                <div className="text-xl font-bold text-white font-mono mt-0.5">12<span className="text-xs font-normal text-slate-400 ml-1">권</span></div>
+              </div>
+              <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-base">📁</div>
+            </div>
+            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm flex items-center justify-between">
+              <div>
+                <div className="text-[11px] text-slate-400 font-medium">저장된 북마크</div>
+                <div className="text-xl font-bold text-amber-400 font-mono mt-0.5">8<span className="text-xs font-normal text-slate-400 ml-1">개</span></div>
+              </div>
+              <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-base">🔖</div>
+            </div>
+            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm flex items-center justify-between">
+              <div>
+                <div className="text-[11px] text-slate-400 font-medium">최근 OCR 변환</div>
+                <div className="text-xl font-bold text-sky-400 font-mono mt-0.5">5<span className="text-xs font-normal text-slate-400 ml-1">건</span></div>
+              </div>
+              <div className="w-9 h-9 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center text-base">🔤</div>
+            </div>
+            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm flex items-center justify-between">
+              <div>
+                <div className="text-[11px] text-slate-400 font-medium">오프라인 동기화</div>
+                <div className="text-xl font-bold text-emerald-400 font-mono mt-0.5">100%<span className="text-xs font-normal text-slate-400 ml-1">안전</span></div>
+              </div>
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-base">⚡</div>
+            </div>
+          </div>
+
+          {/* A-3. 7대 PDF 핵심 문서 도구 (Quick Action Studio) */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-sky-400" />
+                <span>7대 PDF 핵심 문서 도구 (Quick Action Studio)</span>
+              </h3>
+              <span className="text-[11px] text-slate-400">도구를 선택하면 작업 화면 및 뷰어로 연결됩니다.</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+              {[
+                { id: 'tool-camera', name: '1. 카메라 문서스캔', icon: '📷', desc: '모바일/웹캠 실물 촬영 후 즉시 PDF 생성', badge: '실시간 가이드' },
+                { id: 'tool-img2pdf', name: '2. 이미지 ➔ PDF', icon: '🖼️', desc: '다중 JPG/PNG 드래그 업로드 및 일괄 병합', badge: '다중 변환' },
+                { id: 'tool-ocr', name: '3. PDF OCR (듀얼)', icon: '🔤', desc: 'Gemini / Tesseract 투명 텍스트 레이어 합성', badge: '듀얼 엔진' },
+                { id: 'tool-ocr2text', name: '4. PDF OCR ➔ TEXT', icon: '📝', desc: '스캔 문서 내 텍스트 추출 및 .txt/.md 저장', badge: '텍스트 추출' },
+                { id: 'tool-docmgmt', name: '5. PDF 문서관리', icon: '📑', desc: '페이지 회전/삭제/병합(Merge)/분할(Split)', badge: '페이지 편집' },
+                { id: 'tool-compress', name: '6. PDF 압축 최적화', icon: '🗜️', desc: 'DPI 최적화 및 최대 85% 용량 압축', badge: '초경량화' },
+                { id: 'tool-security', name: '7. PDF 보안 통제', icon: '🔒', desc: 'AES-256 열람 비밀번호 및 권한 암호화', badge: '보안 통제' },
+                { id: 'tool-viewer', name: '8. 800쪽 가상화 뷰어', icon: '⚡', desc: '초당 60fps 대용량 가상 렌더링 & 주석 스튜디오', badge: '가상화 엔진' },
+              ].map((tool) => (
+                <div
+                  key={tool.id}
+                  onClick={() => handleOpenSampleDoc(`ISO 32000-2 표준 가이드북 (${tool.name})`)}
+                  className="p-4 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 hover:border-sky-500/60 transition-all cursor-pointer group flex flex-col justify-between shadow-md"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-2xl p-2 rounded-xl bg-slate-950 border border-slate-800 group-hover:scale-110 transition-transform">
+                        {tool.icon}
+                      </span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/20 font-semibold">
+                        {tool.badge}
+                      </span>
+                    </div>
+                    <h4 className="font-bold text-white group-hover:text-sky-300 transition-colors text-xs">
+                      {tool.name}
+                    </h4>
+                    <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                      {tool.desc}
+                    </p>
+                  </div>
+                  <div className="pt-3 mt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-sky-400 group-hover:text-sky-300 font-semibold">
+                    <span>도구 실행</span>
+                    <span className="group-hover:translate-x-1 transition-transform">➔</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* A-4. 최근 열람 문서 라이브러리 (바로 뷰어로 열람 가능) */}
+          <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-indigo-400" />
+                <span>최근 열람 및 협업 문서 (Quick Open)</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    localStorage.setItem('purepdfrend_selected_wireframe', JSON.stringify({ type: 'user', progId: 'PG-USR-05' }));
+                    window.dispatchEvent(new CustomEvent('purepdfrend-navigate-wireframe', { detail: { type: 'user', progId: 'PG-USR-05' } }));
+                  } catch {}
+                  onNavigateToSettings?.();
+                }}
+                className="text-xs text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1 cursor-pointer"
+              >
+                <span>전체 문서함(PG-USR-05) 바로가기</span>
+                <span>➔</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              {[
+                { title: 'ISO 32000-2 표준 가이드북 및 엔터프라이즈 PDF 아카이빙 지침서', pages: 800, cur: 45, annots: 18, tag: '800P 가상화' },
+                { title: '2026 전자정부 표준 프레임워크 연계 기술 가이드', pages: 120, cur: 12, annots: 4, tag: '기술문서' },
+                { title: '의료영상 PACS 스캔 리포트 및 메디컬 서식', pages: 45, cur: 45, annots: 3, tag: '의료/서식' },
+              ].map((doc, idx) => (
+                <div key={idx} className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col justify-between space-y-2.5">
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        {doc.tag}
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-mono">총 {doc.pages}쪽</span>
+                    </div>
+                    <h5 className="font-bold text-white line-clamp-2 leading-snug">{doc.title}</h5>
+                    <div className="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
+                      <span>진행: 제 {doc.cur}페이지</span>
+                      <span>주석: {doc.annots}건</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenSampleDoc(doc.title)}
+                    className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-sky-300 hover:text-white rounded-lg font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
+                    <span>📖 800쪽 가상화 뷰어로 열기</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* B. 공개 첫화면 (PG-USR-01 랜딩) 전개 영역 */
+        <div className="space-y-5 text-xs">
+          {/* 비로그인 사용자 전용 환영 & 빠른 로그인/대시보드 안내 배너 */}
+          {!isLoggedIn && (
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-purple-950/50 to-slate-950 border border-indigo-500/30 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center text-lg shrink-0">
+                  ⚡
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-white">7대 PDF 핵심 도구 및 전용 대시보드가 준비되어 있습니다</h4>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    로그인하시면 개인화된 문서 라이브러리, 주석 스튜디오 및 작업 대시보드(PG-USR-03)가 즉시 활성화됩니다.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setLoginTab('signin');
+                  setShowLoginModal(true);
+                }}
+                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-indigo-600/30 cursor-pointer active:scale-95 shrink-0 whitespace-nowrap"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>로그인하고 대시보드 열기 ➔</span>
+              </button>
+            </div>
+          )}
         {/* 2-1. 중앙 롤링 이벤트 및 프로모션 배너 슬라이더 */}
         <div className="space-y-2">
           {bannerList.length > 0 ? (
@@ -742,6 +1013,7 @@ export default function PurePdfServicePortal({
           </div>
         </div>
       </div>
+      )}
 
       {/* =================================================================== */}
       {/* 3. 로그인 및 사용자 권한 선택 모달 (인증 시뮬레이션) */}

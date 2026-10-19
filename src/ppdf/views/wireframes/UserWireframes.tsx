@@ -35,6 +35,8 @@ import { DocumentLibraryViewer, DocumentItem } from '../../components/DocumentLi
 import { ToolStylePopover, ToolStyleState, ToolKind } from '../../components/ToolStylePopover';
 import { AnnotationActionPopover, AnnotationKind } from '../../components/AnnotationActionPopover';
 import { Undo2, Redo2, Sliders, PanelLeft, PanelTop, ArrowUp, ArrowDown, GripVertical, X, Share2, Columns3 } from 'lucide-react';
+import { UserShell } from './shells/UserShell';
+import { tokenClassMap } from '../../../styles/tokens';
 
 export const USER_PROGRAMS = [
   { id: 'PG-USR-01', name: '첫화면 (랜딩)', desc: '공개 문서조회 바, 롤링배너, 공지/리뷰/가이드 탭, 고객센터 푸터' },
@@ -50,9 +52,10 @@ export const USER_PROGRAMS = [
 
 export interface UserWireframesProps {
   isMobileMode?: boolean;
+  initialProgId?: string;
 }
 
-export function UserWireframes({ isMobileMode: propIsMobileMode = false }: UserWireframesProps) {
+export function UserWireframes({ isMobileMode: propIsMobileMode = false, initialProgId }: UserWireframesProps) {
   // 실제 브라우저 윈도우/iframe 너비 감지 (Google AI Studio 상단 디바이스 모바일 토글 실시간 감지)
   const [isWindowMobile, setIsWindowMobile] = useState<boolean>(() => {
     return typeof window !== 'undefined' ? window.innerWidth < 640 : false;
@@ -70,6 +73,12 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false }: UserW
   const isMobileMode = propIsMobileMode || isWindowMobile;
 
   const [selectedProg, setSelectedProg] = useState('PG-USR-01');
+
+  useEffect(() => {
+    if (initialProgId && USER_PROGRAMS.some((p) => p.id === initialProgId)) {
+      setSelectedProg(initialProgId);
+    }
+  }, [initialProgId]);
 
   // PG-USR-03 Active Tool Subpage state (7대 PDF 핵심 문서 도구 전용 작업화면)
   const [activePdfTool, setActivePdfTool] = useState<string | null>(null);
@@ -2718,33 +2727,13 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false }: UserW
   const activeTools = registry.getToolsForGroup(activeGroup);
 
   return (
-    <div className="space-y-6">
-      {/* 9대 사용자 프로그램 선택 칩 바 (가로 슬라이드 컨테이너 적용) */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-lg">
-        <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-xs text-slate-400">
-          <span className="font-semibold text-sky-400">9대 사용자 핵심 서비스 화면 (User Portal Modules)</span>
-          <span>선택: <strong className="text-white">{selectedProg}</strong></span>
-        </div>
-        <HorizontalSlideContainer scrollStep={280} className="w-full">
-          {USER_PROGRAMS.map((p) => {
-            const active = p.id === selectedProg;
-            return (
-              <button
-                key={p.id}
-                onClick={() => setSelectedProg(p.id)}
-                className={`shrink-0 px-3.5 py-2.5 min-h-[44px] rounded-lg text-xs font-mono transition-all flex items-center gap-2 ${
-                  active
-                    ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30 ring-1 ring-sky-400 font-semibold'
-                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'
-                }`}
-              >
-                <span className="opacity-80 px-1 py-0.5 rounded bg-black/20 text-[11px]">{p.id}</span>
-                <span className="font-sans font-medium whitespace-nowrap">{p.name}</span>
-              </button>
-            );
-          })}
-        </HorizontalSlideContainer>
-      </div>
+    <UserShell
+      currentProgId={selectedProg}
+      programs={USER_PROGRAMS}
+      onSelectProg={setSelectedProg}
+      isMobileMode={isMobileMode}
+    >
+      {/* 실제 프로덕션 대상 순수 화면 캔버스 (설명 배제, 화면 컴포넌트만 정확히 렌더링) */}
 
       {/* 실제 프로덕션 대상 순수 화면 캔버스 (설명 배제, 화면 컴포넌트만 정확히 렌더링) */}
       <div className={`bg-slate-900/90 border border-slate-800 rounded-2xl ${isMobileMode ? 'p-2.5 sm:p-4' : 'p-5'} shadow-2xl space-y-6 min-h-[540px]`}>
@@ -3805,7 +3794,7 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false }: UserW
                     <div
                       key={tool.id}
                       onClick={() => setActivePdfTool(tool.id)}
-                      className="p-3.5 bg-slate-950 border border-slate-800 rounded-xl hover:border-sky-500/60 hover:bg-slate-900/60 transition-all cursor-pointer group flex flex-col justify-between shadow-xs hover:shadow-sky-500/10"
+                      className={`p-3.5 ${tokenClassMap.card} hover:border-sky-500/60 transition-all cursor-pointer group flex flex-col justify-between`}
                     >
                       <div>
                         <div className="flex items-center justify-between mb-2">
@@ -9828,6 +9817,6 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false }: UserW
           </div>
         )}
       </div>
-    </div>
+    </UserShell>
   );
 }

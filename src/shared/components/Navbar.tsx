@@ -34,6 +34,7 @@ import {
 import { ActiveViewId, DomainGroupId, SystemDomainId, UserSystemRole } from '../../types';
 import { ThemeMode, ResolvedTheme, THEME_MODES, resolveThemeMode, applyThemeToDocument } from '../../styles/tokens';
 import { PdfrendLogo } from './PdfrendLogo';
+import { ALL_WIREFRAME_PROGRAMS } from '../../ppdf/views/wireframes/shells/StudioShell';
 
 export type AppTab = 'agent' | 'system' | 'viewer' | 'ocr';
 
@@ -239,7 +240,19 @@ export default function Navbar({
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => resolveThemeMode(themeMode));
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false);
+  const [isWireframeMenuOpen, setIsWireframeMenuOpen] = useState(false);
   const [permissionAlert, setPermissionAlert] = useState<{ message: string; required: string } | null>(null);
+
+  const handleJumpToWireframe = (type: 'showcase' | 'user' | 'admin', progId: string) => {
+    setIsWireframeMenuOpen(false);
+    onSelectSystem?.('settings');
+    onSelectDomain('studio');
+    onSelectView('wireframes');
+    try {
+      localStorage.setItem('purepdfrend_selected_wireframe', JSON.stringify({ type, progId }));
+      window.dispatchEvent(new CustomEvent('purepdfrend-navigate-wireframe', { detail: { type, progId } }));
+    } catch {}
+  };
 
   useEffect(() => {
     const resolved = applyThemeToDocument(themeMode);
@@ -494,6 +507,81 @@ export default function Navbar({
                   <span>마스터관리자 (ADMIN)</span>
                   <span className="text-[10px] text-violet-400">전체접근</span>
                 </button>
+              </div>
+            )}
+          </div>
+
+          {/* 와이어프레임 서비스목록 (25개) 퀵 점프 드롭다운 */}
+          <div className="relative pl-1 border-l border-slate-800">
+            <button
+              id="btn-navbar-wireframe-dropdown"
+              onClick={() => {
+                setIsWireframeMenuOpen((prev) => !prev);
+                setIsRoleMenuOpen(false);
+                setIsThemeMenuOpen(false);
+              }}
+              className="min-h-[36px] px-2.5 py-1 rounded-lg bg-sky-950/60 hover:bg-sky-900/70 border border-sky-800/80 text-sky-200 hover:text-white text-[11px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer select-none"
+              title="와이어프레임에 해당하는 25개 서비스목록 퀵 점프"
+            >
+              <Layers className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+              <span className="font-semibold text-sky-300 hidden lg:inline">와이어프레임 목록</span>
+              <span className="font-semibold text-sky-300 lg:hidden">와이어프레임</span>
+              <span className="text-[10px] font-mono px-1 rounded bg-sky-900/90 text-sky-300 border border-sky-700/60">25</span>
+              <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${isWireframeMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isWireframeMenuOpen && (
+              <div className="absolute right-0 top-full mt-1.5 w-76 max-h-96 overflow-y-auto bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-2 z-50 text-xs animate-in fade-in zoom-in-95 duration-150 no-scrollbar">
+                <div className="px-2 py-1 text-[10px] text-slate-400 font-bold border-b border-slate-800 flex items-center justify-between">
+                  <span>와이어프레임 서비스 목록</span>
+                  <span className="text-[10px] text-sky-400 font-mono">25 Screens</span>
+                </div>
+
+                {/* 쇼케이스 */}
+                <div className="mt-1.5">
+                  <div className="px-2 py-0.5 text-[9px] font-bold text-blue-400 uppercase">쇼케이스</div>
+                  <button
+                    onClick={() => handleJumpToWireframe('showcase', 'DS-SHOWCASE')}
+                    className="w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between text-xs text-slate-200 hover:bg-slate-800 transition-colors"
+                  >
+                    <span>🎨 디자인시스템 쇼케이스</span>
+                    <span className="text-[10px] text-slate-500 font-mono">Showcase</span>
+                  </button>
+                </div>
+
+                {/* 사용자 서비스 (9개) */}
+                <div className="mt-1.5 pt-1 border-t border-slate-800">
+                  <div className="px-2 py-0.5 text-[9px] font-bold text-sky-400 uppercase">사용자 서비스 (9개)</div>
+                  {ALL_WIREFRAME_PROGRAMS.filter((p) => p.type === 'user').map((prog) => (
+                    <button
+                      key={prog.id}
+                      onClick={() => handleJumpToWireframe('user', prog.id)}
+                      className="w-full text-left px-2 py-1 rounded-lg flex items-center justify-between text-xs text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                    >
+                      <span className="truncate">{prog.name}</span>
+                      <span className="text-[10px] font-mono text-sky-400 bg-sky-950 px-1 py-0.2 rounded border border-sky-800/60 shrink-0 ml-1">
+                        {prog.id}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* 관리자 서비스 (16개) */}
+                <div className="mt-1.5 pt-1 border-t border-slate-800">
+                  <div className="px-2 py-0.5 text-[9px] font-bold text-indigo-400 uppercase">관리자 서비스 (16개)</div>
+                  {ALL_WIREFRAME_PROGRAMS.filter((p) => p.type === 'admin').map((prog) => (
+                    <button
+                      key={prog.id}
+                      onClick={() => handleJumpToWireframe('admin', prog.id)}
+                      className="w-full text-left px-2 py-1 rounded-lg flex items-center justify-between text-xs text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                    >
+                      <span className="truncate">{prog.name}</span>
+                      <span className="text-[10px] font-mono text-indigo-400 bg-indigo-950 px-1 py-0.2 rounded border border-indigo-800/60 shrink-0 ml-1">
+                        {prog.id}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>

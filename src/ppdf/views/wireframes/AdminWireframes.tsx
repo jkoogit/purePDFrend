@@ -1,8 +1,7 @@
-import { useState } from 'react';
-import { Button, Input, Badge, Card } from '@shared/components/ui';
+import { useState, useEffect } from 'react';
+import { Button, Badge, Card } from '@shared/components/ui';
 import { ViewerConfigRegistry } from '../../domain/ViewerConfigRegistry';
 import { IconResourceRegistry } from '../../domain/IconResourceRegistry';
-import { HorizontalSlideContainer } from '../../components/HorizontalSlideContainer';
 import { WireframeTopLayer } from '../../components/WireframeTopLayer';
 
 // Modular Admin Views (13대 개선 요구사항 반영)
@@ -20,6 +19,8 @@ import {
   AdminCustomerSupportView,
   AdminFontsView,
 } from './admin/AdminExtendedModulesView';
+
+import { AdminShell } from './shells/AdminShell';
 
 export const ADMIN_PROGRAMS = [
   { id: 'PG-ADM-01', name: '보안관리', desc: '화이트리스트 & 블랙리스트, 2FA 강제화, 세션만료, 오프라인 토큰' },
@@ -41,11 +42,17 @@ export const ADMIN_PROGRAMS = [
 
 export interface AdminWireframesProps {
   isMobileMode?: boolean;
+  initialProgId?: string;
 }
 
-export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) {
+export function AdminWireframes({ isMobileMode = false, initialProgId }: AdminWireframesProps) {
   const [selectedProg, setSelectedProg] = useState('PG-ADM-01');
-  const [filterKeyword, setFilterKeyword] = useState('');
+
+  useEffect(() => {
+    if (initialProgId && ADMIN_PROGRAMS.some((p) => p.id === initialProgId)) {
+      setSelectedProg(initialProgId);
+    }
+  }, [initialProgId]);
   const [shortcutPriority, setShortcutPriority] = useState<'SYSTEM' | 'CUSTOM'>('CUSTOM');
   const [shortcutViewMode, setShortcutViewMode] = useState<'CARDS' | 'TABLE'>('CARDS');
 
@@ -90,70 +97,14 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
     setConfigState(updated);
   };
 
-  const filteredPrograms = ADMIN_PROGRAMS.filter(
-    (p) =>
-      p.id.toLowerCase().includes(filterKeyword.toLowerCase()) ||
-      p.name.toLowerCase().includes(filterKeyword.toLowerCase()) ||
-      p.desc.toLowerCase().includes(filterKeyword.toLowerCase())
-  );
-
   return (
-    <div className="space-y-6">
-      {/* 화면 및 메뉴 접근 안내 카드 (사용자 질문: '화면 메뉴접근은 어떻게 들어가지?' 답변 반영) */}
-      <div className="p-4 bg-gradient-to-r from-indigo-950/80 via-slate-900 to-slate-950 border border-indigo-500/40 rounded-2xl shadow-xl space-y-2">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">💡</span>
-            <span className="font-bold text-white text-sm">화면 메뉴 접근 경로 가이드</span>
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-              총 15개 시스템 설정 화면 (내부/외부 API 연동 단일화)
-            </span>
-          </div>
-          <div className="text-[11px] text-slate-400">
-            상단 네비게이션: <code className="text-sky-300 font-semibold">[PDF 스튜디오]</code> ➔ <code className="text-indigo-300 font-semibold">[와이어프레임]</code> ➔ <code className="text-emerald-300 font-semibold">[🛠 관리자 서비스]</code>
-          </div>
-        </div>
-        <p className="text-xs text-slate-300">
-          시스템 설정 와이어프레임은 언제든 상단 메뉴를 통해 접근할 수 있으며, 아래 15개 프로그램 칩 또는 빠른 검색을 통해 원하는 기능 화면으로 1클릭 즉시 이동할 수 있습니다.
-        </p>
-      </div>
-
-      {/* 16대 관리자 프로그램 선택 칩 바 & 빠른 검색창 */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-lg space-y-2.5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-indigo-400">16대 관리자 운영관리 프로그램 (Admin Modules)</span>
-            <span className="text-slate-500 text-[11px]">선택: <strong className="text-white font-mono">{selectedProg}</strong></span>
-          </div>
-          <div className="w-full sm:w-64">
-            <Input
-              placeholder="기능명/ID 빠른 검색 (예: 보안, 사용자, 약관)..."
-              value={filterKeyword}
-              onChange={(e) => setFilterKeyword(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <HorizontalSlideContainer scrollStep={280} className="w-full">
-          {filteredPrograms.map((p) => {
-            const active = p.id === selectedProg;
-            return (
-              <button
-                key={p.id}
-                onClick={() => setSelectedProg(p.id)}
-                className={`shrink-0 px-3.5 py-2 min-h-[42px] rounded-lg text-xs font-mono transition-all flex items-center gap-2 ${
-                  active
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 ring-1 ring-indigo-400 font-semibold'
-                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'
-                }`}
-              >
-                <span className="opacity-80 px-1 py-0.5 rounded bg-black/25 text-[11px]">{p.id}</span>
-                <span className="font-sans font-medium whitespace-nowrap">{p.name}</span>
-              </button>
-            );
-          })}
-        </HorizontalSlideContainer>
-      </div>
+    <AdminShell
+      currentProgId={selectedProg}
+      programs={ADMIN_PROGRAMS}
+      onSelectProg={setSelectedProg}
+      isMobileMode={isMobileMode}
+    >
+      {/* 실제 프로덕션 대상 순수 화면 캔버스 */}
 
       {/* 실제 프로덕션 대상 순수 화면 캔버스 */}
       <div className={`bg-slate-900/90 border border-slate-800 rounded-2xl ${isMobileMode ? 'p-2.5 sm:p-4' : 'p-5'} shadow-2xl space-y-6 min-h-[540px]`}>
@@ -657,6 +608,6 @@ export function AdminWireframes({ isMobileMode = false }: AdminWireframesProps) 
           </div>
         )}
       </div>
-    </div>
+    </AdminShell>
   );
 }
