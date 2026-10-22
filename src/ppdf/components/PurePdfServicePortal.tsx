@@ -47,7 +47,7 @@ export default function PurePdfServicePortal({
 }: PurePdfServicePortalProps) {
   // 1. 사용자 인증(로그인) 상태 (기본값: 비로그인 상태로 진입하여 로그인 시 권한별 버튼 동적 표시)
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [portalActiveTab, setPortalActiveTab] = useState<'dashboard' | 'landing'>('dashboard');
+  const [portalActiveTab, setPortalActiveTab] = useState<'dashboard' | 'landing'>('landing');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginTab, setLoginTab] = useState<'signin' | 'signup'>('signin');
   const [loginEmail, setLoginEmail] = useState('user@purepdfrend.io');
