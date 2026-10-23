@@ -3,4 +3,5 @@ dist/
 .vite/
 *.log
 .env
+.env.*
 .env.local

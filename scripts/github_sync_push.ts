@@ -189,31 +189,51 @@ async function syncViaAntigravityLocalGit(
   execSync(`git checkout ${activeTaskBranch}`, { stdio: 'pipe' });
   console.log(`   ↩️  Switched back to task branch: ${activeTaskBranch}`);
 
-  // 3. Test non-blocking push or detect IDE authentication
-  console.log(`\n🚀 4. Checking Remote Push Status...`);
+  // 3. Remote Push Execution
+  console.log(`\n🚀 4. Executing Remote Push to GitHub...`);
   let pushSuccess = false;
   let pushNotice = '';
 
-  const pushAttempt = spawnSync('git', ['push', '--dry-run', 'origin', activeTaskBranch], {
-    timeout: 3000,
-    encoding: 'utf8'
-  });
-
-  if (pushAttempt.status === 0) {
-    console.log('   ✅ Git Credential helper available. Executing real push to dev...');
+  if (GITHUB_TOKEN && GITHUB_TOKEN.trim().length > 0) {
+    const authRemoteUrl = `https://x-access-token:${GITHUB_TOKEN.trim()}@github.com/${OWNER}/${REPO}.git`;
     try {
-      execSync(`git push origin ${activeTaskBranch}`, { stdio: 'pipe', timeout: 5000 });
-      execSync(`git push origin dev`, { stdio: 'pipe', timeout: 5000 });
-      execSync(`git push origin stg`, { stdio: 'pipe', timeout: 5000 });
-      execSync(`git push origin main`, { stdio: 'pipe', timeout: 5000 });
+      console.log(`   📡 Pushing '${activeTaskBranch}' to remote...`);
+      execSync(`git -c credential.helper= push "${authRemoteUrl}" ${activeTaskBranch}:refs/heads/${activeTaskBranch}`, { stdio: 'pipe', timeout: 15000 });
+      console.log(`   📡 Pushing 'dev' to remote...`);
+      execSync(`git -c credential.helper= push "${authRemoteUrl}" dev:refs/heads/dev`, { stdio: 'pipe', timeout: 15000 });
+      console.log(`   📡 Pushing 'stg' to remote...`);
+      execSync(`git -c credential.helper= push "${authRemoteUrl}" stg:refs/heads/stg`, { stdio: 'pipe', timeout: 15000 });
+      console.log(`   📡 Pushing 'main' to remote...`);
+      execSync(`git -c credential.helper= push "${authRemoteUrl}" main:refs/heads/main`, { stdio: 'pipe', timeout: 15000 });
       pushSuccess = true;
-      console.log('   🎉 Remote branches (dev, stg, main) successfully pushed to GitHub!');
+      pushNotice = '✅ Remote branches (task, dev, stg, main) successfully pushed and promoted to GitHub!';
+      console.log(`   🎉 ${pushNotice}`);
     } catch (e: any) {
-      pushNotice = `Local merge completed. Remote push pending via IDE UI: ${e.message}`;
+      console.error('   ❌ Token push error:', e.message, e.stderr?.toString());
+      pushNotice = `Local merge completed, remote push failed: ${e.message}`;
     }
   } else {
-    pushNotice = 'Local merge complete (dev/stg/main SHA: ' + currentSha + '). Push ready via Antigravity IDE Source Control (Ctrl+Shift+G).';
-    console.log(`   ℹ️  ${pushNotice}`);
+    const pushAttempt = spawnSync('git', ['push', '--dry-run', 'origin', activeTaskBranch], {
+      timeout: 3000,
+      encoding: 'utf8'
+    });
+
+    if (pushAttempt.status === 0) {
+      console.log('   ✅ Git Credential helper available. Executing real push to dev...');
+      try {
+        execSync(`git push origin ${activeTaskBranch}`, { stdio: 'pipe', timeout: 10000 });
+        execSync(`git push origin dev`, { stdio: 'pipe', timeout: 10000 });
+        execSync(`git push origin stg`, { stdio: 'pipe', timeout: 10000 });
+        execSync(`git push origin main`, { stdio: 'pipe', timeout: 10000 });
+        pushSuccess = true;
+        console.log('   🎉 Remote branches (dev, stg, main) successfully pushed to GitHub!');
+      } catch (e: any) {
+        pushNotice = `Local merge completed. Remote push pending via IDE UI: ${e.message}`;
+      }
+    } else {
+      pushNotice = 'Local merge complete (dev/stg/main SHA: ' + currentSha + '). Push ready via Antigravity IDE Source Control (Ctrl+Shift+G).';
+      console.log(`   ℹ️  ${pushNotice}`);
+    }
   }
 
   // 4. Update local agent store with actual commit SHA
