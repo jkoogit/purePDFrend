@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Folder,
   FolderOpen,
@@ -38,6 +38,12 @@ import {
   CheckCheck,
   BookOpen,
 } from 'lucide-react';
+import {
+  ThemeMode,
+  ResolvedTheme,
+  resolveThemeMode,
+  getThemeAdaptiveClasses,
+} from '../../styles/tokens';
 import { ImageEditLayerModal, ImageCropSettings, ImageStandardizeSettings } from './ImageEditLayerModal';
 
 export interface CategoryNode {
@@ -74,12 +80,13 @@ export interface DocumentItem {
   accentColor: string;
 }
 
-interface DocumentLibraryViewerProps {
+export interface DocumentLibraryViewerProps {
   userEmail?: string;
   onOpenViewer?: (docId: string, doc?: DocumentItem) => void;
   onRequestShare?: (targetKind: 'file' | 'category', targetName: string, docId?: string) => void;
   isMobileMode?: boolean;
   className?: string;
+  themeMode?: ThemeMode;
 }
 
 export function DocumentLibraryViewer({
@@ -88,7 +95,49 @@ export function DocumentLibraryViewer({
   onRequestShare,
   isMobileMode = false,
   className = '',
+  themeMode: propThemeMode,
 }: DocumentLibraryViewerProps) {
+  const [internalThemeMode, setInternalThemeMode] = useState<ThemeMode>(() => {
+    if (propThemeMode) return propThemeMode;
+    try {
+      const saved = localStorage.getItem('purepdfrend_theme_mode');
+      if (saved && ['light', 'dark', 'dawn', 'system'].includes(saved)) {
+        return saved as ThemeMode;
+      }
+    } catch {}
+    return 'dark';
+  });
+
+  useEffect(() => {
+    if (propThemeMode) {
+      setInternalThemeMode(propThemeMode);
+      return;
+    }
+    const handleThemeChange = () => {
+      try {
+        const saved = localStorage.getItem('purepdfrend_theme_mode');
+        if (saved && ['light', 'dark', 'dawn', 'system'].includes(saved)) {
+          setInternalThemeMode(saved as ThemeMode);
+        }
+      } catch {}
+    };
+    window.addEventListener('storage', handleThemeChange);
+    const observer = new MutationObserver(() => {
+      const domTheme = document.documentElement.getAttribute('data-theme-mode') as ThemeMode;
+      if (domTheme && ['light', 'dark', 'dawn', 'system'].includes(domTheme)) {
+        setInternalThemeMode(domTheme);
+      }
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-theme-mode'] });
+    return () => {
+      window.removeEventListener('storage', handleThemeChange);
+      observer.disconnect();
+    };
+  }, [propThemeMode]);
+
+  const activeThemeMode = propThemeMode || internalThemeMode;
+  const resolvedTheme: ResolvedTheme = resolveThemeMode(activeThemeMode);
+  const themeClasses = getThemeAdaptiveClasses(resolvedTheme);
   // 카테고리 공유 모드 및 선택 상태
   const [isCategoryShareMode, setIsCategoryShareMode] = useState(false);
   const [selectedShareCatIds, setSelectedShareCatIds] = useState<string[]>([]);
@@ -995,14 +1044,14 @@ export function DocumentLibraryViewer({
       {/* ========================================================= */}
       {/* 1. 상단 상세 검색 필터 바 (2. 모바일 반응형 래핑 & 초기화 아이콘화) */}
       {/* ========================================================= */}
-      <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl shadow-sm mb-5 space-y-3">
+      <div className={`p-4 ${themeClasses.container} border ${themeClasses.border} rounded-2xl shadow-sm mb-5 space-y-3`}>
         {/* [요청 2] 타이틀 좁을 때 타이틀 밑에 배치 (flex-col sm:flex-row) & 초기화 아이콘화 */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-1">
           <div className="flex items-center gap-2">
             <span className="p-1 rounded-lg bg-sky-500/20 text-sky-400">
               <Search className="w-4 h-4" />
             </span>
-            <span className="text-sm font-bold text-white tracking-tight">문서 상세 검색 필터</span>
+            <span className={`text-sm font-bold ${themeClasses.textMain} tracking-tight`}>문서 상세 검색 필터</span>
             <span className="text-[10px] text-slate-500 font-mono">
               (총 {documents.length}건 중 <strong className="text-sky-400">{filteredDocuments.length}</strong>건)
             </span>
@@ -1028,7 +1077,7 @@ export function DocumentLibraryViewer({
             <button
               type="button"
               onClick={handleResetFilters}
-              className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800 transition-colors cursor-pointer"
+              className={`p-1.5 rounded-lg ${themeClasses.buttonSecondary} border ${themeClasses.border} transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center`}
               title="검색 필터 조건 초기화"
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -1043,7 +1092,7 @@ export function DocumentLibraryViewer({
             <select
               value={filterDocType}
               onChange={(e) => setFilterDocType(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700/80 rounded-lg p-2 text-slate-200 focus:outline-none focus:border-sky-500 text-xs"
+              className={`w-full ${themeClasses.input} rounded-lg p-2 ${themeClasses.textMain} focus:outline-none focus:border-sky-500 text-xs min-h-[44px]`}
             >
               <option value="all">전체 문서 구분</option>
               <option value="등록문서">등록문서 (내 라이브러리)</option>
@@ -1060,7 +1109,7 @@ export function DocumentLibraryViewer({
                 value={filterKeyword}
                 onChange={(e) => setFilterKeyword(e.target.value)}
                 placeholder="문서명 또는 등록자..."
-                className="w-full bg-slate-900 border border-slate-700/80 rounded-lg p-2 pr-7 text-slate-200 focus:outline-none focus:border-sky-500 text-xs"
+                className={`w-full ${themeClasses.input} rounded-lg p-2 pr-7 ${themeClasses.textMain} focus:outline-none focus:border-sky-500 text-xs min-h-[44px]`}
               />
               {filterKeyword && (
                 <button
@@ -1083,7 +1132,7 @@ export function DocumentLibraryViewer({
                 value={filterAuthor}
                 onChange={(e) => setFilterAuthor(e.target.value)}
                 placeholder="저자, 출판사, 역자명..."
-                className="w-full bg-slate-900 border border-slate-700/80 rounded-lg p-2 pr-7 text-slate-200 focus:outline-none focus:border-sky-500 text-xs"
+                className={`w-full ${themeClasses.input} rounded-lg p-2 pr-7 ${themeClasses.textMain} focus:outline-none focus:border-sky-500 text-xs min-h-[44px]`}
               />
               {filterAuthor && (
                 <button
@@ -1103,7 +1152,7 @@ export function DocumentLibraryViewer({
             <label className="text-[10px] font-semibold text-slate-400">카테고리 선택 / 검색</label>
             <div
               onClick={() => setIsCatComboboxOpen(!isCatComboboxOpen)}
-              className="w-full bg-slate-900 border border-slate-700/80 hover:border-sky-500 rounded-lg p-2 flex items-center justify-between text-slate-200 text-xs cursor-pointer select-none"
+              className={`w-full ${themeClasses.input} hover:border-sky-500 rounded-lg p-2 flex items-center justify-between ${themeClasses.textMain} text-xs cursor-pointer select-none min-h-[44px]`}
             >
               <span className="truncate">
                 {selectedCatId ? getNodeFullPath(selectedCatId) : '전체 카테고리'}
@@ -1127,7 +1176,7 @@ export function DocumentLibraryViewer({
             </div>
 
             {isCatComboboxOpen && (
-              <div className="absolute top-full left-0 mt-1 w-full sm:w-80 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-2 z-50 space-y-2 animate-in fade-in">
+              <div className={`absolute top-full left-0 mt-1 w-full sm:w-80 ${themeClasses.dropdown} border ${themeClasses.border} rounded-xl shadow-2xl p-2 z-50 space-y-2 animate-in fade-in`}>
                 <div className="relative flex items-center">
                   <input
                     type="text"
@@ -1220,7 +1269,7 @@ export function DocumentLibraryViewer({
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700/80 rounded-lg p-2 text-slate-200 focus:outline-none focus:border-sky-500 text-xs"
+                className={`w-full ${themeClasses.input} rounded-lg p-2 ${themeClasses.textMain} focus:outline-none focus:border-sky-500 text-xs min-h-[44px]`}
               >
                 <option value="all">전체 상태</option>
                 <option value="대기">대기</option>
@@ -1234,7 +1283,7 @@ export function DocumentLibraryViewer({
               <select
                 value={filterSecurity}
                 onChange={(e) => setFilterSecurity(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700/80 rounded-lg p-2 text-slate-200 focus:outline-none focus:border-sky-500 text-xs"
+                className={`w-full ${themeClasses.input} rounded-lg p-2 ${themeClasses.textMain} focus:outline-none focus:border-sky-500 text-xs min-h-[44px]`}
               >
                 <option value="all">전체 등급</option>
                 <option value="일반">일반 (공개)</option>
@@ -1248,7 +1297,7 @@ export function DocumentLibraryViewer({
               <select
                 value={filterDateRange}
                 onChange={(e) => setFilterDateRange(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700/80 rounded-lg p-2 text-slate-200 focus:outline-none focus:border-sky-500 text-xs"
+                className={`w-full ${themeClasses.input} rounded-lg p-2 ${themeClasses.textMain} focus:outline-none focus:border-sky-500 text-xs min-h-[44px]`}
               >
                 <option value="all">전체 기간</option>
                 <option value="7days">최근 7일 이내</option>
@@ -1287,7 +1336,7 @@ export function DocumentLibraryViewer({
               >
                 <div className="flex items-center gap-2">
                   <Folder className="w-4 h-4 text-sky-400" />
-                  <span className="font-bold text-white text-xs">도서 카테고리</span>
+                  <span className={`font-bold ${themeClasses.textMain} text-xs`}>도서 카테고리</span>
                   <span className="text-[10px] text-slate-400 font-mono bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
                     위로 접힘
                   </span>
@@ -1308,7 +1357,7 @@ export function DocumentLibraryViewer({
 
               {/* [데스크톱 접힘 모드] 슬림한 세로 확장 바 (isMobileMode가 아닐 때 데스크톱(lg 이상)에서만 표시) */}
               {!isMobileMode && (
-                <div className="hidden lg:flex flex-col items-center py-4 px-2 bg-slate-950 border border-slate-800 rounded-2xl space-y-4 shadow-sm">
+                <div className={`hidden lg:flex flex-col items-center py-4 px-2 ${themeClasses.panel} border ${themeClasses.border} rounded-2xl space-y-4 shadow-sm`}>
                   <button
                     type="button"
                     onClick={() => setIsCategoryCollapsed(false)}
@@ -1328,9 +1377,9 @@ export function DocumentLibraryViewer({
             </>
           ) : (
             /* 카테고리 기본 패널 */
-            <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 shadow-sm space-y-3">
+            <div className={`${themeClasses.panel} border ${themeClasses.border} rounded-2xl p-3.5 shadow-sm space-y-3`}>
               {/* 헤더: [3. (최대 5Depth) 삭제], [3. 데스크톱/모바일 접기 토글], [4. 트리/경로 아이콘화] */}
-              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
+              <div className={`flex items-center justify-between border-b ${themeClasses.border} pb-2.5`}>
                 <div className="flex items-center gap-1.5">
                   <Folder className="w-4 h-4 text-sky-400" />
                   {/* [요청 3] (최대 5Depth) 삭제 */}
@@ -1378,7 +1427,7 @@ export function DocumentLibraryViewer({
                   </button>
 
                   {/* [요청 4] 트리, 경로 아이콘으로 변경 */}
-                  <div className="flex rounded-md bg-slate-900 p-0.5 border border-slate-800">
+                  <div className={`flex rounded-md ${themeClasses.panel} p-0.5 border ${themeClasses.border}`}>
                     <button
                       type="button"
                       onClick={() => setTreeViewMode('tree')}
@@ -1463,7 +1512,7 @@ export function DocumentLibraryViewer({
                       className={`p-2 rounded-xl flex items-center justify-between cursor-pointer border transition-all select-none ${
                         (isEditCategoryMode ? selectedEditNodeId === null : selectedCatId === null)
                           ? 'bg-sky-950/70 border-sky-500/60 text-white shadow-xs'
-                          : 'bg-slate-900/70 hover:bg-slate-900 border-slate-800 text-slate-300'
+                          : `${themeClasses.card} ${themeClasses.border} ${themeClasses.textMain}`
                       }`}
                     >
                       <div className="flex items-center gap-2 min-w-0">
@@ -1476,7 +1525,7 @@ export function DocumentLibraryViewer({
                           <div className="text-[10px] text-slate-500">등록 문서 (공유문서 제외)</div>
                         </div>
                       </div>
-                      <span className="text-[11px] font-mono font-bold text-sky-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                      <span className={`text-[11px] font-mono font-bold text-sky-400 ${themeClasses.panel} px-2 py-0.5 rounded border ${themeClasses.border}`}>
                         {getDocCountForCategory(null)}
                       </span>
                     </div>
@@ -1493,7 +1542,7 @@ export function DocumentLibraryViewer({
                               className={`p-2 rounded-lg flex items-center justify-between cursor-pointer border transition-all text-xs group ${
                                 isPathSelected
                                   ? 'bg-sky-950/70 border-sky-500 text-white font-bold'
-                                  : 'bg-slate-900/40 hover:bg-slate-900 border-slate-800/80 text-slate-300'
+                                  : `${themeClasses.card} ${themeClasses.border} ${themeClasses.textMain}`
                               }`}
                               title={item.fullPath}
                             >
@@ -1515,7 +1564,7 @@ export function DocumentLibraryViewer({
                                     title={`${item.fullPath} 카테고리 공유 선택`}
                                   />
                                 )}
-                                <span className="text-[10px] text-slate-400 font-mono bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
+                                <span className={`text-[10px] ${themeClasses.textMuted} font-mono ${themeClasses.panel} px-1.5 py-0.5 rounded border ${themeClasses.border}`}>
                                   {item.docCount}
                                 </span>
                               </div>
@@ -1784,7 +1833,7 @@ export function DocumentLibraryViewer({
             isMobileMode ? 'w-full' : isCategoryCollapsed ? 'lg:col-span-11' : 'lg:col-span-8'
           }`}
         >
-          <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-950 border border-slate-800 rounded-2xl shadow-sm">
+          <div className={`flex flex-wrap items-center justify-between gap-3 p-3 ${themeClasses.container} border ${themeClasses.border} rounded-2xl shadow-sm`}>
             <div className="inline-flex rounded-xl bg-slate-900 p-0.5 border border-slate-800 shadow-xs">
               <button
                 type="button"
@@ -1846,9 +1895,9 @@ export function DocumentLibraryViewer({
 
           {/* 도서 목록 렌더링 (카드 뷰 vs 테이블 뷰 - 모바일은 카드 뷰 고정) */}
           {filteredDocuments.length === 0 ? (
-            <div className="p-12 text-center bg-slate-950 border border-slate-800 rounded-2xl space-y-3">
+            <div className={`p-12 text-center ${themeClasses.panel} border ${themeClasses.border} rounded-2xl space-y-3`}>
               <span className="text-3xl">📭</span>
-              <div className="text-slate-300 font-bold">조건에 맞는 도서가 없습니다.</div>
+              <div className={`${themeClasses.textMain} font-bold`}>조건에 맞는 도서가 없습니다.</div>
               <div className="text-slate-500 text-xs">검색어 또는 카테고리 필터 조건을 변경해보세요.</div>
               <button
                 type="button"
@@ -1866,7 +1915,7 @@ export function DocumentLibraryViewer({
                   onClick={() => {
                     if (onOpenViewer) onOpenViewer(doc.id, doc);
                   }}
-                  className="p-3.5 bg-slate-950 border border-slate-800 hover:border-sky-500/60 rounded-2xl space-y-3 cursor-pointer transition-all group select-none shadow-sm flex flex-col justify-between"
+                  className={`p-3.5 ${themeClasses.card} border ${themeClasses.border} hover:border-sky-500/60 rounded-2xl space-y-3 cursor-pointer transition-all group select-none shadow-sm flex flex-col justify-between`}
                   title="클릭하여 뷰어로 열기"
                 >
                   <div>
@@ -1899,7 +1948,7 @@ export function DocumentLibraryViewer({
                           }}
                           title={`${doc.title} (마우스 휠/드래그로 긴 제목 가로 슬라이드)`}
                         >
-                          <span className="font-bold text-white text-xs whitespace-nowrap group-hover:text-sky-300 transition-colors">
+                          <span className={`font-bold ${themeClasses.textMain} text-xs whitespace-nowrap group-hover:text-sky-400 transition-colors`}>
                             {doc.title}
                           </span>
                         </div>
@@ -1994,11 +2043,11 @@ export function DocumentLibraryViewer({
               ))}
             </div>
           ) : (
-            <div className="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+            <div className={`${themeClasses.container} border ${themeClasses.border} rounded-2xl overflow-hidden shadow-sm`}>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-[11px]">
                   <thead>
-                    <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 font-mono">
+                    <tr className={`${themeClasses.panel} border-b ${themeClasses.border} ${themeClasses.textMuted} font-mono`}>
                       <th className="p-3">표지</th>
                       <th className="p-3">문서명 / 저자</th>
                       <th className="p-3">소속 카테고리</th>
@@ -2014,7 +2063,7 @@ export function DocumentLibraryViewer({
                         onClick={() => {
                           if (onOpenViewer) onOpenViewer(doc.id, doc);
                         }}
-                        className="hover:bg-slate-900/50 cursor-pointer transition-colors group"
+                        className={`hover:bg-sky-500/10 cursor-pointer transition-colors group ${themeClasses.textMain}`}
                       >
                         <td className="p-3">
                           <div
@@ -2024,7 +2073,7 @@ export function DocumentLibraryViewer({
                           </div>
                         </td>
                         <td className="p-3 min-w-[200px]">
-                          <div className="font-bold text-white group-hover:text-sky-300 transition-colors">
+                          <div className={`font-bold ${themeClasses.textMain} group-hover:text-sky-400 transition-colors`}>
                             {doc.title}
                           </div>
                           <div className="text-[10px] text-slate-400 mt-0.5">
@@ -2089,7 +2138,7 @@ export function DocumentLibraryViewer({
       {/* PDF 등록 모달 */}
       {isPdfUploadModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-950 border border-slate-800 rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl animate-in fade-in">
+          <div className={`${themeClasses.container} border ${themeClasses.border} rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl animate-in fade-in`}>
             <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
               <span className="font-bold text-white text-sm flex items-center gap-1.5">
                 <FileUp className="w-4 h-4 text-sky-400" />

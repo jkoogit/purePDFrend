@@ -88,4 +88,30 @@ describe('tokens.ts 4모드 테마 적응형 클래스 헬퍼 검증', () => {
     expect(tokenClassMap.touchButton).toContain('min-h-[44px]');
     expect(tokenClassMap.focusRing).toContain('focus-visible:ring-2');
   });
+
+  it('Phase 2 사용자 와이어프레임(PG-USR-05, PG-USR-06, PG-USR-07) 메타데이터 및 4모드 토큰 일관성이 보장되어야 한다', () => {
+    const usr05 = USER_PROGRAMS.find((p) => p.id === 'PG-USR-05');
+    const usr06 = USER_PROGRAMS.find((p) => p.id === 'PG-USR-06');
+    const usr07 = USER_PROGRAMS.find((p) => p.id === 'PG-USR-07');
+
+    expect(usr05).toBeDefined();
+    expect(usr06).toBeDefined();
+    expect(usr07).toBeDefined();
+
+    expect(usr05?.name).toContain('문서관리');
+    expect(usr06?.name).toContain('문서뷰어');
+    expect(usr07?.name).toContain('문서공유');
+
+    // 4모드 텍스트 및 패널 대비 검증
+    ['light', 'dark', 'dawn'].forEach((mode) => {
+      const classes = getThemeAdaptiveClasses(mode as any);
+      expect(classes.container).toBeTruthy();
+      expect(classes.panel).toBeTruthy();
+      expect(classes.card).toBeTruthy();
+      expect(classes.textMain).toBeTruthy();
+      expect(classes.textMuted).toBeTruthy();
+      expect(classes.buttonSecondary).toBeTruthy();
+    });
+  });
 });
+

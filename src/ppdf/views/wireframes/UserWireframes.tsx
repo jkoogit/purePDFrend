@@ -4446,6 +4446,7 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false, initial
         {/* PG-USR-05: 문서관리 (라이브러리) */}
         {selectedProg === 'PG-USR-05' && (
           <DocumentLibraryViewer
+            themeMode={themeMode}
             userEmail="jkok2j2m@gmail.com"
             onOpenViewer={(_docId, doc) => {
               if (doc) {
@@ -4476,11 +4477,11 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false, initial
             {/* ========================================================================= */}
             {/* [Xodo 벤치마킹] 초슬림 2단 통폐합 툴바 (Top 1단: 글로벌 헤더 / Top 2단: 도구 툴바) */}
             {/* ========================================================================= */}
-            <div className="bg-slate-950 border border-slate-800 rounded-2xl shadow-xl overflow-visible relative">
+            <div className={`${themeClasses.container} border ${themeClasses.border} rounded-2xl shadow-xl overflow-visible relative`}>
               {/* [통합 2열 툴바] PC·태블릿·모바일 일관된 2열 컨텐츠 배치 유지 */}
               <div className="space-y-0 text-xs">
                 {/* 1열: 뒤로가기 > 문서명(슬라이드클릭드래그휠) > 공유 > 협업 > 목록그룹 > 작성자 */}
-                <div className="h-10 px-2.5 sm:px-3 border-b border-slate-800/80 flex items-center justify-between gap-1.5 sm:gap-2">
+                <div className={`h-10 px-2.5 sm:px-3 border-b ${themeClasses.border} flex items-center justify-between gap-1.5 sm:gap-2`}>
                   {/* 좌측: [←] 뒤로가기 & 문서명(슬라이드클릭드래그휠) */}
                   <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
                     <button
@@ -4498,7 +4499,7 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false, initial
                         }
                         setSelectedProg('PG-USR-05');
                       }}
-                      className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer shrink-0"
+                      className={`p-1.5 rounded-lg ${themeClasses.buttonSecondary} border ${themeClasses.border} transition-colors cursor-pointer shrink-0`}
                       title="서재 목록(PG-USR-05)으로 복귀"
                     >
                       <ArrowLeft className="w-4 h-4" />
@@ -4508,7 +4509,7 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false, initial
                     <div className="flex-1 min-w-0 overflow-hidden">
                       <HorizontalSlideContainer scrollStep={120} showScrollButtons={false} className="w-full">
                         <span
-                          className="text-xs font-bold text-slate-300 truncate cursor-default whitespace-nowrap inline-block"
+                          className={`text-xs font-bold ${themeClasses.textMain} truncate cursor-default whitespace-nowrap inline-block`}
                           title={activeViewingDoc?.title || 'ISO 32000-2 표준 가이드북'}
                         >
                           {activeViewingDoc?.title || 'ISO 32000-2 표준 가이드북'}
@@ -4533,7 +4534,7 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false, initial
                         setShareFormPasswordConfirm('');
                         setIsShareCreateModalOpen(true);
                       }}
-                      className="p-1.5 rounded-lg bg-slate-900 hover:bg-sky-600/30 text-slate-300 hover:text-sky-300 border border-slate-700/80 transition-all cursor-pointer"
+                      className={`p-1.5 rounded-lg ${themeClasses.buttonSecondary} border ${themeClasses.border} transition-all cursor-pointer`}
                       title="이 문서 공유 등록"
                     >
                       <Share2 className="w-3.5 h-3.5" />
@@ -4605,7 +4606,7 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false, initial
                         <button
                           type="button"
                           onClick={() => setIsModeDropdownOpen(!isModeDropdownOpen)}
-                          className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700/70 text-xs font-bold text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                          className={`px-2.5 py-1 rounded-lg ${themeClasses.buttonSecondary} border ${themeClasses.border} text-xs font-bold ${themeClasses.textMain} flex items-center gap-1.5 transition-all cursor-pointer shadow-xs`}
                           title="도구 모드 그룹 변경"
                         >
                           <span className="text-sky-400">
@@ -5254,16 +5255,16 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false, initial
               {(() => null)()}
               {/* 5. [피드백 1, 2, 3 반영] 가로 모드(horizontal)일 때 상단 위아래 배치 드로어 (젠 모드 시 숨김) */}
               {effectiveTabOrientation === 'horizontal' && isTabDrawerVisible && !isImmersiveZenMode && (
-              <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2 animate-in slide-in-from-top-2 duration-150 shadow-md">
-                <div className="border-b border-slate-800 pb-2 space-y-2 md:space-y-0 md:flex md:items-center md:justify-between">
+              <div className={`${themeClasses.panel} border ${themeClasses.border} rounded-xl p-3 space-y-2 animate-in slide-in-from-top-2 duration-150 shadow-md`}>
+                <div className={`border-b ${themeClasses.border} pb-2 space-y-2 md:space-y-0 md:flex md:items-center md:justify-between`}>
                   {/* [피드백 1 반영] 모바일 모드 및 협소 화면: 탭 밑으로 높이설정이 가는 어색함 해소 ➔ 상단 1단에 높이설정 + 전환/닫기 우선 배치 */}
                   <div className={`flex items-center justify-between gap-1.5 ${isMobileMode ? 'w-full' : 'md:order-2 md:ml-auto'}`}>
-                    <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-800 text-[10px]">
+                    <div className={`flex items-center gap-1 ${themeClasses.card} px-2 py-0.5 rounded-lg border ${themeClasses.border} text-[10px]`}>
                       <span className="text-slate-400 font-medium">표시높이:</span>
                       <select
                         value={topDrawerHeightMode}
                         onChange={(e) => setTopDrawerHeightMode(e.target.value as any)}
-                        className="bg-slate-950 border border-slate-700/80 rounded px-1.5 py-0.5 text-slate-200 font-medium cursor-pointer"
+                        className={`${themeClasses.input} rounded px-1.5 py-0.5 ${themeClasses.textMain} font-medium cursor-pointer`}
                         title="3그룹 컨텐츠 목록 표시 높이 선택"
                       >
                         <option value="narrow">좁게 (3~4줄)</option>
@@ -5484,11 +5485,11 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false, initial
 
               {/* 중앙 대용량 가상 뷰포트 캔버스 영역 (60fps 가상 스크롤러 & LRU 메모리가드 연동) */}
               <div
-                className={`flex-1 bg-slate-950 border border-slate-800 rounded-xl ${isViewerFullscreen ? 'p-1.5 sm:p-2.5 h-full' : 'p-3'} flex flex-col justify-between relative overflow-hidden shadow-inner min-w-0`}
+                className={`flex-1 ${themeClasses.container} border ${themeClasses.border} rounded-xl ${isViewerFullscreen ? 'p-1.5 sm:p-2.5 h-full' : 'p-3'} flex flex-col justify-between relative overflow-hidden shadow-inner min-w-0`}
               >
                 {/* 캔버스 상단 가상화 뷰어 상태 배너 & OCR 선택 툴팁 (몰입형 독서 시 숨김) */}
                 {!isImmersiveZenMode && (
-                  <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-slate-900/90 border border-slate-800 rounded-lg text-xs mb-2 transition-all animate-in fade-in duration-100">
+                  <div className={`flex flex-wrap items-center justify-between gap-2 p-2 ${themeClasses.panel} border ${themeClasses.border} rounded-lg text-xs mb-2 transition-all animate-in fade-in duration-100`}>
                     <div className="flex items-center gap-2">
                       <span className="text-emerald-400 font-bold flex items-center gap-1" title="60fps 가상 렌더러 동작 중">
                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -5665,7 +5666,7 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false, initial
                       showToast(`제 ${next}페이지 ▶ (우측 여백 클릭)`, 'info');
                     }
                   }}
-                  className={`flex-1 bg-slate-900/60 rounded-xl p-4 overflow-auto flex items-center justify-center min-h-[380px] relative ${
+                  className={`flex-1 ${themeClasses.panel} border ${themeClasses.border} rounded-xl p-4 overflow-auto flex items-center justify-center min-h-[380px] relative ${
                     currentTool.toLowerCase().includes('eraser') || toolStyleState.toolKind === 'eraser'
                       ? 'cursor-crosshair'
                       : navigateOnMarginClick
@@ -5702,7 +5703,7 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false, initial
 
                     {/* 쪽수 점프 팝오버 */}
                     {isPageJumpPopoverOpen && (
-                      <div className="absolute top-10 left-0 z-40 w-64 p-3 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-slate-700 shadow-2xl space-y-2.5 animate-in fade-in zoom-in-95 duration-100 text-xs">
+                      <div className={`absolute top-10 left-0 z-40 w-64 p-3 rounded-2xl ${themeClasses.dropdown} border ${themeClasses.border} shadow-2xl space-y-2.5 animate-in fade-in zoom-in-95 duration-100 text-xs`}>
                         <div className="flex justify-between items-center text-slate-300">
                           <span className="font-bold">페이지 이동</span>
                           <span className="font-mono text-sky-400 font-bold">{viewerCurrentPage} 쪽</span>
@@ -5735,7 +5736,7 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false, initial
                                 }
                               }
                             }}
-                            className="w-16 px-2 py-1 bg-slate-800 border border-slate-700 rounded text-center text-white font-mono"
+                            className={`w-16 px-2 py-1 ${themeClasses.input} rounded text-center ${themeClasses.textMain} font-mono`}
                           />
                           <button
                             type="button"
@@ -7148,7 +7149,7 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false, initial
                           {selectedConflictDoc.docId} ({selectedConflictDoc.docVersion})
                         </span>
                       </h3>
-                      <p className="text-[11px] text-slate-400 mt-1">
+                      <p className={`text-[11px] ${themeClasses.textMuted} mt-1`}>
                         {selectedConflictDoc.workMode === '리소스모드'
                           ? '오프라인 중 로컬에서 수정한 주석과 외부에서 원격 수정한 주석 간의 충돌을 비교하고 반영 방향을 결정합니다.'
                           : '디바이스의 PDF 파일에 각인된 히든 주석 메타데이터를 검증하고 온라인 시스템 정본으로 안전하게 등록합니다.'}
@@ -7344,7 +7345,7 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false, initial
             {/* 1. 도구그룹 설정 탭: 모바일 뷰어 8대 그룹 관리 & 그룹간 중복 추가 */}
             {settingsTab === 'groups' && (
               <div className="space-y-4">
-                <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+                <div className={`p-3 ${themeClasses.panel} border ${themeClasses.border} rounded-xl space-y-2`}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <span className="font-bold text-white text-sm">🗂️ 모바일·태블릿 문서뷰어 도구그룹 커스터마이징</span>
@@ -8331,12 +8332,12 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false, initial
         {selectedProg === 'PG-USR-07' && (
           <div className="space-y-4 text-xs">
             {/* 상단 통계 위젯 & 신규 링크 등록 액션 바 */}
-            <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl shadow-xl space-y-3">
+            <div className={`p-4 ${themeClasses.container} border ${themeClasses.border} rounded-2xl shadow-xl space-y-3`}>
               <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-lg">🔗</span>
-                    <h3 className="font-bold text-white text-base">문서공유 및 협업작업 관리 센터</h3>
+                    <h3 className={`font-bold ${themeClasses.textMain} text-base`}>문서공유 및 협업작업 관리 센터</h3>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-mono border border-sky-500/30">
                       PG-USR-07
                     </span>
@@ -8372,7 +8373,7 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false, initial
             <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 {/* [요청 3] 탭 불필요 -> 검색조건에 공유구분 항목 추가 */}
-                <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 text-[11px]">
+                <div className={`flex items-center gap-1 ${themeClasses.card} px-2 py-1 rounded-lg border ${themeClasses.border} text-[11px]`}>
                   <span className="text-slate-400 shrink-0">공유구분:</span>
                   <select
                     value={shareOwnershipFilter}
@@ -8386,7 +8387,7 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false, initial
                 </div>
 
                 {/* 1. 공유대상 구분 */}
-                <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 text-[11px]">
+                <div className={`flex items-center gap-1 ${themeClasses.card} px-2 py-1 rounded-lg border ${themeClasses.border} text-[11px]`}>
                   <span className="text-slate-400 shrink-0">대상:</span>
                   <select
                     value={shareScopeFilter}
@@ -8400,7 +8401,7 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false, initial
                 </div>
 
                 {/* 2. 권한 필터 */}
-                <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 text-[11px]">
+                <div className={`flex items-center gap-1 ${themeClasses.card} px-2 py-1 rounded-lg border ${themeClasses.border} text-[11px]`}>
                   <span className="text-slate-400 shrink-0">권한:</span>
                   <select
                     value={shareRoleFilter}
@@ -8415,7 +8416,7 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false, initial
                 </div>
 
                 {/* 3. 기간 필터 */}
-                <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 text-[11px]">
+                <div className={`flex items-center gap-1 ${themeClasses.card} px-2 py-1 rounded-lg border ${themeClasses.border} text-[11px]`}>
                   <span className="text-slate-400 shrink-0">기간:</span>
                   <select
                     value={sharePeriodFilter}
@@ -8431,7 +8432,7 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false, initial
                 </div>
 
                 {/* 4. 상태 필터 */}
-                <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 text-[11px]">
+                <div className={`flex items-center gap-1 ${themeClasses.card} px-2 py-1 rounded-lg border ${themeClasses.border} text-[11px]`}>
                   <span className="text-slate-400 shrink-0">상태:</span>
                   <select
                     value={shareStatusFilter}
@@ -8540,9 +8541,9 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false, initial
 
               if (currentList.length === 0) {
                 return (
-                  <div className="p-8 bg-slate-950 border border-slate-800 rounded-2xl text-center space-y-2">
+                  <div className={`p-8 ${themeClasses.panel} border ${themeClasses.border} rounded-2xl text-center space-y-2`}>
                     <span className="text-3xl block">📭</span>
-                    <p className="text-slate-300 font-bold text-sm">조건과 일치하는 공유 문서가 없습니다.</p>
+                    <p className={`font-bold text-sm ${themeClasses.textMain}`}>조건과 일치하는 공유 문서가 없습니다.</p>
                     <p className="text-slate-500 text-xs">검색 조건을 변경하거나 새 공유 링크를 등록해보세요.</p>
                   </div>
                 );
@@ -8556,7 +8557,7 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false, initial
                     return (
                       <div
                         key={item.id}
-                        className={`p-3.5 bg-slate-950 border rounded-xl transition-all ${
+                        className={`p-3.5 ${themeClasses.card} border rounded-xl transition-all ${
                           item.isRevoked
                             ? 'border-rose-900/40 bg-rose-950/10 opacity-75'
                             : item.isExpired
@@ -8587,7 +8588,7 @@ export function UserWireframes({ isMobileMode: propIsMobileMode = false, initial
                               </span>
 
                               {/* 문서 제목 및 버전 */}
-                              <h4 className="font-bold text-white text-sm hover:text-sky-300 transition-colors">
+                              <h4 className={`font-bold ${themeClasses.textMain} text-sm hover:text-sky-400 transition-colors`}>
                                 {item.targetName}
                               </h4>
                               <span className="text-[10px] text-slate-500 font-mono">
