@@ -33,7 +33,16 @@
             "task_name": "Phase 2 사용자 와이어프레임(PG-USR-05~07) tokens.ts 전면 대입 및 가상뷰어·문서관리 4모드 고대비 표준화",
             "status": "정리완료"
           }
-        ]
+        ],
+        "promoted_sha": "b649e6f2c923c02c24e4b2b44297aea21c9c36f0",
+        "local_branches_merged": true,
+        "merged_branches": [
+          "dev",
+          "stg",
+          "main"
+        ],
+        "tool_mode": "antigravity-local-git",
+        "updated_at": "2026-10-23T17:47:23.185Z"
       },
       "created_sys": "agent-harness",
       "created_by": "jkok2j2m",
