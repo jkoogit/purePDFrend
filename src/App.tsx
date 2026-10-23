@@ -216,26 +216,24 @@ export default function App() {
           : 'bg-slate-950 text-slate-100'
       }`}
     >
-      {/* Top Global Navigation with System & Role Switcher (사용자서비스 시스템에서는 에이전트 top 메뉴 제거) */}
-      {activeSystem !== 'service' && (
-        <div className={isHeaderPinned ? 'shrink-0 z-40' : 'relative z-40'}>
-          <Navbar
-            activeView={activeView}
-            onSelectView={setActiveView}
-            activeDomain={activeDomain}
-            onSelectDomain={setActiveDomain}
-            dbStatus={dbStatus}
-            isHeaderPinned={isHeaderPinned}
-            onTogglePinHeader={togglePinHeader}
-            activeSystem={activeSystem}
-            onSelectSystem={handleSelectSystem}
-            userRole={userRole}
-            onSelectRole={handleSelectRole}
-            themeMode={themeMode}
-            onChangeThemeMode={handleSelectThemeMode}
-          />
-        </div>
-      )}
+      {/* Top Global Navigation with System & Role Switcher: 전 시스템(service/settings/harness) 상시 노출 */}
+      <div className={isHeaderPinned ? 'shrink-0 z-40' : 'relative z-40'}>
+        <Navbar
+          activeView={activeView}
+          onSelectView={setActiveView}
+          activeDomain={activeDomain}
+          onSelectDomain={setActiveDomain}
+          dbStatus={dbStatus}
+          isHeaderPinned={isHeaderPinned}
+          onTogglePinHeader={togglePinHeader}
+          activeSystem={activeSystem}
+          onSelectSystem={handleSelectSystem}
+          userRole={userRole}
+          onSelectRole={handleSelectRole}
+          themeMode={themeMode}
+          onChangeThemeMode={handleSelectThemeMode}
+        />
+      </div>
 
       {/* Main Content Area */}
       <main
