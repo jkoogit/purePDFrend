@@ -11,17 +11,21 @@ const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 function requestGitHub<T = any>(endpoint: string, method = 'GET', data?: any): Promise<{ status: number; body: T }> {
   return new Promise((resolve, reject) => {
     const payload = data ? JSON.stringify(data) : null;
+    const headers: Record<string, string> = {
+      'User-Agent': 'purePDFrend-agent',
+      'Accept': 'application/vnd.github.v3+json',
+    };
+    if (GITHUB_TOKEN) {
+      headers['Authorization'] = `Bearer ${GITHUB_TOKEN}`;
+    }
+    if (payload) {
+      headers['Content-Type'] = 'application/json';
+      headers['Content-Length'] = String(Buffer.byteLength(payload));
+    }
+
     const req = https.request(`https://api.github.com/repos/${OWNER}/${REPO}${endpoint}`, {
       method,
-      headers: {
-        'User-Agent': 'purePDFrend-agent',
-        'Authorization': `Bearer ${GITHUB_TOKEN}`,
-        'Accept': 'application/vnd.github.v3+json',
-        ...(payload ? {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(payload),
-        } : {}),
-      },
+      headers,
     }, (res) => {
       const chunks: Buffer[] = [];
       res.on('data', (c) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
@@ -43,17 +47,27 @@ function requestGitHub<T = any>(endpoint: string, method = 'GET', data?: any): P
 
 async function main() {
   console.log('🔄 [Git Data Sync] 원격 dev 브랜치 무손실 동기화 시작 (scripts/pull_remote_dev.ts)');
-  
-  if (!GITHUB_TOKEN) {
-    throw new Error('GITHUB_TOKEN 환경변수가 설정되지 않았습니다.');
+
+  // 1. Get dev ref SHA (via public GitHub API or native git)
+  let devSha = '';
+  try {
+    const devRef = await requestGitHub<any>('/git/ref/heads/dev');
+    if (devRef.status === 200 && devRef.body?.object?.sha) {
+      devSha = devRef.body.object.sha;
+    }
+  } catch (e) {
+    console.warn('GitHub API 조회 경고, 네이티브 git으로 대체 확인:', e);
   }
 
-  // 1. Get dev ref SHA
-  const devRef = await requestGitHub<any>('/git/ref/heads/dev');
-  if (devRef.status !== 200 || !devRef.body?.object?.sha) {
-    throw new Error(`원격 dev 브랜치 참조 조회 실패: ${JSON.stringify(devRef.body)}`);
+  if (!devSha) {
+    try {
+      devSha = execSync('git ls-remote origin dev', { encoding: 'utf8' }).split(/\s+/)[0];
+    } catch (e) {
+      console.warn('git ls-remote 실패, git rev-parse origin/dev 확인');
+      devSha = execSync('git rev-parse origin/dev', { encoding: 'utf8' }).trim();
+    }
   }
-  const devSha = devRef.body.object.sha;
+
   console.log(`📡 원격 dev 최신 커밋 SHA: ${devSha}`);
 
   // 2. Try native git if available

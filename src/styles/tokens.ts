@@ -265,6 +265,9 @@ export function getThemeAdaptiveClasses(theme: ResolvedTheme = 'dark') {
         badge: 'bg-slate-100 text-slate-700 border-slate-200',
         input: 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400',
         dropdown: 'bg-white border-slate-200 text-slate-900 shadow-xl',
+        buttonSecondary: 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300',
+        tabInactive: 'text-slate-500 hover:text-slate-800 hover:bg-slate-100',
+        tabActive: 'bg-sky-600 text-white shadow-xs font-semibold',
       };
     case 'dawn':
       return {
@@ -280,6 +283,9 @@ export function getThemeAdaptiveClasses(theme: ResolvedTheme = 'dark') {
         badge: 'bg-sky-950/60 text-sky-300 border-sky-800/60',
         input: 'bg-[#070e22] border-[#1e3066] text-white placeholder:text-sky-400/50',
         dropdown: 'bg-[#0e1a38] border-[#1e3066] text-white shadow-2xl',
+        buttonSecondary: 'bg-[#0e1a38] hover:bg-[#182b57] text-white border-[#1e3066]',
+        tabInactive: 'text-sky-300/70 hover:text-white hover:bg-sky-950/40',
+        tabActive: 'bg-sky-600 text-white shadow-xs font-semibold',
       };
     case 'dark':
     default:
@@ -296,6 +302,9 @@ export function getThemeAdaptiveClasses(theme: ResolvedTheme = 'dark') {
         badge: 'bg-slate-800 text-slate-300 border-slate-700',
         input: 'bg-slate-950 border-slate-800 text-white placeholder:text-slate-500',
         dropdown: 'bg-slate-900 border-slate-700 text-slate-100 shadow-2xl',
+        buttonSecondary: 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700',
+        tabInactive: 'text-slate-400 hover:text-slate-200 hover:bg-slate-800',
+        tabActive: 'bg-sky-600 text-white shadow-xs font-semibold',
       };
   }
 }

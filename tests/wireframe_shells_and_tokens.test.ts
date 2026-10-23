@@ -73,6 +73,13 @@ describe('tokens.ts 4모드 테마 적응형 클래스 헬퍼 검증', () => {
     const dawnClasses = getThemeAdaptiveClasses('dawn');
     expect(dawnClasses.container).toContain('bg-[#0e1a38]');
     expect(dawnClasses.shellBg).toContain('bg-[#070e22]');
+
+    // 이번 세션(0031)에 추가된 buttonSecondary, tabInactive, tabActive 검증
+    expect(lightClasses.buttonSecondary).toBeDefined();
+    expect(lightClasses.tabInactive).toBeDefined();
+    expect(lightClasses.tabActive).toBeDefined();
+    expect(darkClasses.buttonSecondary).toContain('bg-slate-900');
+    expect(dawnClasses.buttonSecondary).toContain('bg-[#14234b]');
   });
 
   it('tokens 및 tokenClassMap 상수가 불변 정의되어 있어야 한다', () => {

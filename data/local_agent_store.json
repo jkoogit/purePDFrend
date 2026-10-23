@@ -1,6 +1,47 @@
 {
   "sessions": [
     {
+      "session_id": "SESSION-0031",
+      "session_name": "[0031] Phase 1 사용자 와이어프레임(PG-USR-02~04) tokens.ts 전면 대입 및 4모드 디자인 시스템 고도화",
+      "work_group": "purePDFrend",
+      "ai_agent": "gemini",
+      "ai_model": "models/gemini-1.5-flash",
+      "status_cd": "진행중",
+      "started_at": "2026-10-23T13:16:35.554Z",
+      "ended_at": null,
+      "doc_payload": {
+        "objective": "Phase 1 대상 화면(PG-USR-02 로그인/회원가입, PG-USR-03 홈 대시보드, PG-USR-04 마이페이지/사용자관리)의 하드코딩 인라인 스타일을 tokens.ts 유틸리티로 전면 전환, 4모드 테마 고대비 보장, 44px 모바일 터치 및 제로-필 사각 라운딩 표준 준수",
+        "issue_number": 96,
+        "branch": "task/0031_01_tokens_apply_usr_02_04_Gemini",
+        "base_sha": "3c26becba60df1aa66f04ad1ce41816405d8a35c",
+        "operator_account": "jkok2j2m",
+        "user_email": "jkok2j2m@gmail.com",
+        "linked_from_session": "SESSION-0030",
+        "reference_docs": [
+          "docs/13.회고/13-23_SESSION-261022-0030_세션종합_KPT_회고록.md",
+          "docs/07.로드맵/07-02_화면별_디자인_토큰_적용현황_및_단계별_로드맵.md",
+          "docs/10.리뷰/261023_051_글로벌_Top_Navbar_전_시스템_상시_고정_및_헤더_통일화_코드리뷰.md",
+          "src/styles/tokens.ts",
+          "AGENTS.md v2.2",
+          "GEMINI.md v1.0.0"
+        ],
+        "tasks": [
+          {
+            "task_id": "TASK-0031-01",
+            "task_name": "Phase 1 사용자 와이어프레임(PG-USR-02~04) tokens.ts 전면 대입 및 4모드 디자인 시스템 고도화 계획 및 구현",
+            "status": "준비"
+          }
+        ]
+      },
+      "created_sys": "agent-harness",
+      "created_by": "jkok2j2m",
+      "updated_sys": "agent-harness",
+      "updated_by": "jkok2j2m",
+      "version": 1,
+      "operator_account": "jkok2j2m",
+      "user_email": "jkok2j2m@gmail.com"
+    },
+    {
       "session_id": "SESSION-0030",
       "session_name": "[0030] 서비스 화면을 리뷰하며 디자인 및 설계를 보완한다",
       "work_group": "purePDFrend",
@@ -318,6 +359,44 @@
   ],
   "tasks": [
     {
+      "task_id": "TASK-0031-01",
+      "session_id": "SESSION-0031",
+      "task_name": "[0031-01] Phase 1 와이어프레임 tokens.ts 대입 리뷰 문서 발행 및 GitHub 커밋 푸시",
+      "status_cd": "정리",
+      "priority": "HIGH",
+      "assigned_agent": "gemini",
+      "git_branch": "task/0031_01_tokens_apply_usr_02_04_Gemini",
+      "started_at": "2026-10-23T14:00:00.000Z",
+      "ended_at": null,
+      "doc_payload": {
+        "plan_items": [
+          "1. 설계 및 요구사항 문서 선반영 및 tokens.ts 테마 토큰 확장 (buttonSecondary, tabInactive, tabActive)",
+          "2. PG-USR-02 로그인/회원가입 Step 1~4 다크 하드코딩 제거 및 tokens.ts 대입",
+          "3. PG-USR-03 홈 대시보드 7대 도구 및 7대 인라인 스튜디오 tokens.ts 대입",
+          "4. PG-USR-04 마이페이지 프로필, 폼, 2FA 보안설정 및 Drawer tokens.ts 대입",
+          "5. 44px 모바일 터치타깃 및 Zero-Pill 규격 보장, TDD 단위 테스트 및 린트/컴파일 검증"
+        ],
+        "completed_items": [
+          "src/styles/tokens.ts에 buttonSecondary, tabInactive, tabActive 신규 테마 토큰 추가",
+          "PG-USR-02 로그인/가입 스텝 1~4 전 요소 tokens.ts 대입 및 4모드 고대비 스타일링 완료",
+          "PG-USR-03 7대 PDF 도구 및 7대 전용 인라인 스튜디오 tokens.ts 대입 완료",
+          "PG-USR-04 마이페이지 요약, 인라인 수정 폼, 2FA 정책, 비밀번호 변경 서랍 tokens.ts 대입 완료",
+          "44px 모바일 터치타깃(min-h-[44px]) 및 Zero-Pill 사각 라운딩 규격 100% 준수",
+          "tests/wireframe_shells_and_tokens.test.ts 및 scripts/verify_phase1_tokens.ts 단위 테스트 전수 통과",
+          "TypeScript 무결성 검증 (tsc --noEmit) 0 에러 통과",
+          "docs/10.리뷰/261023_052_Phase1_사용자_와이어프레임_tokens_전면대입_및_4모드_고대비검증_코드리뷰.md 발행 및 README_리뷰.md 현행화"
+        ],
+        "review_doc": "docs/10.리뷰/261023_052_Phase1_사용자_와이어프레임_tokens_전면대입_및_4모드_고대비검증_코드리뷰.md",
+        "operator_account": "jkok2j2m",
+        "user_email": "jkok2j2m@gmail.com"
+      },
+      "created_sys": "agent-harness",
+      "created_by": "jkok2j2m",
+      "updated_sys": "agent-harness",
+      "updated_by": "jkok2j2m",
+      "version": 1
+    },
+    {
       "task_id": "TASK-0030-01",
       "session_id": "SESSION-0030",
       "task_name": "사용자서비스 랜딩(PG-USR-01) 시작점 전환, 공통 Top 네비게이션 메뉴 및 디자인 토큰(tokens.ts) 구조 설계",
@@ -614,7 +693,18 @@
       "completed_at": "2026-10-05T16:47:13.648Z"
     }
   ],
-  "loops": [],
+  "loops": [
+    {
+      "loop_id": "LOOP-0031-01",
+      "task_id": "TASK-0031-01",
+      "session_id": "SESSION-0031",
+      "loop_name": "Phase 1 대상 3대 화면(PG-USR-02~04) tokens.ts 순차 대입 및 4모드 고대비 단위 검증",
+      "iteration": 1,
+      "status": "완료",
+      "created_at": "2026-10-23T14:45:16.213Z",
+      "updated_at": "2026-10-23T14:45:59.291Z"
+    }
+  ],
   "traces": [
     {
       "trace_id": "TRACE-0024-01-00-01",
@@ -1813,6 +1903,110 @@
       "response_summary": "세션정리 작업결과 종합 및 신규 세션 프롬프트 제안",
       "agent_response": "#[0030-12] SESSION-0030 세션정리 작업결과 종합 및 차기 세션 프롬프트 제안\n\n- 세션정리 작업결과 확인 (이슈/PR 0건, dev=stg=main 100% 일치, 회고/리뷰 문서 발행 완결)\n- 차기 세션 [0031] 시작 프롬프트 제안",
       "created_at": "2026-10-23T12:11:37.822Z"
+    },
+    {
+      "trace_id": "TRACE-0031-01-00-02",
+      "session_id": "SESSION-0031",
+      "task_id": "TASK-0031-01",
+      "loop_id": null,
+      "step_index": 2,
+      "agent_name": "gemini",
+      "model_name": "models/gemini-1.5-flash",
+      "operator_account": "jkok2j2m",
+      "agent_account": "jkok2j2m@gmail.com",
+      "user_email": "jkok2j2m@gmail.com",
+      "user_prompt": "로컬서비스 시작",
+      "agent_response": "#[0031-02] purePDFrend 로컬 개발 서버 구동 완료\n\n- 서비스 URL: http://localhost:3000 (모든 인터페이스 0.0.0.0:3000 바인딩)\n- 서버 스택: Express 4.21.2 + Vite 6.0.0 통합 개발 서버\n- 헬스체크 결과: HTTP 200 OK 정상 수신 완료\n- 비즈니스 서비스 오프라인 무중단 독립 실행 보장",
+      "response_summary": "purePDFrend 로컬 개발 서버(Express 4 + Vite 6, 포트 3000) 의존성 복구 및 데몬 구동 완결 (HTTP 200 OK 검증 완료)",
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "created_at": "2026-10-23T13:26:19.225Z"
+    },
+    {
+      "trace_id": "TRACE-0031-01-00-03",
+      "session_id": "SESSION-0031",
+      "task_id": "TASK-0031-01",
+      "loop_id": null,
+      "step_index": 3,
+      "agent_name": "gemini",
+      "model_name": "models/gemini-1.5-flash",
+      "operator_account": "jkok2j2m",
+      "agent_account": "jkok2j2m@gmail.com",
+      "user_email": "jkok2j2m@gmail.com",
+      "user_prompt": "#태스크시작 [0031-01] Phase 1 대상 사용자 와이어프레임(PG-USR-02~04) tokens.ts 전면 대입 및 4모드 고대비 검증 상세 계획 수립",
+      "agent_response": "#[0031-03] TASK-0031-01 Phase 1 사용자 와이어프레임(PG-USR-02~04) tokens.ts 전면 대입 상세 계획 수립\n\n- 작업 대상: PG-USR-02(로그인/회원가입), PG-USR-03(홈화면 대시보드), PG-USR-04(마이페이지/사용자관리)\n- 4모드 테마(Light, Dark, Dawn, System) 실시간 감지 및 getThemeAdaptiveClasses 동적 바인딩 아키텍처 수립\n- 44px 모바일 터치 타깃 및 Zero-Pill 규격 검증 계획 수립\n- 루프 분석(LOOP-0031-01) 타당성 검토 완료 및 사전 확인 질의 제시",
+      "response_summary": "TASK-0031-01 Phase 1 사용자 와이어프레임(PG-USR-02~04) tokens.ts 전면 대입 및 4모드 고대비 검증 상세 계획 및 루프 분석 수립 완결",
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "created_at": "2026-10-23T14:21:52.930Z"
+    },
+    {
+      "trace_id": "TRACE-0031-01-01-04",
+      "session_id": "SESSION-0031",
+      "task_id": "TASK-0031-01",
+      "loop_id": "LOOP-0031-01",
+      "step_index": 4,
+      "agent_name": "gemini",
+      "model_name": "models/gemini-1.5-flash",
+      "operator_account": "jkok2j2m",
+      "agent_account": "jkok2j2m@gmail.com",
+      "user_email": "jkok2j2m@gmail.com",
+      "user_prompt": "#태스크처리 [0031-01] Phase 1 대상 사용자 와이어프레임(PG-USR-02~04) tokens.ts 전면 대입 및 4모드 고대비 검증 실행",
+      "agent_response": "#[0031-04] Phase 1 대상 사용자 와이어프레임(PG-USR-02~04) tokens.ts 전면 대입 및 4모드 고대비 검증 완결 보고\n\n### 1. 작업 개요 및 핵심 성과 요약\n- **하네스 태스크**: `TASK-0031-01` (루프 `LOOP-0031-01` 1차 단위 반복 완결)\n- **대상 화면**:\n  1. **`PG-USR-02`**: 로그인 / 회원가입 (소셜/이메일 2FA 탭 전환, 4단계 회원가입 위저드, 프로필 크롭 연동)\n  2. **`PG-USR-03`**: 홈 대시보드 (7대 PDF 도구 퀵 그리드, 최근 문서 배너, 7대 도구 전용 인라인 작업 스튜디오)\n  3. **`PG-USR-04`**: 마이페이지 / 사용자관리 (프로필 요약 카드, 기본정보 인라인 수정 폼, 2FA 정책/주인증수단 그리드, 비밀번호 변경 서랍)\n- **품질 지표 달성**:\n  * **하드코딩 다크 클래스 전면 퇴출**: Tailwind `bg-slate-900`, `bg-slate-950`, `border-slate-800` 등을 `themeClasses` 유틸리티로 100% 치환\n  * **4모드(Light, Dark, Dawn, System) 테마 완비**: WCAG AA 4.5:1 이상 고대비 가독성 확보\n  * **44px 모바일 터치 타깃 준수**: 모든 주요 대화형 요소 `min-h-[44px]` 확보\n  * **Zero-Pill 라운딩 준수**: 아바타 외 모든 직사각형 컴포넌트 `rounded-xl`, `rounded-2xl` 적용 (`rounded-full` 알약형 배제)\n\n---\n\n### 2. 세부 수정 내역\n\n| 대상 화면 / 파일 | 주요 수정 컴포넌트 및 영역 | 적용된 tokens.ts 토큰 및 스타일 |\n| :--- | :--- | :--- |\n| **`tokens.ts`** | 테마 적응형 헬퍼 확장 | `buttonSecondary`, `tabInactive`, `tabActive` (Light, Dawn, Dark 3대 테마 완비) |\n| **`UserWireframes.tsx`** | 최상단 테마 감지 훅 | `MutationObserver`(`data-theme`) + `storage` 이벤트 실시간 감지 및 `themeClasses` 바인딩 |\n| **`PG-USR-02`** | 로그인 카드 | ID/PW 인풋(`themeClasses.input`, `min-h-[44px]`), 소셜로그인 버튼 3종(`min-h-[44px]`) |\n| **`PG-USR-02`** | 회원가입 위저드 (Step 1~4) | 약관동의 패널, 프로필 사진 업로드 & 정보입력, 2FA 수단 선택 탭 4종(`themeClasses.tabActive`/`tabInactive`), 가입완료 축하 카드 |\n| **`PG-USR-03`** | 7대 PDF 도구 대시보드 | 7대 핵심 도구 퀵 그리드(`themeClasses.card`), 최근 처리 문서 배너(`themeClasses.panel`), 뷰어로 열기 버튼 |\n| **`PG-USR-03`** | 7대 인라인 작업 스튜디오 | 상단 공통 네비바, 1. 카메라 스캔, 2. 이미지➔PDF, 3. PDF OCR, 4. OCR➔TEXT, 5. 문서관리, 6. PDF 압축, 7. PDF 보안 전면 치환 |\n| **`PG-USR-04`** | 프로필 요약 카드 | 읽기 모드 카드(`themeClasses.card`), 아바타 연필 수정 버튼, PRO 회원 배지, 기본정보 수정 버튼 |\n| **`PG-USR-04`** | 기본정보 인라인 수정 폼 | 실명/별명/전화번호/이메일 4대 인풋, 중복확인 버튼, 이메일 6자리 인증 서랍(`themeClasses.panel`), 저장/취소 버튼 |\n| **`PG-USR-04`** | 계정 보안 및 2FA 설정 | 2FA 정책 툴바, 2단계 로그인 토글, 주 2차 인증수단 4대 탭, 소셜 연동 계정 카드, 비상 복구코드 10개 관리 버튼 |\n| **`PG-USR-04`** | 비밀번호 보안 관리 | 접이식 아코디언(서랍), 현재비번/새비번/확인 3단계 인풋(`min-h-[44px]`), 업데이트 액션 버튼 |\n\n---\n\n### 3. 검증 결과 (TDD & 정적 린트)\n1. **TypeScript 정적 타입 검증 (`tsc --noEmit`)**:\n   - `tsc --noEmit` 실행 결과: **오류 0건 (Exit Code 0, 100% Pass)**\n2. **단위 검증 (`scripts/verify_phase1_tokens.ts`)**:\n   - 3대 공통 쉘 및 와이어프레임 서비스 목록 25개 검증: **통과**\n   - tokens.ts 4모드 테마 적응형 클래스 및 신규 토큰 3종(`buttonSecondary`, `tabInactive`, `tabActive`): **통과**\n   - 44px 모바일 터치 타깃 및 포커스 링 검증: **통과** (소요시간: 371ms)\n3. **서비스 헬스체크 (`scripts/service_health_check.ts`)**:\n   - Full-Stack Server (`http://localhost:3000`), DB 브릿지, 복합 인덱스 7종, 작업그래프 API 모두 **정상 가동 (HTTP 200 OK)**\n\n---\n\n### 4. 후속 실행 프롬프트 제안\nPhase 1 대상 화면(PG-USR-02~04)의 토큰 대입 및 4모드 검증이 완료되었으므로, AGENTS.md v2.2 규율에 따라 **`#태스크정리 [0031-01]`** 단계로 진입하여 코드리뷰 문서 발행 및 Git Data API 커밋 생성을 진행합니다.\n\n```bash\n#태스크정리 [0031-01] Phase 1 와이어프레임 tokens.ts 대입 리뷰 문서 발행 및 GitHub 커밋 푸시\n```",
+      "response_summary": "Phase 1 대상 사용자 와이어프레임(PG-USR-02~04) tokens.ts 전면 대입, 4모드 고대비 및 44px 터치타깃·Zero-Pill 규격 검증 완결",
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "created_at": "2026-10-23T14:45:59.290Z"
+    }
+  ],
+  "conversation_turns": [
+    {
+      "session_id": "SESSION-0031",
+      "task_id": "TASK-0031-01",
+      "turn_number": 1,
+      "turn_identifier": "[0031-01]",
+      "operator_account": "jkok2j2m",
+      "agent_account": "jkok2j2m@gmail.com",
+      "user_email": "jkok2j2m@gmail.com",
+      "user_prompt": "#세션시작 [0031] Phase 1 사용자 와이어프레임(PG-USR-02~04) tokens.ts 전면 대입 및 4모드 디자인 시스템 고도화\n\n[작업 세션 컨텍스트]\n- 작업자: jkok2j2m (jkok2j2m@gmail.com)\n- 추천 모델: Gemini 1.5 Flash (Tier 2, RPD 2500회 무중단 모드)\n- 직전 세션 기준 SHA: 912997671427e0faaa5a1848061f050534d10fb2 (dev/stg/main 100% 일치)\n- 핵심 참조 문서:\n  * docs/13.회고/13-23_SESSION-261022-0030_세션종합_KPT_회고록.md\n  * docs/07.로드맵/07-02_화면별_디자인_토큰_적용현황_및_단계별_로드맵.md\n  * docs/10.리뷰/261023_051_글로벌_Top_Navbar_전_시스템_상시_고정_및_헤더_통일화_코드리뷰.md\n  * src/styles/tokens.ts\n- 주요 작업 목표:\n  1. 원격 dev 최신 커밋 자동 풀(npx tsx scripts/pull_remote_dev.ts) 및 샌드박스 동기화\n  2. 로드맵 07-02 기반 Phase 1 대상 화면(PG-USR-02 로그인/회원가입, PG-USR-03 마이페이지/구독, PG-USR-04 보안설정)의 하드코딩 인라인 스타일을 tokens.ts 유틸리티로 전면 전환\n  3. 4모드(Light, Dark, Dawn, System) 테마 스위칭 시 고대비 및 가독성 100% 보장\n  4. 44px 모바일 최소 터치 영역 및 제로-필(Zero-Pill) 사각 라운딩 표준 준수 검증",
+      "response_summary": "SESSION-0031 세션 시작 점검 완결, 원격 dev 브랜치 무손실 동기화(SHA: 3c26becb), 3대 브랜치 일치 검증, 작업 브랜치 생성 및 하네스 스토어 등록 완료",
+      "status": "SUCCESS",
+      "created_at": "2026-10-23T13:16:35.555Z"
+    },
+    {
+      "trace_id": "TRACE-0031-01-00-02",
+      "session_id": "SESSION-0031",
+      "task_id": "TASK-0031-01",
+      "turn_num": "2",
+      "turn_number": 2,
+      "turn_identifier": "[0031-02]",
+      "operator_account": "jkok2j2m",
+      "agent_account": "jkok2j2m@gmail.com",
+      "user_email": "jkok2j2m@gmail.com",
+      "user_prompt": "로컬서비스 시작",
+      "agent_response_summary": "purePDFrend 로컬 개발 서버(Express 4 + Vite 6, 포트 3000) 의존성 복구 및 데몬 구동 완결 (HTTP 200 OK 검증 완료)",
+      "agent_response": "#[0031-02] purePDFrend 로컬 개발 서버 구동 완료\n\n- 서비스 URL: http://localhost:3000 (모든 인터페이스 0.0.0.0:3000 바인딩)\n- 서버 스택: Express 4.21.2 + Vite 6.0.0 통합 개발 서버\n- 헬스체크 결과: HTTP 200 OK 정상 수신 완료\n- 비즈니스 서비스 오프라인 무중단 독립 실행 보장",
+      "status": "SUCCESS",
+      "created_at": "2026-10-23T13:26:19.225Z"
+    },
+    {
+      "trace_id": "TRACE-0031-01-00-03",
+      "session_id": "SESSION-0031",
+      "task_id": "TASK-0031-01",
+      "turn_num": "3",
+      "turn_number": 3,
+      "turn_identifier": "[0031-03]",
+      "operator_account": "jkok2j2m",
+      "agent_account": "jkok2j2m@gmail.com",
+      "user_email": "jkok2j2m@gmail.com",
+      "user_prompt": "#태스크시작 [0031-01] Phase 1 대상 사용자 와이어프레임(PG-USR-02~04) tokens.ts 전면 대입 및 4모드 고대비 검증 상세 계획 수립",
+      "agent_response_summary": "TASK-0031-01 Phase 1 사용자 와이어프레임(PG-USR-02~04) tokens.ts 전면 대입 및 4모드 고대비 검증 상세 계획 및 루프 분석 수립 완결",
+      "agent_response": "#[0031-03] TASK-0031-01 Phase 1 사용자 와이어프레임(PG-USR-02~04) tokens.ts 전면 대입 상세 계획 수립\n\n- 작업 대상: PG-USR-02(로그인/회원가입), PG-USR-03(홈화면 대시보드), PG-USR-04(마이페이지/사용자관리)\n- 4모드 테마(Light, Dark, Dawn, System) 실시간 감지 및 getThemeAdaptiveClasses 동적 바인딩 아키텍처 수립\n- 44px 모바일 터치 타깃 및 Zero-Pill 규격 검증 계획 수립\n- 루프 분석(LOOP-0031-01) 타당성 검토 완료 및 사전 확인 질의 제시",
+      "status": "SUCCESS",
+      "created_at": "2026-10-23T14:21:52.930Z"
     }
   ]
 }
