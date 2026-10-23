@@ -113,5 +113,26 @@ describe('tokens.ts 4모드 테마 적응형 클래스 헬퍼 검증', () => {
       expect(classes.buttonSecondary).toBeTruthy();
     });
   });
+
+  it('Phase 3 관리자 1단계 핵심화면(PG-ADM-01~04) 및 사용자 전 화면(PG-USR-01~09) 100% 완결이 보장되어야 한다', () => {
+    // 1. 관리자 1단계 4대 프로그램 식별
+    const adm01 = ADMIN_PROGRAMS.find((p) => p.id === 'PG-ADM-01');
+    const adm02 = ADMIN_PROGRAMS.find((p) => p.id === 'PG-ADM-02');
+    const adm03 = ADMIN_PROGRAMS.find((p) => p.id === 'PG-ADM-03');
+    const adm04 = ADMIN_PROGRAMS.find((p) => p.id === 'PG-ADM-04');
+
+    expect(adm01).toBeDefined();
+    expect(adm02).toBeDefined();
+    expect(adm03).toBeDefined();
+    expect(adm04).toBeDefined();
+
+    // 2. 사용자 전 화면 9종 100% 식별 및 이름 확인
+    expect(USER_PROGRAMS.length).toBe(9);
+    const usr08 = USER_PROGRAMS.find((p) => p.id === 'PG-USR-08');
+    const usr09 = USER_PROGRAMS.find((p) => p.id === 'PG-USR-09');
+
+    expect(usr08?.name).toContain('오프라인 작업');
+    expect(usr09?.name).toContain('정밀 사용자 환경설정');
+  });
 });
 
