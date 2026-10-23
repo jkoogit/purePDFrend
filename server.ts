@@ -2903,6 +2903,207 @@ app.delete('/api/admin/users/:id', (req, res) => {
   });
 });
 
+// ---------------------- PG-ADM-02: 프로그램 DAG 의존성 관리 API ----------------------
+let adminPrograms = [
+  { id: 'PG-USR-ROOT', name: '사용자 포털 루트', parentId: 'ROOT', route: '/usr', roles: ['ROLE_USER', 'ROLE_ADMIN'], status: 'ACTIVE', version: 'v2.0' },
+  { id: 'PG-USR-01', name: '첫화면 (랜딩)', parentId: 'PG-USR-ROOT', route: '/', roles: ['ROLE_USER', 'ROLE_GUEST'], status: 'ACTIVE', version: 'v2.1' },
+  { id: 'PG-USR-02', name: '로그인/회원가입', parentId: 'PG-USR-ROOT', route: '/auth', roles: ['ROLE_USER', 'ROLE_GUEST'], status: 'ACTIVE', version: 'v2.0' },
+  { id: 'PG-USR-03', name: '홈화면 (대시보드)', parentId: 'PG-USR-ROOT', route: '/home', roles: ['ROLE_USER', 'ROLE_EDITOR'], status: 'ACTIVE', version: 'v2.3' },
+  { id: 'PG-USR-06', name: '문서뷰어 & 주석스튜디오', parentId: 'PG-USR-ROOT', route: '/viewer', roles: ['ROLE_USER', 'ROLE_EDITOR', 'ROLE_ADMIN'], status: 'ACTIVE', version: 'v3.0' },
+  { id: 'PG-ADM-ROOT', name: '관리자 포털 루트', parentId: 'ROOT', route: '/admin', roles: ['ROLE_ADMIN'], status: 'ACTIVE', version: 'v2.0' },
+  { id: 'PG-ADM-01', name: '보안관리', parentId: 'PG-ADM-ROOT', route: '/admin/security', roles: ['ROLE_ADMIN'], status: 'ACTIVE', version: 'v2.5' },
+  { id: 'PG-ADM-02', name: '프로그램관리', parentId: 'PG-ADM-ROOT', route: '/admin/programs', roles: ['ROLE_ADMIN'], status: 'ACTIVE', version: 'v2.2' },
+  { id: 'PG-ADM-03', name: '사용자관리', parentId: 'PG-ADM-ROOT', route: '/admin/users', roles: ['ROLE_ADMIN'], status: 'ACTIVE', version: 'v2.4' },
+  { id: 'PG-ADM-04', name: '약관·동의·정책', parentId: 'PG-ADM-ROOT', route: '/admin/terms', roles: ['ROLE_ADMIN'], status: 'ACTIVE', version: 'v2.4' },
+  { id: 'PG-ADM-05', name: '사용자 권한관리', parentId: 'PG-ADM-ROOT', route: '/admin/roles', roles: ['ROLE_ADMIN'], status: 'ACTIVE', version: 'v2.0' },
+  { id: 'PG-ADM-06', name: '메뉴관리', parentId: 'PG-ADM-ROOT', route: '/admin/menus', roles: ['ROLE_ADMIN'], status: 'ACTIVE', version: 'v2.0' },
+];
+
+function checkProgramDagCycle(programs: any[], targetId: string, proposedParentId: string): boolean {
+  if (proposedParentId === 'ROOT' || !proposedParentId) return false;
+  if (targetId === proposedParentId) return true;
+  let curr = proposedParentId;
+  const visited = new Set<string>([targetId]);
+  while (curr && curr !== 'ROOT') {
+    if (visited.has(curr)) return true;
+    visited.add(curr);
+    const parent = programs.find((p) => p.id === curr);
+    if (!parent) break;
+    curr = parent.parentId;
+  }
+  return false;
+}
+
+// GET /api/admin/programs
+app.get('/api/admin/programs', (req, res) => {
+  res.json({
+    success: true,
+    programs: adminPrograms,
+    totalCount: adminPrograms.length,
+  });
+});
+
+// POST /api/admin/programs
+app.post('/api/admin/programs', (req, res) => {
+  const { id, name, parentId, route, roles, status, version } = req.body;
+  if (!id || !name) {
+    return res.status(400).json({ success: false, error: '프로그램 ID와 프로그램명을 입력해주세요.' });
+  }
+
+  if (adminPrograms.some((p) => p.id === id)) {
+    return res.status(400).json({ success: false, error: '이미 등록된 프로그램 ID입니다.' });
+  }
+
+  const pParent = parentId || 'PG-ADM-ROOT';
+  if (checkProgramDagCycle(adminPrograms, id, pParent)) {
+    return res.status(400).json({ success: false, error: '순환 참조(Cycle)가 탐지되어 등록이 차단되었습니다.' });
+  }
+
+  const newProg = {
+    id,
+    name,
+    parentId: pParent,
+    route: route || `/admin/${id.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+    roles: Array.isArray(roles) && roles.length > 0 ? roles : ['ROLE_ADMIN'],
+    status: status === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
+    version: version || 'v1.0',
+  };
+
+  adminPrograms.push(newProg);
+  res.status(201).json({
+    success: true,
+    message: '새로운 프로그램이 성공적으로 등록되었습니다.',
+    program: newProg,
+  });
+});
+
+// PUT /api/admin/programs/:id
+app.put('/api/admin/programs/:id', (req, res) => {
+  const { id } = req.params;
+  const progIndex = adminPrograms.findIndex((p) => p.id === id);
+  if (progIndex === -1) {
+    return res.status(404).json({ success: false, error: '프로그램을 찾을 수 없습니다.' });
+  }
+
+  const { name, parentId, route, roles, status, version } = req.body;
+  const current = adminPrograms[progIndex];
+
+  const targetParent = parentId !== undefined ? parentId : current.parentId;
+  if (checkProgramDagCycle(adminPrograms, id, targetParent)) {
+    return res.status(400).json({ success: false, error: '부모 지정 시 순환 의존성(Cycle)이 발생합니다.' });
+  }
+
+  if (name !== undefined) current.name = name;
+  if (parentId !== undefined) current.parentId = parentId;
+  if (route !== undefined) current.route = route;
+  if (roles !== undefined && Array.isArray(roles)) current.roles = roles;
+  if (status !== undefined) current.status = status;
+  if (version !== undefined) current.version = version;
+
+  adminPrograms[progIndex] = current;
+  res.json({
+    success: true,
+    message: '프로그램 정보가 성공적으로 수정되었습니다.',
+    program: current,
+  });
+});
+
+// DELETE /api/admin/programs/:id
+app.delete('/api/admin/programs/:id', (req, res) => {
+  const { id } = req.params;
+  const hasChildren = adminPrograms.some((p) => p.parentId === id);
+  if (hasChildren) {
+    return res.status(400).json({ success: false, error: '하위 종속 프로그램이 존재하여 삭제할 수 없습니다. 하위 항목을 먼저 정리해주세요.' });
+  }
+
+  const prevLen = adminPrograms.length;
+  adminPrograms = adminPrograms.filter((p) => p.id !== id);
+  if (adminPrograms.length === prevLen) {
+    return res.status(404).json({ success: false, error: '삭제할 프로그램을 찾을 수 없습니다.' });
+  }
+
+  res.json({
+    success: true,
+    message: '프로그램이 성공적으로 삭제되었습니다.',
+    remainingCount: adminPrograms.length,
+  });
+});
+
+// ---------------------- PG-ADM-04: 이용약관 및 개인정보 버전 관리 API ----------------------
+let adminTerms = [
+  { id: 'DOC_GRP_01', title: '서비스 이용약관', version: 'v1.0', isLatestApplied: false, updatedAt: '2026-08-01', content: '서비스 이용조건 초판입니다.' },
+  { id: 'DOC_GRP_01', title: '서비스 이용약관', version: 'v2.0', isLatestApplied: true, updatedAt: '2026-10-01', content: '오프라인 3-Way 병합 정책이 반영된 최신 서비스 이용약관입니다.' },
+  { id: 'DOC_GRP_02', title: '개인정보 수집·이용', version: 'v1.0', isLatestApplied: false, updatedAt: '2026-08-01', content: '개인정보 수집 기본 항목 안내입니다.' },
+  { id: 'DOC_GRP_02', title: '개인정보 수집·이용', version: 'v1.1', isLatestApplied: true, updatedAt: '2026-10-01', content: '개인정보 불변원칙 헌장이 추가 반영된 개정판입니다.' },
+  { id: 'DOC_GRP_03', title: '마케팅 정보 수신동의', version: 'v1.0', isLatestApplied: true, updatedAt: '2026-09-01', content: '마케팅 혜택 및 프로모션 안내 동의입니다.' },
+  { id: 'DOC_GRP_08', title: '오프라인 동기화 정책', version: 'v1.0', isLatestApplied: true, updatedAt: '2026-10-02', content: '로컬 IndexedDB 및 충돌 해결 정책 안내입니다.' },
+];
+
+// GET /api/admin/terms
+app.get('/api/admin/terms', (req, res) => {
+  res.json({
+    success: true,
+    terms: adminTerms,
+    totalCount: adminTerms.length,
+  });
+});
+
+// POST /api/admin/terms
+app.post('/api/admin/terms', (req, res) => {
+  const { id, title, version, content, isLatestApplied } = req.body;
+  if (!id || !title || !version) {
+    return res.status(400).json({ success: false, error: '약관 ID, 제목, 버전을 모두 입력해주세요.' });
+  }
+
+  const applyNew = isLatestApplied !== false;
+  if (applyNew) {
+    adminTerms = adminTerms.map((t) => (t.id === id ? { ...t, isLatestApplied: false } : t));
+  }
+
+  const newTerm = {
+    id,
+    title,
+    version,
+    isLatestApplied: applyNew,
+    updatedAt: new Date().toISOString().split('T')[0],
+    content: content || '약관 본문이 등록되었습니다.',
+  };
+
+  adminTerms.unshift(newTerm);
+  res.status(201).json({
+    success: true,
+    message: `[${title}] 새 버전(${version})이 성공적으로 등록되었습니다.`,
+    term: newTerm,
+  });
+});
+
+// PUT /api/admin/terms/:id/apply
+app.put('/api/admin/terms/:id/apply', (req, res) => {
+  const { id } = req.params;
+  const { version } = req.body;
+  if (!version) {
+    return res.status(400).json({ success: false, error: '적용할 약관 버전을 지정해주세요.' });
+  }
+
+  const target = adminTerms.find((t) => t.id === id && t.version === version);
+  if (!target) {
+    return res.status(404).json({ success: false, error: '해당 약관 버전을 찾을 수 없습니다.' });
+  }
+
+  adminTerms = adminTerms.map((t) => {
+    if (t.id === id) {
+      return { ...t, isLatestApplied: t.version === version };
+    }
+    return t;
+  });
+
+  res.json({
+    success: true,
+    message: `[${target.title}] 최신 적용 버전이 ${version}으로 변경되었습니다.`,
+    terms: adminTerms,
+  });
+});
+
 // ---------------------- VITE & STATIC SERVING ----------------------
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {

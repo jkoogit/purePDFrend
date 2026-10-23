@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Input, Badge, Card, Modal } from '@shared/components/ui';
 
 export interface ScreenProgramItem {
@@ -32,6 +32,7 @@ export function AdminProgramsView() {
   const [programs, setPrograms] = useState<ScreenProgramItem[]>(INITIAL_PROGRAMS);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   // Search & Filter State
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -46,6 +47,22 @@ export function AdminProgramsView() {
   const [formRoute, setFormRoute] = useState('');
   const [formRoles, setFormRoles] = useState<string[]>(['ROLE_ADMIN']);
   const [formStatus, setFormStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
+
+  const fetchPrograms = async () => {
+    try {
+      const res = await fetch('/api/admin/programs');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.programs)) {
+        setPrograms(data.programs);
+      }
+    } catch (e: any) {
+      console.warn('프로그램 목록 로드 예외 (로컬 기본값 유지):', e.message);
+    }
+  };
+
+  useEffect(() => {
+    fetchPrograms();
+  }, []);
 
   const openCreate = () => {
     setIsCreating(true);
@@ -95,35 +112,80 @@ export function AdminProgramsView() {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formId.trim() || !formName.trim()) return;
     if (isDagCycle(formId, formParent)) {
       setDagError(`🚨 [DAG 순환참조 감지] '${formId}'의 부모로 '${formParent}'를 지정하면 순환 루프가 발생하여 저장이 차단됩니다!`);
       return;
     }
     setDagError(null);
+
+    const payload = {
+      id: formId,
+      name: formName,
+      parentId: formParent,
+      route: formRoute,
+      roles: formRoles,
+      status: formStatus,
+      version: 'v1.0',
+    };
+
     if (isCreating) {
-      setPrograms([
-        ...programs,
-        { id: formId, name: formName, parentId: formParent, route: formRoute, roles: formRoles, status: formStatus, version: 'v1.0' },
-      ]);
+      setPrograms([...programs, payload]);
+      try {
+        const res = await fetch('/api/admin/programs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.success && data.program) {
+          setNotice(`🎉 신규 프로그램 [${formId}] ${formName}이(가) 등록되었습니다.`);
+          setTimeout(() => setNotice(null), 3000);
+        }
+      } catch (e: any) {
+        console.warn('프로그램 등록 API 오류 (로컬 반영 완료):', e.message);
+      }
     } else if (editingId) {
       setPrograms(
-        programs.map((p) =>
-          p.id === editingId
-            ? { ...p, name: formName, parentId: formParent, route: formRoute, roles: formRoles, status: formStatus }
-            : p
-        )
+        programs.map((p) => (p.id === editingId ? { ...p, ...payload } : p))
       );
+      try {
+        const res = await fetch(`/api/admin/programs/${encodeURIComponent(editingId)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setNotice(`✏️ 프로그램 [${editingId}] 정보가 수정되었습니다.`);
+          setTimeout(() => setNotice(null), 3000);
+        }
+      } catch (e: any) {
+        console.warn('프로그램 수정 API 오류 (로컬 반영 완료):', e.message);
+      }
     }
     setIsCreating(false);
     setEditingId(null);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm(`프로그램 [${id}]을(를) 삭제하시겠습니까?`)) {
       setPrograms(programs.filter((p) => p.id !== id));
       if (editingId === id) setEditingId(null);
+
+      try {
+        const res = await fetch(`/api/admin/programs/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+        });
+        const data = await res.json();
+        if (data.success) {
+          setNotice(`🗑️ 프로그램 [${id}]이(가) 삭제되었습니다.`);
+          setTimeout(() => setNotice(null), 3000);
+        }
+      } catch (e: any) {
+        console.warn('프로그램 삭제 API 오류 (로컬 반영 완료):', e.message);
+      }
     }
   };
 
@@ -147,6 +209,12 @@ export function AdminProgramsView() {
 
   return (
     <div className="space-y-4 text-xs">
+      {notice && (
+        <div className="p-3 bg-emerald-950/80 border border-emerald-500/40 rounded-xl text-emerald-200 flex justify-between items-center animate-fade-in">
+          <span>{notice}</span>
+          <button onClick={() => setNotice(null)} className="text-[11px] text-emerald-400 hover:text-white cursor-pointer">✕</button>
+        </div>
+      )}
       {/* 헤더 & 등록 버튼 */}
       <Card variant="subtle">
         <div className="p-3.5 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
