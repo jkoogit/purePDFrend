@@ -205,8 +205,10 @@ async function syncViaAntigravityLocalGit(
       execSync(`git -c credential.helper= push "${authRemoteUrl}" stg:refs/heads/stg`, { stdio: 'pipe', timeout: 15000 });
       console.log(`   📡 Pushing 'main' to remote...`);
       execSync(`git -c credential.helper= push "${authRemoteUrl}" main:refs/heads/main`, { stdio: 'pipe', timeout: 15000 });
+      console.log(`   🔄 Synchronizing local tracking refs (refs/remotes/origin/*)...`);
+      execSync(`git -c credential.helper= fetch "${authRemoteUrl}" +refs/heads/*:refs/remotes/origin/*`, { stdio: 'pipe', timeout: 15000 });
       pushSuccess = true;
-      pushNotice = '✅ Remote branches (task, dev, stg, main) successfully pushed and promoted to GitHub!';
+      pushNotice = '✅ Remote branches (task, dev, stg, main) successfully pushed and local tracking refs updated!';
       console.log(`   🎉 ${pushNotice}`);
     } catch (e: any) {
       console.error('   ❌ Token push error:', e.message, e.stderr?.toString());
