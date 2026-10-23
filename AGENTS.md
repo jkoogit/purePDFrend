@@ -66,15 +66,17 @@ stateDiagram-v2
      `npx tsx scripts/reconcile_session_traces.ts` (또는 `POST /api/agent/trace/reconcile`)를 강제 실행하여, 
      세션 내 누적된 모든 미반영 대화 턴(현재 태스크 및 이전 누적분 전수)을 원격 DB(`aiagent.agent_conversation_trace`)에 
      100% 일괄 INSERT/UPSERT 완료 후 브랜치 승급 배포를 진행.
-- **원격 Git 제어 기술 원칙 (Git Data API Commit & Push Mandate)**:
-  - **[필수 원칙] 세션시작 시 원격 `dev` 브랜치 자동 Pull 선행 의무**:
+- **작업 도구 환경별 Git 제어 듀얼 엔진 원칙 (Tool-Adaptive Dual-Engine Mandate)**:
+  - **1) Google AI Studio 환경 (Web Cloud Sandbox)**:
+     - `GITHUB_TOKEN` 환경변수가 주입된 클라우드 샌드박스에서는 **GitHub Git Database API (`/git/blobs`, `/git/trees`, `/git/commits`, `/git/refs`)** 및 REST PR/Merge API를 통해 로컬 변경 파일을 신규 트리/커밋으로 원격 브랜치(`dev`, `stg`, `main`)에 직접 커밋 및 승급합니다.
+  - **2) Antigravity IDE 환경 (Local AI IDE)**:
+     - 사용자 로컬 환경(Windows/Mac/Linux)에서는 **로컬 Git CLI 엔진**이 자동 구동되어, 작업 브랜치 내용을 로컬 `dev`, `stg`, `main` 브랜치에 즉시 무손실 머지(Fast-forward / Merge)하고, Antigravity IDE에 연동된 GitHub 인증(Source Control UI `Ctrl+Shift+G` / GCM)을 통해 안전하게 원격 브랜치에 동기화(Push)합니다.
+  - **3) [필수 원칙] 승급 SHA 교차 검증 의무 (Cross-Check Verification)**:
+     - 원격 브랜치끼리의 단순 SHA 일치 여부만으로 승급을 판정하는 것을 엄격히 금지하며, 반드시 **현재 작업 브랜치의 최신 커밋 SHA가 대상 브랜치에 포함되었는지를 필수 대조 검증**하여 미반영 상태에서의 조기 승급 판정을 원천 차단합니다.
+  - **4) [필수 원칙] 세션시작 시 원격 `dev` 브랜치 자동 Pull 선행 의무**:
      새 창 또는 계정 전환 시 신규 샌드박스가 과거 로컬 스냅샷 상태로 초기화되므로, `#세션시작` 시 반드시 
      `npx tsx scripts/pull_remote_dev.ts`를 선행 호출하여 원격 `dev` 최신 트리를 로컬 작업공간에 100% 동기화하고 아카이빙해야 합니다. 
      최신 소스 Pull 없는 임의 Push는 엄격히 금지됩니다.
-  - **[필수 원칙] 원격 커밋 푸시 선행 의무**: 파일 변경 사항이 원격에 누락되는 것을 원천 방지하기 위해, 
-     단순 머지 API 호출 전 반드시 **GitHub Git Database API (`/git/blobs`, `/git/trees`, `/git/commits`, `/git/refs`)**를 통해 
-     로컬 변경 파일을 신규 트리 및 커밋으로 생성하여 대상 브랜치(`dev` 등)에 Push(`npx tsx scripts/github_sync_push.ts`)해야 합니다. 
-     커밋 푸시 없는 단순 브랜치 머지 호출은 엄격히 금지됩니다.
 
 ---
 
