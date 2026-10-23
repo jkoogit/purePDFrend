@@ -24,6 +24,7 @@
 | `13-22` | `13-22_SESSION-261011-0028_세션종합_KPT_회고록.md` | SESSION-261011-0028 세션 종합 KPT 회고록 | Keep(서비스명 PDFrend 전역 브랜딩, BrandLogo 4모드 적응형 로고 완결, 대화턴 9건 무손실 영속화, Git Data API Push 및 3대 브랜치 일치), Problem(와이어프레임 서브뷰 로고 파편화 점검 필요, 매뉴얼 문서 동기화 필요), Try(3대 통합 쉘 구축, PDF 핵심 3대 뷰어 화면 실서비스 연동, 매뉴얼 현행화) |
 | `13-23` | `13-23_SESSION-261022-0030_세션종합_KPT_회고록.md` | SESSION-261022-0030 세션 종합 KPT 회고록 | Keep(랜딩 시작점 PG-USR-01 전환, WireframeTopDropdown 25개 화면 퀵점프, tokens.ts 07-02 로드맵 수립, Issue #90/#88 종료, dev/stg/main 100% 일치), Problem(샌드박스 초기화 시 로컬 파일트리 불일치 방지), Try(Phase 1 사용자 와이어프레임 tokens.ts 전면 대입) |
 | `13-24` | `13-24_SESSION-261023-0031_세션종합_KPT_회고록.md` | SESSION-261023-0031 세션 종합 KPT 회고록 | Keep(tokens.ts 테마 확장, Phase 1 PG-USR-02~04 전면 대입, 4모드 고대비 및 44px 터치 보장, 대화턴 6건 무손실 영속화, 무결성 100점 A+), Problem(GITHUB_TOKEN 로컬 미설정 시 Git Data API 제한), Try(Phase 2 PG-USR-05~07 고도화 및 GITHUB_TOKEN 환경변수 보완) |
+| `13-25` | `13-25_SESSION-261024-0032_세션종합_KPT_회고록.md` | SESSION-261024-0032 세션 종합 KPT 회고록 | Keep(Phase 2 PG-USR-05~07 tokens.ts 전면 대입, 4모드 WCAG AA 고대비 가독성, 44px 터치타깃, Zero-Pill 규격, 4단계 서비스 전수점검 100점 만점 A+, 대화턴 5건 무손실 영속화), Problem(DB 스키마 컬럼 불일치 조기 감점 현상), Try(Phase 3 관리자 PG-ADM-01~04 실제 REST API 연동 및 잔여 사용자 PG-USR-08/09 토큰화 완결) |
 
 
 ```mermaid
