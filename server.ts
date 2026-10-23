@@ -6,6 +6,7 @@ import https from 'https';
 import { createServer as createViteServer } from 'vite';
 import { TokenQuotaDetectionService } from './src/aiagent/domain/token-quota';
 import { GovernanceIdGenerator } from './src/aiagent/domain/governance/GovernanceIdGenerator';
+import { HarnessRepository } from './src/aiagent/domain/harness/HarnessRepository';
 
 const app = express();
 const PORT = 3000;
@@ -406,6 +407,46 @@ app.get('/api/agent/loops', async (req, res) => {
       list = list.filter((l) => l.status_cd === status);
     }
     res.json({ success: true, loops: list, source: 'LOCAL_FALLBACK' });
+  }
+});
+
+// 2.0 Standard Harness Metadata UPSERT APIs (Dual Persistence & Zero-Hang)
+app.post('/api/agent/sessions', async (req, res) => {
+  try {
+    const sessionData = req.body;
+    if (!sessionData || !sessionData.session_id) {
+      return res.status(400).json({ success: false, error: 'session_id is required' });
+    }
+    const result = await HarnessRepository.upsertSession(sessionData);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/agent/tasks', async (req, res) => {
+  try {
+    const taskData = req.body;
+    if (!taskData || !taskData.task_id || !taskData.session_id) {
+      return res.status(400).json({ success: false, error: 'task_id and session_id are required' });
+    }
+    const result = await HarnessRepository.upsertTask(taskData);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/agent/loops', async (req, res) => {
+  try {
+    const loopData = req.body;
+    if (!loopData || !loopData.loop_id || !loopData.task_id || !loopData.session_id) {
+      return res.status(400).json({ success: false, error: 'loop_id, task_id, and session_id are required' });
+    }
+    const result = await HarnessRepository.upsertLoop(loopData);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
