@@ -22,6 +22,8 @@
 | `13-20` | `13-20_SESSION-261008-0026_세션종합_KPT_회고록.md` | SESSION-261008-0026 세션 종합 KPT 회고록 | Keep(8종 기준컴포넌트풀 구축, PG-ADM-01~16 16대 전면대입, 44px 모바일터치, Git Data API Push, 대화턴 화해 완결), Problem(와이어프레임과 실제API 간극, 상단 테마토글 부재), Try(상단 글로벌 테마토글 추가, PG-ADM-01/03 실제 DB 연동) |
 | `13-21` | `13-21_SESSION-261011-0027_세션종합_KPT_회고록.md` | SESSION-261011-0027 세션 종합 KPT 회고록 | Keep(SSOT tokens.ts 정의, 디자인시스템 쇼케이스 탭 구축, 글로벌 테마스위처, PG-ADM-01/03 실제 PostgreSQL REST 연동, 3대 브랜치 일치), Problem(23개 와이어프레임 개별 쉘 파편화, PDF 핵심 뷰어 바인딩 대기), Try(3대 통합 쉘 AdminShell/UserShell/StudioShell 구축, PDF MVP 3대 화면 토큰 바인딩) |
 | `13-22` | `13-22_SESSION-261011-0028_세션종합_KPT_회고록.md` | SESSION-261011-0028 세션 종합 KPT 회고록 | Keep(서비스명 PDFrend 전역 브랜딩, BrandLogo 4모드 적응형 로고 완결, 대화턴 9건 무손실 영속화, Git Data API Push 및 3대 브랜치 일치), Problem(와이어프레임 서브뷰 로고 파편화 점검 필요, 매뉴얼 문서 동기화 필요), Try(3대 통합 쉘 구축, PDF 핵심 3대 뷰어 화면 실서비스 연동, 매뉴얼 현행화) |
+| `13-23` | `13-23_SESSION-261022-0030_세션종합_KPT_회고록.md` | SESSION-261022-0030 세션 종합 KPT 회고록 | Keep(랜딩 시작점 PG-USR-01 전환, WireframeTopDropdown 25개 화면 퀵점프, tokens.ts 07-02 로드맵 수립, Issue #90/#88 종료, dev/stg/main 100% 일치), Problem(샌드박스 초기화 시 로컬 파일트리 불일치 방지), Try(Phase 1 사용자 와이어프레임 tokens.ts 전면 대입) |
+
 
 ```mermaid
 pie title 회고 이슈 비중
