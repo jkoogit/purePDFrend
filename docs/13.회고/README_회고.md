@@ -27,6 +27,7 @@
 | `13-25` | `13-25_SESSION-261024-0032_세션종합_KPT_회고록.md` | SESSION-261024-0032 세션 종합 KPT 회고록 | Keep(Phase 2 PG-USR-05~07 tokens.ts 전면 대입, 4모드 WCAG AA 고대비 가독성, 44px 터치타깃, Zero-Pill 규격, 4단계 서비스 전수점검 100점 만점 A+, 대화턴 5건 무손실 영속화), Problem(DB 스키마 컬럼 불일치 조기 감점 현상), Try(Phase 3 관리자 PG-ADM-01~04 실제 REST API 연동 및 잔여 사용자 PG-USR-08/09 토큰화 완결) |
 | `13-26` | `13-26_SESSION-261024-0033_세션종합_KPT_회고록.md` | SESSION-261024-0033 세션 종합 KPT 회고록 | Keep(관리자 PG-ADM-01~04 실제 REST API 연동, 사용자 전 화면 9종 tokens.ts 100% 대입 완결, HarnessRepository 도메인 레포지토리 DDL 정규화 및 Zero-Hang 폴백 완비, 4단계 전수점검 100점 만점 A+), Problem(단위테스트 로컬스토어 오염, 신규문서 해시 불일치), Try(Phase 4 관리자 PG-ADM-05~08 실제 REST 연동 및 모바일 반응형 검증) |
 | `13-27` | `13-27_SESSION-261024-0034_세션종합_KPT_회고록.md` | SESSION-261024-0034 세션 종합 KPT 회고록 | Keep(플랫폼 전체 25개 와이어프레임 100% 토큰화 달성, 관리자 8대 핵심화면 실제 REST 연동, checkMenuCycle 순환참조 방지, HarnessRepository 표준 안착, 4단계 전수점검 100점 A+), Problem(CRLF 커밋 해시 일시 불일치, TS noUnusedLocals 엄격성), Try(Phase 5 관리자 3단계 PG-ADM-09~12 실제 REST 연동, PDF 3대 뷰어 tokens 통합) |
+| `13-28` | `13-28_SESSION-261025-0035_세션종합_KPT_회고록.md` | SESSION-261025-0035 세션 종합 KPT 회고록 | Keep(서비스화면 중심 전환, tokens.ts 시맨틱 정규화, 상단 행잉 리본 탭 및 메가 레이어 모듈, 탑바 가로 0px 점유 클린화, 100점 감사, 3대 브랜치 일치), Problem(초기 가로배치 착오 및 과도한 안내문구), Try(Phase 5 관리자 3단계 REST 연동, PDF 3대 뷰어 연동) |
 
 ```mermaid
 pie title 회고 이슈 비중
