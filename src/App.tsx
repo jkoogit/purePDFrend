@@ -310,17 +310,13 @@ export default function App() {
                 />
               )}
 
-              {/* [3-3. PDF 스튜디오 도메인 2대 뷰] */}
+              {/* [3-3. PDF 스튜디오 도메인] */}
               {activeView === 'ocr' && (
                 <OcrEngineManager
                   settings={settings}
                   onUpdateSettings={handleUpdateSettings}
                   dbStatus={dbStatus}
                 />
-              )}
-
-              {activeView === 'wireframes' && (
-                <WireframeStudio />
               )}
             </div>
           )}

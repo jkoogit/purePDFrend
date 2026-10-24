@@ -6,25 +6,17 @@ import {
   LogIn,
   LogOut,
   X,
-  Bot,
-  Settings,
   HelpCircle,
   MessageSquare,
   Sparkle,
   Sparkles,
-  Sun,
-  Moon,
-  Sunrise,
-  Monitor,
   UserPlus,
   ShieldCheck,
 } from 'lucide-react';
 import { UserSystemRole } from '../../types';
-import { ThemeMode, ResolvedTheme, THEME_MODES, resolveThemeMode, applyThemeToDocument } from '../../styles/tokens';
-import { PdfrendLogo } from '../../shared/components/PdfrendLogo';
+import { ThemeMode, ResolvedTheme, resolveThemeMode, applyThemeToDocument, getThemeAdaptiveClasses } from '../../styles/tokens';
 import { VirtualViewerStudio } from './VirtualViewerStudio';
 import { HorizontalSlideContainer } from './HorizontalSlideContainer';
-import { WireframeTopDropdown } from './WireframeTopDropdown';
 
 export interface PurePdfServicePortalProps {
   onNavigateToAgent?: () => void;
@@ -43,7 +35,7 @@ export default function PurePdfServicePortal({
   onSelectRole,
   systemAdminEmail = 'jkoogit@gmail.com',
   themeMode: propThemeMode,
-  onChangeThemeMode,
+  onChangeThemeMode: _onChangeThemeMode,
 }: PurePdfServicePortalProps) {
   // 1. 사용자 인증(로그인) 상태 (기본값: 비로그인 상태로 진입하여 로그인 시 권한별 버튼 동적 표시)
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -74,51 +66,13 @@ export default function PurePdfServicePortal({
     }
   }, [propThemeMode]);
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => resolveThemeMode(themeMode));
-  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
 
   useEffect(() => {
     const resolved = applyThemeToDocument(themeMode);
     setResolvedTheme(resolved);
-    try {
-      localStorage.setItem('purepdfrend_theme_mode', themeMode);
-      localStorage.setItem('purepdfrend_theme', resolved);
-    } catch {}
-
-    if (themeMode === 'system' && typeof window !== 'undefined' && window.matchMedia) {
-      const media = window.matchMedia('(prefers-color-scheme: dark)');
-      const listener = () => {
-        const res = applyThemeToDocument('system');
-        setResolvedTheme(res);
-      };
-      media.addEventListener('change', listener);
-      return () => media.removeEventListener('change', listener);
-    }
   }, [themeMode]);
 
-  const handleSelectThemeMode = (mode: ThemeMode) => {
-    setThemeMode(mode);
-    onChangeThemeMode?.(mode);
-    setIsThemeMenuOpen(false);
-  };
-
-  const cycleTheme = () => {
-    const modes: ThemeMode[] = ['light', 'dark', 'dawn', 'system'];
-    const nextIdx = (modes.indexOf(themeMode) + 1) % modes.length;
-    handleSelectThemeMode(modes[nextIdx]);
-  };
-
-  const renderThemeIcon = (mode: ThemeMode, className: string = 'w-3.5 h-3.5') => {
-    switch (mode) {
-      case 'light':
-        return <Sun className={`${className} text-amber-400`} />;
-      case 'dark':
-        return <Moon className={`${className} text-indigo-400`} />;
-      case 'dawn':
-        return <Sunrise className={`${className} text-sky-400`} />;
-      case 'system':
-        return <Monitor className={`${className} text-emerald-400`} />;
-    }
-  };
+  const themeClasses = getThemeAdaptiveClasses(resolvedTheme);
 
   // 2. 공유 열람 문서 조회 검색 상태
   const [searchDocQuery, setSearchDocQuery] = useState('');
@@ -274,49 +228,33 @@ export default function PurePdfServicePortal({
   return (
     <div className="w-full flex flex-col space-y-6 pb-20 select-none animate-fadeIn">
       {/* =================================================================== */}
-      {/* 1. 서비스 상단 인증 & 사용자 권한별 시스템 전환 바 */}
+      {/* 1. 서비스 상단 컨텍스트 & 빠른 권한 로그인 바 (클린 단일화: Top 헤더 중복 해소) */}
       {/* =================================================================== */}
-      <div className={`relative z-50 border rounded-2xl p-4 shadow-xl backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors duration-200 ${
-        resolvedTheme === 'light'
-          ? 'bg-white/95 border-slate-200 text-slate-900 shadow-slate-200/60'
-          : resolvedTheme === 'dawn'
-          ? 'bg-[#070e22]/95 border-[#1e3066] text-white shadow-sky-950/30'
-          : 'bg-slate-900/90 border-slate-800 text-white shadow-indigo-950/20'
-      }`}>
-        {/* 1-1. 서비스 타이틀 & 슬로건 */}
+      <div className={`p-3.5 sm:p-4 rounded-2xl border ${themeClasses.container} flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors duration-200 shadow-lg`}>
         <div className="flex items-center gap-3">
-          <PdfrendLogo size={40} theme={resolvedTheme} />
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-blue-500/20 shrink-0">
+            📄
+          </div>
           <div>
-            <h1 className={`text-base font-bold flex items-center gap-2 ${
-              resolvedTheme === 'light' ? 'text-slate-900' : 'text-white'
-            }`}>
-              <span>PDFrend</span>
-            </h1>
+            <div className="flex items-center gap-2">
+              <span className={`text-sm font-bold ${themeClasses.textMain}`}>순수 PDF 서비스 포털</span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-500 border border-blue-500/25 font-semibold">Portal v2.0</span>
+            </div>
+            <p className={`text-xs ${themeClasses.textMuted} mt-0.5`}>
+              대용량 스캔 PDF 듀얼 OCR, 800쪽 고속 가상화 뷰어 및 7대 핵심 도구 스튜디오
+            </p>
           </div>
         </div>
 
-        {/* 1-2. top 영역 가운데 와이어프레임 서비스목록 드롭다운 (25개 바로가기) */}
-        <div className="flex justify-center flex-1 my-1 md:my-0">
-          <WireframeTopDropdown
-            currentProgId={isLoggedIn ? 'PG-USR-03' : 'PG-USR-01'}
-            theme={resolvedTheme}
-            onSelectProgram={(_type, _progId) => {
-              onNavigateToSettings?.();
-            }}
-          />
-        </div>
-
-        {/* 1-3. 우측 시스템 전환 & 인증 아이콘 바 (시스템설정, 에이전트관리, 로그인시스템 아이콘 표시) */}
         <div className="flex items-center gap-2 flex-wrap justify-end">
           {isLoggedIn ? (
-            <>
-              {/* 로그인 사용자 프로필 칩 */}
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs">
-                <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-white text-[11px]">
+            <div className="flex items-center gap-2">
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs ${themeClasses.panel}`}>
+                <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-white text-[10px]">
                   {userName.charAt(0)}
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-semibold text-slate-200 leading-tight">{userName} 님</span>
+                  <span className={`font-semibold ${themeClasses.textMain} leading-tight`}>{userName} 님</span>
                   <span className="text-[10px] text-emerald-400 font-mono leading-tight">
                     {userRole === 'ROLE_USER' && '일반사용자'}
                     {userRole === 'ROLE_OPERATOR' && '서비스설정자'}
@@ -326,110 +264,69 @@ export default function PurePdfServicePortal({
                 </div>
               </div>
 
-              {/* [아이콘화 1: 서비스설정 시스템] (ROLE_OPERATOR, ROLE_ADMIN, ROLE_SUPER_ADMIN 전용) */}
+              {/* 서비스설정 시스템 전환 (운영자 이상) */}
               {(userRole === 'ROLE_OPERATOR' || userRole === 'ROLE_ADMIN' || userRole === 'ROLE_SUPER_ADMIN') && (
                 <button
+                  type="button"
                   id="btn-portal-goto-settings"
                   onClick={onNavigateToSettings}
-                  className="w-10 h-10 rounded-xl bg-sky-600 hover:bg-sky-500 text-white flex items-center justify-center shadow-md shadow-sky-600/25 transition-all cursor-pointer active:scale-95 shrink-0"
-                  title="서비스설정 시스템 (25개 와이어프레임 & 시스템 설정 스튜디오)"
-                  aria-label="서비스설정 시스템"
+                  className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-medium border ${themeClasses.buttonSecondary} flex items-center gap-1.5 cursor-pointer`}
+                  title="서비스설정 시스템 바로가기"
                 >
-                  <Settings className="w-5 h-5" />
+                  <span>⚙️ 설정 스튜디오</span>
                 </button>
               )}
 
-              {/* [아이콘화 2: 에이전트관리 마스터] (ROLE_ADMIN, ROLE_SUPER_ADMIN 전용) */}
+              {/* 에이전트관리 마스터 전환 (관리자 이상) */}
               {(userRole === 'ROLE_ADMIN' || userRole === 'ROLE_SUPER_ADMIN') && (
                 <button
+                  type="button"
                   id="btn-portal-goto-agent"
                   onClick={onNavigateToAgent}
-                  className="w-10 h-10 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white flex items-center justify-center shadow-md shadow-violet-600/25 transition-all cursor-pointer active:scale-95 shrink-0"
-                  title="에이전트관리 마스터 (하네스/토큰쿼터/작업그래프/지식원장)"
-                  aria-label="에이전트관리 마스터"
+                  className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-medium border ${themeClasses.buttonSecondary} flex items-center gap-1.5 cursor-pointer`}
+                  title="에이전트관리 마스터 바로가기"
                 >
-                  <Bot className="w-5 h-5" />
+                  <span>🤖 에이전트 마스터</span>
                 </button>
               )}
 
-              {/* [아이콘화 3: 로그아웃 버튼] */}
               <button
+                type="button"
                 onClick={handleLogout}
-                className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-medium border ${themeClasses.buttonOutline} flex items-center gap-1 cursor-pointer`}
                 title="로그아웃"
-                aria-label="로그아웃"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-3.5 h-3.5" />
+                <span>로그아웃</span>
               </button>
-            </>
+            </div>
           ) : (
-            <>
-              {/* [아이콘화 4: 비로그인 로그인시스템 버튼] */}
+            <div className="flex items-center gap-2">
               <button
+                type="button"
                 id="btn-portal-open-login"
                 onClick={() => {
                   setLoginTab('signin');
                   setShowLoginModal(true);
                 }}
-                className="w-10 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-md shadow-indigo-600/25 transition-all cursor-pointer active:scale-95 shrink-0"
-                title="로그인시스템 / 권한선택"
-                aria-label="로그인시스템"
+                className={`min-h-[38px] px-4 py-1.5 rounded-xl text-xs ${themeClasses.buttonPrimary} flex items-center gap-1.5 cursor-pointer shadow-sm`}
               >
-                <LogIn className="w-5 h-5" />
+                <LogIn className="w-3.5 h-3.5" />
+                <span>로그인 / 권한시뮬</span>
               </button>
-
-              {/* 회원가입 아이콘 버튼 */}
               <button
+                type="button"
                 onClick={() => {
                   setLoginTab('signup');
                   setShowLoginModal(true);
                 }}
-                className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center transition-colors cursor-pointer shrink-0"
-                title="회원가입"
-                aria-label="회원가입"
+                className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs ${themeClasses.buttonOutline} flex items-center gap-1.5 cursor-pointer`}
               >
-                <UserPlus className="w-4 h-4" />
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>회원가입</span>
               </button>
-            </>
+            </div>
           )}
-
-          {/* 4모드 테마 전환 아이콘 버튼 */}
-          <div className="relative z-50">
-            <button
-              id="btn-portal-theme-toggle"
-              onClick={() => setIsThemeMenuOpen((prev) => !prev)}
-              onDoubleClick={cycleTheme}
-              className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 hover:border-slate-600 flex items-center justify-center transition-all cursor-pointer shadow-sm shrink-0"
-              title={`테마 설정: ${THEME_MODES[themeMode].label} (더블클릭: 빠른전환, 클릭: 메뉴)`}
-              aria-label="테마 설정"
-            >
-              {renderThemeIcon(themeMode, 'w-4 h-4 shrink-0')}
-            </button>
-
-            {isThemeMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-44 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-1.5 z-[100] text-xs animate-in fade-in zoom-in-95 duration-150">
-                <div className="px-2 py-1 text-[10px] text-slate-400 font-bold border-b border-slate-800 flex items-center justify-between">
-                  <span>4모드 테마 선택</span>
-                  <span className="font-mono text-indigo-400 text-[9px]">{resolvedTheme}</span>
-                </div>
-                {(Object.keys(THEME_MODES) as ThemeMode[]).map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => handleSelectThemeMode(mode)}
-                    className={`w-full min-h-[36px] text-left px-2.5 py-1.5 rounded-lg flex items-center gap-2 transition-colors cursor-pointer ${
-                      themeMode === mode ? 'bg-indigo-600/30 text-indigo-200 font-bold' : 'text-slate-300 hover:bg-slate-800'
-                    }`}
-                  >
-                    {renderThemeIcon(mode, 'w-3.5 h-3.5')}
-                    <div className="flex-1">
-                      <div className="leading-tight">{THEME_MODES[mode].label}</div>
-                      <div className="text-[9px] text-slate-400 leading-tight">{THEME_MODES[mode].description}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
@@ -437,15 +334,15 @@ export default function PurePdfServicePortal({
       {/* 2. 로그인 상태 및 서브 탭 분기 */}
       {/* =================================================================== */}
       {isLoggedIn && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3 ${themeClasses.border}`}>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setPortalActiveTab('dashboard')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
                 portalActiveTab === 'dashboard'
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 ring-1 ring-white/20'
-                  : 'bg-slate-900/80 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-white/20'
+                  : `${themeClasses.buttonSecondary} border`
               }`}
             >
               <span>👤</span>
@@ -456,8 +353,8 @@ export default function PurePdfServicePortal({
               onClick={() => setPortalActiveTab('landing')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
                 portalActiveTab === 'landing'
-                  ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30 ring-1 ring-white/20'
-                  : 'bg-slate-900/80 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-white/20'
+                  : `${themeClasses.buttonSecondary} border`
               }`}
             >
               <span>📢</span>
@@ -465,8 +362,8 @@ export default function PurePdfServicePortal({
             </button>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1.5 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[11px] text-emerald-500 font-mono flex items-center gap-1.5 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20 font-semibold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span>로그인 인증 완료</span>
             </span>
           </div>
@@ -479,31 +376,33 @@ export default function PurePdfServicePortal({
           {/* A-1. 환영 프로필 & 계정 현황 카드 */}
           <div className={`p-5 rounded-2xl border shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 ${
             resolvedTheme === 'light'
-              ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 text-slate-900'
+              ? 'bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border-blue-200/80 text-slate-900'
+              : resolvedTheme === 'dawn'
+              ? 'bg-gradient-to-r from-[#070e22] via-[#0d1733] to-[#132247] border-[#1e3066] text-white'
               : 'bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border-slate-800 text-white'
           }`}>
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-500/25 shrink-0">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/25 shrink-0">
                 {userName.charAt(0)}
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <h2 className="text-lg font-bold">안녕하세요, <span className="text-sky-400">{userName}</span> 님!</h2>
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold">
+                  <h2 className="text-lg font-bold">안녕하세요, <span className="text-blue-500">{userName}</span> 님!</h2>
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 font-semibold">
                     {userRole === 'ROLE_USER' && '일반사용자'}
                     {userRole === 'ROLE_OPERATOR' && '서비스설정자'}
                     {userRole === 'ROLE_ADMIN' && '마스터관리자'}
                     {userRole === 'ROLE_SUPER_ADMIN' && '최고관리자'}
                   </span>
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono">
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-500 border border-blue-500/30 font-mono font-semibold">
                     Enterprise Pro
                   </span>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/20 flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3 text-sky-400" />
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center gap-1 font-medium">
+                    <ShieldCheck className="w-3 h-3 text-sky-500" />
                     <span>2FA 보안 인증됨</span>
                   </span>
                 </div>
-                <p className="text-xs text-slate-400">
+                <p className={`text-xs ${themeClasses.textMuted}`}>
                   purePDFrend 대시보드에서 7대 PDF 핵심 도구, 800쪽 대용량 가상화 뷰어 및 최근 문서를 빠르게 관리하세요.
                 </p>
               </div>
@@ -513,7 +412,7 @@ export default function PurePdfServicePortal({
               <button
                 type="button"
                 onClick={() => handleOpenSampleDoc('ISO 32000-2 표준 가이드북')}
-                className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition-all cursor-pointer active:scale-95"
+                className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow-lg transition-all cursor-pointer active:scale-95 ${themeClasses.buttonPrimary}`}
               >
                 <BookOpen className="w-4 h-4" />
                 <span>800쪽 뷰어로 열기</span>
@@ -523,44 +422,44 @@ export default function PurePdfServicePortal({
 
           {/* A-2. 4대 주요 지표 통계 그리드 */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm flex items-center justify-between">
+            <div className={`p-4 rounded-xl ${themeClasses.card} border flex items-center justify-between shadow-sm`}>
               <div>
-                <div className="text-[11px] text-slate-400 font-medium">내 보관 문서</div>
-                <div className="text-xl font-bold text-white font-mono mt-0.5">12<span className="text-xs font-normal text-slate-400 ml-1">권</span></div>
+                <div className={`text-[11px] ${themeClasses.textMuted} font-medium`}>내 보관 문서</div>
+                <div className={`text-xl font-bold font-mono mt-0.5 ${themeClasses.textMain}`}>12<span className={`text-xs font-normal ${themeClasses.textMuted} ml-1`}>권</span></div>
               </div>
-              <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-base">📁</div>
+              <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center text-base">📁</div>
             </div>
-            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm flex items-center justify-between">
+            <div className={`p-4 rounded-xl ${themeClasses.card} border flex items-center justify-between shadow-sm`}>
               <div>
-                <div className="text-[11px] text-slate-400 font-medium">저장된 북마크</div>
-                <div className="text-xl font-bold text-amber-400 font-mono mt-0.5">8<span className="text-xs font-normal text-slate-400 ml-1">개</span></div>
+                <div className={`text-[11px] ${themeClasses.textMuted} font-medium`}>저장된 북마크</div>
+                <div className="text-xl font-bold text-amber-500 font-mono mt-0.5">8<span className={`text-xs font-normal ${themeClasses.textMuted} ml-1`}>개</span></div>
               </div>
-              <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-base">🔖</div>
+              <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-base">🔖</div>
             </div>
-            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm flex items-center justify-between">
+            <div className={`p-4 rounded-xl ${themeClasses.card} border flex items-center justify-between shadow-sm`}>
               <div>
-                <div className="text-[11px] text-slate-400 font-medium">최근 OCR 변환</div>
-                <div className="text-xl font-bold text-sky-400 font-mono mt-0.5">5<span className="text-xs font-normal text-slate-400 ml-1">건</span></div>
+                <div className={`text-[11px] ${themeClasses.textMuted} font-medium`}>최근 OCR 변환</div>
+                <div className="text-xl font-bold text-sky-500 font-mono mt-0.5">5<span className={`text-xs font-normal ${themeClasses.textMuted} ml-1`}>건</span></div>
               </div>
-              <div className="w-9 h-9 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center text-base">🔤</div>
+              <div className="w-9 h-9 rounded-xl bg-sky-500/10 text-sky-500 flex items-center justify-center text-base">🔤</div>
             </div>
-            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm flex items-center justify-between">
+            <div className={`p-4 rounded-xl ${themeClasses.card} border flex items-center justify-between shadow-sm`}>
               <div>
-                <div className="text-[11px] text-slate-400 font-medium">오프라인 동기화</div>
-                <div className="text-xl font-bold text-emerald-400 font-mono mt-0.5">100%<span className="text-xs font-normal text-slate-400 ml-1">안전</span></div>
+                <div className={`text-[11px] ${themeClasses.textMuted} font-medium`}>오프라인 동기화</div>
+                <div className="text-xl font-bold text-emerald-500 font-mono mt-0.5">100%<span className={`text-xs font-normal ${themeClasses.textMuted} ml-1`}>안전</span></div>
               </div>
-              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-base">⚡</div>
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-base">⚡</div>
             </div>
           </div>
 
           {/* A-3. 7대 PDF 핵심 문서 도구 (Quick Action Studio) */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-sky-400" />
+              <h3 className={`text-sm font-bold flex items-center gap-2 ${themeClasses.textMain}`}>
+                <Sparkles className="w-4 h-4 text-blue-500" />
                 <span>7대 PDF 핵심 문서 도구 (Quick Action Studio)</span>
               </h3>
-              <span className="text-[11px] text-slate-400">도구를 선택하면 작업 화면 및 뷰어로 연결됩니다.</span>
+              <span className={`text-[11px] ${themeClasses.textMuted}`}>도구를 선택하면 작업 화면 및 뷰어로 연결됩니다.</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
@@ -577,25 +476,25 @@ export default function PurePdfServicePortal({
                 <div
                   key={tool.id}
                   onClick={() => handleOpenSampleDoc(`ISO 32000-2 표준 가이드북 (${tool.name})`)}
-                  className="p-4 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 hover:border-sky-500/60 transition-all cursor-pointer group flex flex-col justify-between shadow-md"
+                  className={`p-4 rounded-xl border ${themeClasses.card} ${themeClasses.cardHover} transition-all cursor-pointer group flex flex-col justify-between shadow-sm`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-2xl p-2 rounded-xl bg-slate-950 border border-slate-800 group-hover:scale-110 transition-transform">
+                      <span className={`text-2xl p-2 rounded-xl ${themeClasses.subPanel} border ${themeClasses.border} group-hover:scale-110 transition-transform`}>
                         {tool.icon}
                       </span>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/20 font-semibold">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20 font-semibold">
                         {tool.badge}
                       </span>
                     </div>
-                    <h4 className="font-bold text-white group-hover:text-sky-300 transition-colors text-xs">
+                    <h4 className={`font-bold ${themeClasses.textMain} group-hover:text-blue-500 transition-colors text-xs`}>
                       {tool.name}
                     </h4>
-                    <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                    <p className={`text-[11px] ${themeClasses.textMuted} mt-1 leading-relaxed`}>
                       {tool.desc}
                     </p>
                   </div>
-                  <div className="pt-3 mt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-sky-400 group-hover:text-sky-300 font-semibold">
+                  <div className={`pt-3 mt-2 border-t ${themeClasses.border} flex items-center justify-between text-[11px] text-blue-500 group-hover:text-blue-400 font-semibold`}>
                     <span>도구 실행</span>
                     <span className="group-hover:translate-x-1 transition-transform">➔</span>
                   </div>
@@ -605,10 +504,10 @@ export default function PurePdfServicePortal({
           </div>
 
           {/* A-4. 최근 열람 문서 라이브러리 (바로 뷰어로 열람 가능) */}
-          <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl space-y-3">
+          <div className={`p-5 rounded-2xl border ${themeClasses.card} shadow-xl space-y-3`}>
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-indigo-400" />
+              <h3 className={`text-sm font-bold flex items-center gap-2 ${themeClasses.textMain}`}>
+                <BookOpen className="w-4 h-4 text-blue-500" />
                 <span>최근 열람 및 협업 문서 (Quick Open)</span>
               </h3>
               <button
@@ -620,7 +519,7 @@ export default function PurePdfServicePortal({
                   } catch {}
                   onNavigateToSettings?.();
                 }}
-                className="text-xs text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1 cursor-pointer"
+                className="text-xs text-blue-500 hover:text-blue-400 font-semibold flex items-center gap-1 cursor-pointer"
               >
                 <span>전체 문서함(PG-USR-05) 바로가기</span>
                 <span>➔</span>
@@ -633,16 +532,16 @@ export default function PurePdfServicePortal({
                 { title: '2026 전자정부 표준 프레임워크 연계 기술 가이드', pages: 120, cur: 12, annots: 4, tag: '기술문서' },
                 { title: '의료영상 PACS 스캔 리포트 및 메디컬 서식', pages: 45, cur: 45, annots: 3, tag: '의료/서식' },
               ].map((doc, idx) => (
-                <div key={idx} className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col justify-between space-y-2.5">
+                <div key={idx} className={`p-3.5 rounded-xl border ${themeClasses.subPanel} ${themeClasses.border} flex flex-col justify-between space-y-2.5`}>
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/15 text-blue-500 border border-blue-500/25 font-semibold">
                         {doc.tag}
                       </span>
-                      <span className="text-[10px] text-slate-500 font-mono">총 {doc.pages}쪽</span>
+                      <span className={`text-[10px] ${themeClasses.textMuted} font-mono`}>총 {doc.pages}쪽</span>
                     </div>
-                    <h5 className="font-bold text-white line-clamp-2 leading-snug">{doc.title}</h5>
-                    <div className="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
+                    <h5 className={`font-bold ${themeClasses.textMain} line-clamp-2 leading-snug`}>{doc.title}</h5>
+                    <div className={`text-[11px] ${themeClasses.textMuted} mt-1 flex items-center justify-between`}>
                       <span>진행: 제 {doc.cur}페이지</span>
                       <span>주석: {doc.annots}건</span>
                     </div>
@@ -650,7 +549,7 @@ export default function PurePdfServicePortal({
                   <button
                     type="button"
                     onClick={() => handleOpenSampleDoc(doc.title)}
-                    className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-sky-300 hover:text-white rounded-lg font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    className={`w-full py-2 ${themeClasses.buttonSecondary} border rounded-lg font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer`}
                   >
                     <BookOpen className="w-3.5 h-3.5" />
                     <span>📖 800쪽 가상화 뷰어로 열기</span>
@@ -665,14 +564,14 @@ export default function PurePdfServicePortal({
         <div className="space-y-5 text-xs">
           {/* 비로그인 사용자 전용 환영 & 빠른 로그인/대시보드 안내 배너 */}
           {!isLoggedIn && (
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-purple-950/50 to-slate-950 border border-indigo-500/30 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
+            <div className={`p-4 rounded-2xl border ${themeClasses.container} flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg`}>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center text-lg shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-500 flex items-center justify-center text-lg shrink-0">
                   ⚡
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-white">7대 PDF 핵심 도구 및 전용 대시보드가 준비되어 있습니다</h4>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
+                  <h4 className={`text-xs font-bold ${themeClasses.textMain}`}>7대 PDF 핵심 도구 및 전용 대시보드가 준비되어 있습니다</h4>
+                  <p className={`text-[11px] ${themeClasses.textMuted} mt-0.5`}>
                     로그인하시면 개인화된 문서 라이브러리, 주석 스튜디오 및 작업 대시보드(PG-USR-03)가 즉시 활성화됩니다.
                   </p>
                 </div>
@@ -683,13 +582,14 @@ export default function PurePdfServicePortal({
                   setLoginTab('signin');
                   setShowLoginModal(true);
                 }}
-                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-indigo-600/30 cursor-pointer active:scale-95 shrink-0 whitespace-nowrap"
+                className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer active:scale-95 shrink-0 whitespace-nowrap ${themeClasses.buttonPrimary}`}
               >
                 <LogIn className="w-4 h-4" />
                 <span>로그인하고 대시보드 열기 ➔</span>
               </button>
             </div>
           )}
+
         {/* 2-1. 중앙 롤링 이벤트 및 프로모션 배너 슬라이더 */}
         <div className="space-y-2">
           {bannerList.length > 0 ? (
@@ -703,7 +603,7 @@ export default function PurePdfServicePortal({
                 onMouseLeave={handleBannerMouseUp}
                 onTouchStart={handleBannerTouchStart}
                 onTouchEnd={handleBannerTouchEnd}
-                className="relative z-0 overflow-hidden rounded-2xl border border-slate-800/80 shadow-xl bg-slate-950 select-none cursor-grab active:cursor-grabbing overscroll-contain"
+                className={`relative z-0 overflow-hidden rounded-2xl border ${themeClasses.border} shadow-xl ${themeClasses.card} select-none cursor-grab active:cursor-grabbing overscroll-contain`}
                 style={{ overscrollBehavior: 'contain' }}
               >
                 {/* 가로 슬라이딩 필름 트랙 */}
@@ -720,12 +620,12 @@ export default function PurePdfServicePortal({
                     >
                       <div className="flex items-center justify-between mb-1.5 pointer-events-none">
                         <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 bg-sky-500/20 text-sky-300 border border-sky-500/30 rounded text-[10px] font-mono font-bold tracking-wider">
+                          <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded text-[10px] font-mono font-bold tracking-wider">
                             {banner.tag}
                           </span>
-                          <span className="text-[11px] text-slate-400">PDFrend 공식 프로모션</span>
+                          <span className="text-[11px] text-slate-300">PDFrend 공식 프로모션</span>
                         </div>
-                        <span className="text-[10px] text-slate-500 hidden sm:inline font-mono">
+                        <span className="text-[10px] text-slate-400 hidden sm:inline font-mono">
                           🖱️ 마우스휠 이동 / ↔️ 스와이프
                         </span>
                       </div>
@@ -734,7 +634,7 @@ export default function PurePdfServicePortal({
                         <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
                           {banner.title}
                         </h3>
-                        <p className="text-xs text-slate-300 mt-1 max-w-xl">
+                        <p className="text-xs text-slate-200 mt-1 max-w-xl">
                           {banner.subtitle}
                         </p>
                       </div>
@@ -745,7 +645,7 @@ export default function PurePdfServicePortal({
 
               {/* 미니멀 인디케이터 네비게이션 */}
               <div className="flex items-center justify-between px-2 pt-0.5">
-                <span className="text-[11px] text-slate-500 font-mono">
+                <span className={`text-[11px] ${themeClasses.textMuted} font-mono`}>
                   {currentBannerIdx + 1} / {bannerList.length}
                 </span>
 
@@ -757,8 +657,8 @@ export default function PurePdfServicePortal({
                       onClick={() => setCurrentBannerIdx(idx)}
                       className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
                         idx === currentBannerIdx
-                          ? 'w-6 bg-sky-400 shadow-sm shadow-sky-400/50'
-                          : 'w-2 bg-slate-700 hover:bg-slate-500'
+                          ? 'w-6 bg-blue-500 shadow-sm shadow-blue-500/50'
+                          : 'w-2 bg-slate-500/40 hover:bg-slate-400'
                       }`}
                       aria-label={`${idx + 1}번 배너로 이동`}
                       title={`${idx + 1}번 배너: ${banner.title}`}
@@ -769,13 +669,13 @@ export default function PurePdfServicePortal({
                 <div className="flex items-center gap-1">
                   <button
                     onClick={handlePrevBanner}
-                    className="w-6 h-6 rounded bg-slate-900 border border-slate-800 hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"
+                    className={`w-6 h-6 rounded border ${themeClasses.buttonSecondary} flex items-center justify-center cursor-pointer`}
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={handleNextBanner}
-                    className="w-6 h-6 rounded bg-slate-900 border border-slate-800 hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"
+                    className={`w-6 h-6 rounded border ${themeClasses.buttonSecondary} flex items-center justify-center cursor-pointer`}
                   >
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
@@ -783,12 +683,12 @@ export default function PurePdfServicePortal({
               </div>
             </div>
           ) : (
-            <div className="h-28 rounded-2xl border border-dashed border-slate-800 bg-slate-950/40 flex flex-col items-center justify-center p-4 text-center">
-              <span className="text-slate-400 font-medium text-xs flex items-center gap-1.5">
+            <div className={`h-28 rounded-2xl border border-dashed ${themeClasses.border} ${themeClasses.subPanel} flex flex-col items-center justify-center p-4 text-center`}>
+              <span className={`${themeClasses.textMuted} font-medium text-xs flex items-center gap-1.5`}>
                 <span>📢</span>
                 <span>현재 진행 중인 공지 및 이벤트 배너가 없습니다.</span>
               </span>
-              <span className="text-[11px] text-slate-500 mt-1">
+              <span className={`text-[11px] ${themeClasses.textMuted} mt-1`}>
                 관리자 메뉴(PG-ADM-12 게시판·배너관리)에서 신규 배너를 발행하면 이곳에 자동으로 노출됩니다.
               </span>
               <button
@@ -796,7 +696,7 @@ export default function PurePdfServicePortal({
                   setBannerList([
                     {
                       id: 1,
-                      title: 'pdfrend 2.0 정식 런칭',
+                      title: 'PDFrend 2.0 정식 런칭',
                       subtitle: '대용량 스캔 PDF 듀얼 OCR 엔진 및 고속 주석 스튜디오',
                       tag: 'NEW FEATURE',
                       bg: 'from-sky-950/80 via-indigo-950/70 to-slate-900',
@@ -820,7 +720,7 @@ export default function PurePdfServicePortal({
                     },
                   ])
                 }
-                className="mt-2 text-[11px] px-3 py-1 rounded bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 font-medium transition-all cursor-pointer"
+                className={`mt-2 text-[11px] px-3 py-1 rounded ${themeClasses.buttonSecondary} border font-medium transition-all cursor-pointer`}
               >
                 + 기본 배너 다시 불러오기
               </button>
@@ -829,16 +729,16 @@ export default function PurePdfServicePortal({
         </div>
 
         {/* 2-3. 하단 서비스 정보 탭 (공지사항 / 사용자 리뷰 / 단계별 이용 가이드) */}
-        <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl shadow-lg space-y-3">
-          <div className="border-b border-slate-800 pb-2">
+        <div className={`p-4 ${themeClasses.card} border ${themeClasses.border} rounded-xl shadow-lg space-y-3`}>
+          <div className={`border-b ${themeClasses.border} pb-2`}>
             <HorizontalSlideContainer showScrollButtons={false} className="w-full">
-              <div className="flex gap-4 text-slate-400 font-medium whitespace-nowrap">
+              <div className={`flex gap-4 ${themeClasses.textMuted} font-medium whitespace-nowrap`}>
                 <button
                   onClick={() => setActiveInfoTab('notice')}
                   className={`pb-1.5 min-h-[36px] transition-colors cursor-pointer flex items-center gap-1.5 ${
                     activeInfoTab === 'notice'
-                      ? 'text-sky-400 border-b-2 border-sky-400 font-semibold'
-                      : 'hover:text-slate-200'
+                      ? 'text-blue-500 border-b-2 border-blue-500 font-semibold'
+                      : `hover:${themeClasses.textMain}`
                   }`}
                 >
                   <Sparkle className="w-3.5 h-3.5" />
@@ -848,8 +748,8 @@ export default function PurePdfServicePortal({
                   onClick={() => setActiveInfoTab('review')}
                   className={`pb-1.5 min-h-[36px] transition-colors cursor-pointer flex items-center gap-1.5 ${
                     activeInfoTab === 'review'
-                      ? 'text-sky-400 border-b-2 border-sky-400 font-semibold'
-                      : 'hover:text-slate-200'
+                      ? 'text-blue-500 border-b-2 border-blue-500 font-semibold'
+                      : `hover:${themeClasses.textMain}`
                   }`}
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
@@ -859,8 +759,8 @@ export default function PurePdfServicePortal({
                   onClick={() => setActiveInfoTab('guide')}
                   className={`pb-1.5 min-h-[36px] transition-colors cursor-pointer flex items-center gap-1.5 ${
                     activeInfoTab === 'guide'
-                      ? 'text-sky-400 border-b-2 border-sky-400 font-semibold'
-                      : 'hover:text-slate-200'
+                      ? 'text-blue-500 border-b-2 border-blue-500 font-semibold'
+                      : `hover:${themeClasses.textMain}`
                   }`}
                 >
                   <HelpCircle className="w-3.5 h-3.5" />
@@ -874,56 +774,56 @@ export default function PurePdfServicePortal({
           <div className="pt-1">
             {activeInfoTab === 'notice' && (
               <div className="space-y-2.5">
-                <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 transition-colors">
+                <div className={`flex items-center justify-between p-2 rounded-lg ${themeClasses.subPanel} border ${themeClasses.border} transition-colors`}>
                   <div className="flex items-center gap-2">
-                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-sky-500/20 text-sky-400 font-bold">공지</span>
-                    <span className="text-slate-300 font-medium">PDFrend 3대 도메인 및 오프라인 주석 동기화 v2.0 정식 런칭 안내</span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/20 text-blue-500 font-bold">공지</span>
+                    <span className={`font-medium ${themeClasses.textMain}`}>PDFrend 3대 도메인 및 오프라인 주석 동기화 v2.0 정식 런칭 안내</span>
                   </div>
-                  <span className="text-slate-500 text-[11px] font-mono">2026-10-10</span>
+                  <span className={`text-[11px] font-mono ${themeClasses.textMuted}`}>2026-10-10</span>
                 </div>
-                <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 transition-colors">
+                <div className={`flex items-center justify-between p-2 rounded-lg ${themeClasses.subPanel} border ${themeClasses.border} transition-colors`}>
                   <div className="flex items-center gap-2">
-                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400 font-bold">업데이트</span>
-                    <span className="text-slate-300 font-medium">대용량 800쪽 가상화 뷰어 LRU 15페이지 메모리가드 v2.2 패치 배포 완료</span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-500 font-bold">업데이트</span>
+                    <span className={`font-medium ${themeClasses.textMain}`}>대용량 800쪽 가상화 뷰어 LRU 15페이지 메모리가드 v2.2 패치 배포 완료</span>
                   </div>
-                  <span className="text-slate-500 text-[11px] font-mono">2026-10-08</span>
+                  <span className={`text-[11px] font-mono ${themeClasses.textMuted}`}>2026-10-08</span>
                 </div>
-                <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 transition-colors">
+                <div className={`flex items-center justify-between p-2 rounded-lg ${themeClasses.subPanel} border ${themeClasses.border} transition-colors`}>
                   <div className="flex items-center gap-2">
-                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-400 font-bold">보안</span>
-                    <span className="text-slate-300 font-medium">2FA 이메일/OTP 및 비-LLM 긴급 Push DR 무손실 인계 가동 중</span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-500 font-bold">보안</span>
+                    <span className={`font-medium ${themeClasses.textMain}`}>2FA 이메일/OTP 및 비-LLM 긴급 Push DR 무손실 인계 가동 중</span>
                   </div>
-                  <span className="text-slate-500 text-[11px] font-mono">2026-10-05</span>
+                  <span className={`text-[11px] font-mono ${themeClasses.textMuted}`}>2026-10-05</span>
                 </div>
               </div>
             )}
 
             {activeInfoTab === 'review' && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="p-3 rounded-lg bg-slate-900/70 border border-slate-800 space-y-1.5">
+                <div className={`p-3 rounded-lg ${themeClasses.subPanel} border ${themeClasses.border} space-y-1.5`}>
                   <div className="flex items-center justify-between">
                     <span className="text-amber-400 text-xs font-bold">★★★★★</span>
-                    <span className="text-slate-500 text-[10px]">김*수 연구원</span>
+                    <span className={`text-[10px] ${themeClasses.textMuted}`}>김*수 연구원</span>
                   </div>
-                  <p className="text-slate-300 text-[11px] leading-relaxed">
+                  <p className={`text-[11px] leading-relaxed ${themeClasses.textMain}`}>
                     "800쪽 전공 서적을 렉 없이 매끄럽게 스크롤하며 주석을 달 수 있어 학술 연구 효율이 3배 늘었습니다."
                   </p>
                 </div>
-                <div className="p-3 rounded-lg bg-slate-900/70 border border-slate-800 space-y-1.5">
+                <div className={`p-3 rounded-lg ${themeClasses.subPanel} border ${themeClasses.border} space-y-1.5`}>
                   <div className="flex items-center justify-between">
                     <span className="text-amber-400 text-xs font-bold">★★★★★</span>
-                    <span className="text-slate-500 text-[10px]">이*진 변호사</span>
+                    <span className={`text-[10px] ${themeClasses.textMuted}`}>이*진 변호사</span>
                   </div>
-                  <p className="text-slate-300 text-[11px] leading-relaxed">
+                  <p className={`text-[11px] leading-relaxed ${themeClasses.textMain}`}>
                     "스캔 문서의 희미한 한글 텍스트도 듀얼 OCR로 완벽하게 인식되어 검색 가능한 Searchable PDF로 즉시 추출되었습니다."
                   </p>
                 </div>
-                <div className="p-3 rounded-lg bg-slate-900/70 border border-slate-800 space-y-1.5">
+                <div className={`p-3 rounded-lg ${themeClasses.subPanel} border ${themeClasses.border} space-y-1.5`}>
                   <div className="flex items-center justify-between">
                     <span className="text-amber-400 text-xs font-bold">★★★★★</span>
-                    <span className="text-slate-500 text-[10px]">박*현 엔지니어</span>
+                    <span className={`text-[10px] ${themeClasses.textMuted}`}>박*현 엔지니어</span>
                   </div>
-                  <p className="text-slate-300 text-[11px] leading-relaxed">
+                  <p className={`text-[11px] leading-relaxed ${themeClasses.textMain}`}>
                     "네트워크가 끊겨도 오프라인에서 주석을 작성하고 재연결 시 3-Way diff로 충돌 없이 자동 병합되어 감탄했습니다."
                   </p>
                 </div>
@@ -932,30 +832,30 @@ export default function PurePdfServicePortal({
 
             {activeInfoTab === 'guide' && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800 space-y-1">
-                  <div className="text-sky-400 font-bold text-xs flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center text-[10px]">1</span>
+                <div className={`p-3 rounded-lg ${themeClasses.subPanel} border ${themeClasses.border} space-y-1`}>
+                  <div className="text-blue-500 font-bold text-xs flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center text-[10px]">1</span>
                     <span>문서 번호 또는 파일 등록</span>
                   </div>
-                  <p className="text-slate-400 text-[11px]">
+                  <p className={`text-[11px] ${themeClasses.textMuted}`}>
                     공개 열람 번호(DOC-xxxx)를 입력하거나 상단에서 파일을 직접 등록하여 뷰어를 즉시 구동합니다.
                   </p>
                 </div>
-                <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800 space-y-1">
-                  <div className="text-indigo-400 font-bold text-xs flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px]">2</span>
+                <div className={`p-3 rounded-lg ${themeClasses.subPanel} border ${themeClasses.border} space-y-1`}>
+                  <div className="text-indigo-500 font-bold text-xs flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-500 flex items-center justify-center text-[10px]">2</span>
                     <span>가상화 뷰어 & 주석 작성</span>
                   </div>
-                  <p className="text-slate-400 text-[11px]">
+                  <p className={`text-[11px] ${themeClasses.textMuted}`}>
                     단일줄 반응형 툴바로 펜, 형광펜, 사각형, 스탬프 등 3단계 인터랙션 주석을 자유롭게 생성합니다.
                   </p>
                 </div>
-                <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800 space-y-1">
-                  <div className="text-emerald-400 font-bold text-xs flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px]">3</span>
+                <div className={`p-3 rounded-lg ${themeClasses.subPanel} border ${themeClasses.border} space-y-1`}>
+                  <div className="text-emerald-500 font-bold text-xs flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center text-[10px]">3</span>
                     <span>Searchable PDF 다운로드</span>
                   </div>
-                  <p className="text-slate-400 text-[11px]">
+                  <p className={`text-[11px] ${themeClasses.textMuted}`}>
                     투명 텍스트 레이어가 결합된 원본 무손실 PDF를 오프라인/온라인 어디서든 영구 보존합니다.
                   </p>
                 </div>
@@ -964,13 +864,12 @@ export default function PurePdfServicePortal({
           </div>
         </div>
 
-        {/* [요청 4, 6 반영] 2-4. 공유 열람 문서 조회 바 (하단 탭 6번 div 아래 배치) */}
-        <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-xl shadow-lg">
+        {/* 2-4. 공유 열람 문서 조회 바 */}
+        <div className={`p-4 ${themeClasses.card} border ${themeClasses.border} rounded-xl shadow-lg`}>
           <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-            <span className="text-slate-300 font-semibold text-xs flex items-center gap-1.5 whitespace-nowrap">
-              <span className="text-sky-400">🔍</span>
-              {/* [요청 4 반영] 타이틀: 공개열람문서조회 > 공유열람문서조회 */}
-              <span className="whitespace-nowrap font-bold text-slate-200">공유 열람 문서 조회</span>
+            <span className={`font-semibold text-xs flex items-center gap-1.5 whitespace-nowrap ${themeClasses.textMain}`}>
+              <span className="text-blue-500">🔍</span>
+              <span className="whitespace-nowrap font-bold">공유 열람 문서 조회</span>
             </span>
           </div>
           <div className="flex flex-wrap sm:flex-nowrap gap-2.5 mt-1">
@@ -984,12 +883,12 @@ export default function PurePdfServicePortal({
                 }
               }}
               placeholder="공유받은 문서 고유번호(DOC-xxxx) 또는 공유 링크를 입력하세요..."
-              className="flex-1 min-w-[220px] bg-slate-900 border border-slate-700/80 focus:border-sky-500 rounded-lg px-3.5 py-2.5 text-xs text-slate-200 outline-none transition-colors"
+              className={`flex-1 min-w-[220px] ${themeClasses.input} rounded-lg px-3.5 py-2.5 text-xs outline-none transition-colors`}
             />
             <button
               id="btn-public-doc-open"
               onClick={() => handleOpenSampleDoc(searchDocQuery || 'ISO 32000-2 표준 가이드북')}
-              className="whitespace-nowrap w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-all shadow-md shadow-indigo-600/20 active:scale-95 shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
+              className={`whitespace-nowrap w-full sm:w-auto px-5 py-2.5 ${themeClasses.buttonPrimary} rounded-lg font-medium transition-all shadow-md active:scale-95 shrink-0 flex items-center justify-center gap-1.5 cursor-pointer`}
             >
               <span className="whitespace-nowrap font-semibold">열람하기</span>
               <span>➔</span>
@@ -998,16 +897,16 @@ export default function PurePdfServicePortal({
         </div>
 
         {/* 2-5. 서비스 하단 정보 푸터 */}
-        <div className="pt-4 pb-2 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500">
+        <div className={`pt-4 pb-2 border-t ${themeClasses.border} flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] ${themeClasses.textMuted}`}>
           <div className="flex items-center gap-3">
             <span>© 2026 PDFrend. All rights reserved.</span>
             <span className="hidden sm:inline">|</span>
-            <span className="hover:text-slate-400 cursor-pointer">이용약관</span>
-            <span className="hover:text-slate-400 cursor-pointer">개인정보처리방침</span>
+            <span className={`hover:${themeClasses.textMain} cursor-pointer`}>이용약관</span>
+            <span className={`hover:${themeClasses.textMain} cursor-pointer`}>개인정보처리방침</span>
           </div>
           <div className="flex items-center gap-2">
             <span>시스템 관리자: {systemAdminEmail}</span>
-            <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-400">
+            <span className={`px-1.5 py-0.5 rounded ${themeClasses.subPanel} border ${themeClasses.border} text-[10px] font-mono`}>
               Zero-Loss AI Architecture
             </span>
           </div>
@@ -1020,51 +919,51 @@ export default function PurePdfServicePortal({
       {/* =================================================================== */}
       {showLoginModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl shadow-2xl p-6 space-y-5 text-slate-100 relative">
+          <div className={`${themeClasses.card} border ${themeClasses.border} w-full max-w-md rounded-2xl shadow-2xl p-6 space-y-5 relative`}>
             <button
               onClick={() => setShowLoginModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+              className={`absolute top-4 right-4 ${themeClasses.textMuted} hover:${themeClasses.textMain} p-1 rounded-lg transition-colors cursor-pointer`}
             >
               <X className="w-4 h-4" />
             </button>
 
             <div className="text-center space-y-1">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 mx-auto flex items-center justify-center mb-2">
+              <div className="w-12 h-12 rounded-2xl bg-blue-600/20 text-blue-500 border border-blue-500/30 mx-auto flex items-center justify-center mb-2">
                 <LogIn className="w-6 h-6" />
               </div>
-              <h2 className="text-base font-bold text-white">
+              <h2 className={`text-base font-bold ${themeClasses.textMain}`}>
                 {loginTab === 'signin' ? 'PDFrend 서비스 로그인' : '서비스 회원가입'}
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className={`text-xs ${themeClasses.textMuted}`}>
                 로그인하신 계정의 권한에 따라 시스템 접근 권한이 자동 부여됩니다.
               </p>
             </div>
 
             {/* 빠른 권한 시뮬레이션 원클릭 로그인 섹션 */}
-            <div className="space-y-2 pt-1 border-t border-slate-800">
-              <span className="text-[11px] font-semibold text-slate-400 block">
+            <div className={`space-y-2 pt-1 border-t ${themeClasses.border}`}>
+              <span className={`text-[11px] font-semibold ${themeClasses.textMuted} block`}>
                 ⚡ 빠른 권한 선택 로그인 (시뮬레이터):
               </span>
               <div className="grid grid-cols-1 gap-2">
                 <button
                   type="button"
                   onClick={() => handleLoginWithRole('ROLE_USER', '홍길동', 'user@purepdfrend.io')}
-                  className="p-2.5 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 text-left flex items-center justify-between group transition-all cursor-pointer"
+                  className={`p-2.5 rounded-xl ${themeClasses.subPanel} hover:border-blue-400 border ${themeClasses.border} text-left flex items-center justify-between group transition-all cursor-pointer`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-bold">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-500 flex items-center justify-center text-xs font-bold">
                       일
                     </div>
                     <div>
-                      <div className="text-xs font-bold text-white group-hover:text-emerald-300">
+                      <div className={`text-xs font-bold ${themeClasses.textMain} group-hover:text-emerald-500`}>
                         일반사용자 (ROLE_USER)
                       </div>
-                      <div className="text-[10px] text-slate-400">
+                      <div className={`text-[10px] ${themeClasses.textMuted}`}>
                         PDF 비즈니스 서비스 전용 (문서 열람 및 주석)
                       </div>
                     </div>
                   </div>
-                  <span className="text-xs text-emerald-400 opacity-0 group-hover:opacity-100 font-bold transition-opacity">
+                  <span className="text-xs text-emerald-500 opacity-0 group-hover:opacity-100 font-bold transition-opacity">
                     선택 ➔
                   </span>
                 </button>
@@ -1072,22 +971,22 @@ export default function PurePdfServicePortal({
                 <button
                   type="button"
                   onClick={() => handleLoginWithRole('ROLE_OPERATOR', '운영자(김설정)', 'operator@purepdfrend.io')}
-                  className="p-2.5 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 text-left flex items-center justify-between group transition-all cursor-pointer"
+                  className={`p-2.5 rounded-xl ${themeClasses.subPanel} hover:border-blue-400 border ${themeClasses.border} text-left flex items-center justify-between group transition-all cursor-pointer`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center text-xs font-bold">
+                    <div className="w-7 h-7 rounded-lg bg-sky-500/20 text-sky-500 flex items-center justify-center text-xs font-bold">
                       설
                     </div>
                     <div>
-                      <div className="text-xs font-bold text-white group-hover:text-sky-300">
+                      <div className={`text-xs font-bold ${themeClasses.textMain} group-hover:text-sky-500`}>
                         서비스설정자 (ROLE_OPERATOR)
                       </div>
-                      <div className="text-[10px] text-slate-400">
+                      <div className={`text-[10px] ${themeClasses.textMuted}`}>
                         '서비스설정 시스템(와이어프레임 & 설정)' 전환 활성화
                       </div>
                     </div>
                   </div>
-                  <span className="text-xs text-sky-400 opacity-0 group-hover:opacity-100 font-bold transition-opacity">
+                  <span className="text-xs text-sky-500 opacity-0 group-hover:opacity-100 font-bold transition-opacity">
                     선택 ➔
                   </span>
                 </button>
@@ -1095,22 +994,22 @@ export default function PurePdfServicePortal({
                 <button
                   type="button"
                   onClick={() => handleLoginWithRole('ROLE_ADMIN', '마스터(이관리)', 'admin@purepdfrend.io')}
-                  className="p-2.5 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 text-left flex items-center justify-between group transition-all cursor-pointer"
+                  className={`p-2.5 rounded-xl ${themeClasses.subPanel} hover:border-blue-400 border ${themeClasses.border} text-left flex items-center justify-between group transition-all cursor-pointer`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-bold">
+                    <div className="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-500 flex items-center justify-center text-xs font-bold">
                       마
                     </div>
                     <div>
-                      <div className="text-xs font-bold text-white group-hover:text-violet-300">
+                      <div className={`text-xs font-bold ${themeClasses.textMain} group-hover:text-blue-500`}>
                         마스터관리자 (ROLE_ADMIN)
                       </div>
-                      <div className="text-[10px] text-slate-400">
+                      <div className={`text-[10px] ${themeClasses.textMuted}`}>
                         '서비스설정' 및 '에이전트관리(마스터)' 전체 전환 활성화
                       </div>
                     </div>
                   </div>
-                  <span className="text-xs text-violet-400 opacity-0 group-hover:opacity-100 font-bold transition-opacity">
+                  <span className="text-xs text-blue-500 opacity-0 group-hover:opacity-100 font-bold transition-opacity">
                     선택 ➔
                   </span>
                 </button>
@@ -1118,29 +1017,29 @@ export default function PurePdfServicePortal({
             </div>
 
             {/* 표준 아이디/비밀번호 입력 폼 */}
-            <div className="space-y-3 pt-2 border-t border-slate-800 text-xs">
+            <div className={`space-y-3 pt-2 border-t ${themeClasses.border} text-xs`}>
               <div>
-                <label className="text-slate-300 font-medium block mb-1">이메일 계정</label>
+                <label className={`font-medium block mb-1 ${themeClasses.textMain}`}>이메일 계정</label>
                 <input
                   type="email"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-slate-100 outline-none focus:border-indigo-500"
+                  className={`w-full px-3 py-2 ${themeClasses.input} rounded-lg outline-none`}
                 />
               </div>
               <div>
-                <label className="text-slate-300 font-medium block mb-1">비밀번호</label>
+                <label className={`font-medium block mb-1 ${themeClasses.textMain}`}>비밀번호</label>
                 <input
                   type="password"
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-slate-100 outline-none focus:border-indigo-500"
+                  className={`w-full px-3 py-2 ${themeClasses.input} rounded-lg outline-none`}
                 />
               </div>
               <button
                 type="button"
                 onClick={() => handleLoginWithRole(userRole, userName, loginEmail)}
-                className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition-all shadow-md shadow-indigo-600/30 cursor-pointer active:scale-95"
+                className={`w-full py-2.5 rounded-xl ${themeClasses.buttonPrimary} font-bold transition-all shadow-md cursor-pointer active:scale-95`}
               >
                 로그인 완료
               </button>
@@ -1154,21 +1053,21 @@ export default function PurePdfServicePortal({
       {/* =================================================================== */}
       {isViewerModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-6xl h-[92vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+          <div className={`${themeClasses.card} border ${themeClasses.border} w-full max-w-6xl h-[92vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden`}>
             {/* 뷰어 상단 바 */}
-            <div className="h-12 px-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between shrink-0">
+            <div className={`h-12 px-4 ${themeClasses.subPanel} border-b ${themeClasses.border} flex items-center justify-between shrink-0`}>
               <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-sky-400" />
-                <span className="font-bold text-xs text-white truncate max-w-md">
+                <BookOpen className="w-4 h-4 text-blue-500" />
+                <span className={`font-bold text-xs truncate max-w-md ${themeClasses.textMain}`}>
                   {viewerBookTitle}
                 </span>
-                <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono">
+                <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 text-[10px] font-mono">
                   800P 가상화 모드
                 </span>
               </div>
               <button
                 onClick={() => setIsViewerModalOpen(false)}
-                className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                className={`px-3 py-1 ${themeClasses.buttonSecondary} border rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer`}
               >
                 <X className="w-3.5 h-3.5" />
                 <span>닫기</span>
