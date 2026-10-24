@@ -25,11 +25,12 @@
 | `13-23` | `13-23_SESSION-261022-0030_세션종합_KPT_회고록.md` | SESSION-261022-0030 세션 종합 KPT 회고록 | Keep(랜딩 시작점 PG-USR-01 전환, WireframeTopDropdown 25개 화면 퀵점프, tokens.ts 07-02 로드맵 수립, Issue #90/#88 종료, dev/stg/main 100% 일치), Problem(샌드박스 초기화 시 로컬 파일트리 불일치 방지), Try(Phase 1 사용자 와이어프레임 tokens.ts 전면 대입) |
 | `13-24` | `13-24_SESSION-261023-0031_세션종합_KPT_회고록.md` | SESSION-261023-0031 세션 종합 KPT 회고록 | Keep(tokens.ts 테마 확장, Phase 1 PG-USR-02~04 전면 대입, 4모드 고대비 및 44px 터치 보장, 대화턴 6건 무손실 영속화, 무결성 100점 A+), Problem(GITHUB_TOKEN 로컬 미설정 시 Git Data API 제한), Try(Phase 2 PG-USR-05~07 고도화 및 GITHUB_TOKEN 환경변수 보완) |
 | `13-25` | `13-25_SESSION-261024-0032_세션종합_KPT_회고록.md` | SESSION-261024-0032 세션 종합 KPT 회고록 | Keep(Phase 2 PG-USR-05~07 tokens.ts 전면 대입, 4모드 WCAG AA 고대비 가독성, 44px 터치타깃, Zero-Pill 규격, 4단계 서비스 전수점검 100점 만점 A+, 대화턴 5건 무손실 영속화), Problem(DB 스키마 컬럼 불일치 조기 감점 현상), Try(Phase 3 관리자 PG-ADM-01~04 실제 REST API 연동 및 잔여 사용자 PG-USR-08/09 토큰화 완결) |
-
+| `13-26` | `13-26_SESSION-261024-0033_세션종합_KPT_회고록.md` | SESSION-261024-0033 세션 종합 KPT 회고록 | Keep(관리자 PG-ADM-01~04 실제 REST API 연동, 사용자 전 화면 9종 tokens.ts 100% 대입 완결, HarnessRepository 도메인 레포지토리 DDL 정규화 및 Zero-Hang 폴백 완비, 4단계 전수점검 100점 만점 A+), Problem(단위테스트 로컬스토어 오염, 신규문서 해시 불일치), Try(Phase 4 관리자 PG-ADM-05~08 실제 REST 연동 및 모바일 반응형 검증) |
 
 ```mermaid
 pie title 회고 이슈 비중
-    "유지 (Keep)" : 45
-    "문제 (Problem)" : 25
-    "시도 (Try)" : 30
+    "유지 (Keep)" : 70
+    "문제 (Problem)" : 15
+    "시도 (Try)" : 15
 ```
+
