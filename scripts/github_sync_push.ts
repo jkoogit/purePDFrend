@@ -103,7 +103,7 @@ function getAllFiles(dir: string, baseDir = dir): string[] {
         results = results.concat(getAllFiles(fullPath, baseDir));
       }
     } else {
-      if (!IGNORE_FILES.has(entry.name)) {
+      if (!IGNORE_FILES.has(entry.name) && !entry.name.startsWith('.env')) {
         results.push(relPath);
       }
     }
@@ -273,7 +273,7 @@ async function syncViaAntigravityLocalGit(
 /**
  * AI Studio Mode: GitHub REST/Git Data API Pipeline
  */
-async function syncViaAiStudioApi(
+export async function syncViaAiStudioApi(
   targetBranch = 'dev',
   commitMessage = 'feat: automated sync via Git Data API',
   taskBranch?: string,
