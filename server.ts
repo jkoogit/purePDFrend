@@ -3145,6 +3145,418 @@ app.put('/api/admin/terms/:id/apply', (req, res) => {
   });
 });
 
+// ============================================================================
+// PG-ADM-05: 역할 및 세부 권한 매핑 API
+// ============================================================================
+let adminRoleGroups = [
+  { id: 'ROLE_ADMIN', name: '시스템 총괄 관리자', priority: 1, desc: '모든 기능 및 인프라 접근 전권' },
+  { id: 'ROLE_MANAGER', name: '운영 매니저', priority: 2, desc: '고객지원, 공지, 게시판, 메뉴 관리' },
+  { id: 'ROLE_EDITOR', name: 'PDF 전문 편집자', priority: 3, desc: '주석 편집, OCR 배치 큐, 내보내기' },
+  { id: 'ROLE_USER', name: '일반 회원', priority: 4, desc: '표준 뷰어 및 개인 문서 라이브러리' },
+];
+
+let adminRolePrograms: Record<string, string[]> = {
+  ROLE_ADMIN: ['PG-ADM-01', 'PG-ADM-02', 'PG-ADM-03', 'PG-ADM-04', 'PG-ADM-05', 'PG-ADM-06', 'PG-ADM-07', 'PG-ADM-08', 'PG-USR-01', 'PG-USR-06'],
+  ROLE_MANAGER: ['PG-ADM-06', 'PG-ADM-07', 'PG-ADM-08', 'PG-ADM-12', 'PG-ADM-13', 'PG-USR-01', 'PG-USR-06'],
+  ROLE_EDITOR: ['PG-USR-01', 'PG-USR-03', 'PG-USR-05', 'PG-USR-06', 'PG-USR-07'],
+  ROLE_USER: ['PG-USR-01', 'PG-USR-02', 'PG-USR-03', 'PG-USR-05', 'PG-USR-06'],
+};
+
+let adminRoleUsers: Record<string, string[]> = {
+  ROLE_ADMIN: ['dev_lead@purepdf.kr'],
+  ROLE_MANAGER: ['admin_mgr@purepdf.kr'],
+  ROLE_EDITOR: ['user_0921@corp.com', 'dev_lead@purepdf.kr'],
+  ROLE_USER: ['guest_8812@gmail.com', 'dormant_user@daum.net'],
+};
+
+// GET /api/admin/roles
+app.get('/api/admin/roles', (req, res) => {
+  res.json({
+    success: true,
+    roleGroups: adminRoleGroups,
+    rolePrograms: adminRolePrograms,
+    roleUsers: adminRoleUsers,
+  });
+});
+
+// POST /api/admin/roles
+app.post('/api/admin/roles', (req, res) => {
+  const { id, name, priority, desc } = req.body;
+  if (!id || !name) {
+    return res.status(400).json({ success: false, error: '역할 ID와 역할을 명시해주세요.' });
+  }
+  const cleanId = id.trim().toUpperCase();
+  if (adminRoleGroups.some((r) => r.id === cleanId)) {
+    return res.status(400).json({ success: false, error: '이미 존재하는 역할 ID입니다.' });
+  }
+
+  const newGroup = {
+    id: cleanId,
+    name: name.trim(),
+    priority: Number(priority) || adminRoleGroups.length + 1,
+    desc: desc ? desc.trim() : '사용자 정의 역할 그룹',
+  };
+
+  adminRoleGroups.push(newGroup);
+  if (!adminRolePrograms[cleanId]) adminRolePrograms[cleanId] = ['PG-USR-01'];
+  if (!adminRoleUsers[cleanId]) adminRoleUsers[cleanId] = [];
+
+  res.status(201).json({
+    success: true,
+    message: `역할 [${cleanId}]이 성공적으로 추가되었습니다.`,
+    roleGroup: newGroup,
+    roleGroups: adminRoleGroups,
+  });
+});
+
+// PUT /api/admin/roles/:id/programs
+app.put('/api/admin/roles/:id/programs', (req, res) => {
+  const { id } = req.params;
+  const { programs } = req.body;
+  if (!Array.isArray(programs)) {
+    return res.status(400).json({ success: false, error: '프로그램 목록 배열이 필요합니다.' });
+  }
+  adminRolePrograms[id] = programs;
+  res.json({
+    success: true,
+    message: `[${id}] 역할의 허용 프로그램 목록이 갱신되었습니다.`,
+    programs: adminRolePrograms[id],
+  });
+});
+
+// POST /api/admin/roles/:id/users
+app.post('/api/admin/roles/:id/users', (req, res) => {
+  const { id } = req.params;
+  const { email } = req.body;
+  if (!email || typeof email !== 'string') {
+    return res.status(400).json({ success: false, error: '유효한 사용자 이메일을 입력해주세요.' });
+  }
+  const cleanEmail = email.trim();
+  if (!adminRoleUsers[id]) adminRoleUsers[id] = [];
+  if (adminRoleUsers[id].includes(cleanEmail)) {
+    return res.status(400).json({ success: false, error: `'${cleanEmail}' 사용자는 이미 '${id}' 권한에 등록되어 있습니다.` });
+  }
+  adminRoleUsers[id].push(cleanEmail);
+  res.json({
+    success: true,
+    message: `[${cleanEmail}] 사용자에게 [${id}] 권한이 부여되었습니다.`,
+    users: adminRoleUsers[id],
+  });
+});
+
+// DELETE /api/admin/roles/:id/users
+app.delete('/api/admin/roles/:id/users', (req, res) => {
+  const { id } = req.params;
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ success: false, error: '해제할 사용자 이메일을 지정해주세요.' });
+  }
+  if (!adminRoleUsers[id]) adminRoleUsers[id] = [];
+  adminRoleUsers[id] = adminRoleUsers[id].filter((e) => e !== email);
+  res.json({
+    success: true,
+    message: `[${email}] 사용자의 [${id}] 권한이 성공적으로 해제되었습니다.`,
+    users: adminRoleUsers[id],
+  });
+});
+
+// ============================================================================
+// PG-ADM-06: 메뉴 및 화면 계층 트리 구조 API
+// ============================================================================
+let adminMenus = [
+  { id: 'MENU-01', title: '홈 대시보드', order: 1, route: '/home', progId: 'PG-USR-03', parentId: 'ROOT', visible: true },
+  { id: 'MENU-02', title: '문서 라이브러리', order: 2, route: '/documents', progId: 'PG-USR-05', parentId: 'ROOT', visible: true },
+  { id: 'MENU-03', title: '가상 PDF 뷰어', order: 3, route: '/viewer', progId: 'PG-USR-06', parentId: 'ROOT', visible: true },
+  { id: 'MENU-04', title: '오프라인 동기화', order: 4, route: '/offline', progId: 'PG-USR-08', parentId: 'ROOT', visible: true },
+  { id: 'MENU-05', title: '보안 통제 관리', order: 5, route: '/admin/security', progId: 'PG-ADM-01', parentId: 'ROOT', visible: true },
+  { id: 'MENU-06', title: '프로그램 DAG 관리', order: 6, route: '/admin/programs', progId: 'PG-ADM-02', parentId: 'ROOT', visible: true },
+  { id: 'MENU-07', title: '사용자 및 권한 관리', order: 7, route: '/admin/users', progId: 'PG-ADM-03', parentId: 'ROOT', visible: true },
+  { id: 'MENU-08', title: '시스템 감사 및 에러 로그', order: 8, route: '/admin/logs', progId: 'PG-ADM-07', parentId: 'ROOT', visible: true },
+];
+
+function checkMenuCycle(targetId: string, newParentId: string): boolean {
+  if (newParentId === targetId) return true;
+  if (!newParentId || newParentId === 'ROOT') return false;
+
+  let currentParent = newParentId;
+  const visited = new Set<string>();
+  while (currentParent && currentParent !== 'ROOT') {
+    if (currentParent === targetId) return true;
+    if (visited.has(currentParent)) return true;
+    visited.add(currentParent);
+    const parentNode = adminMenus.find((m) => m.id === currentParent);
+    if (!parentNode) break;
+    currentParent = parentNode.parentId;
+  }
+  return false;
+}
+
+// GET /api/admin/menus
+app.get('/api/admin/menus', (req, res) => {
+  res.json({
+    success: true,
+    menus: adminMenus,
+    totalCount: adminMenus.length,
+  });
+});
+
+// POST /api/admin/menus
+app.post('/api/admin/menus', (req, res) => {
+  const { id, title, order, route, progId, parentId, visible } = req.body;
+  if (!title) {
+    return res.status(400).json({ success: false, error: '메뉴 명칭을 입력해주세요.' });
+  }
+
+  const menuId = id || `MENU-${String(adminMenus.length + 1).padStart(2, '0')}`;
+  if (adminMenus.some((m) => m.id === menuId)) {
+    return res.status(400).json({ success: false, error: '이미 존재하는 메뉴 ID입니다.' });
+  }
+
+  const newMenu = {
+    id: menuId,
+    title: String(title).trim(),
+    order: Number(order) || adminMenus.length + 1,
+    route: route ? String(route).trim() : `/${menuId.toLowerCase()}`,
+    progId: progId ? String(progId).trim() : 'PG-USR-01',
+    parentId: parentId || 'ROOT',
+    visible: visible !== false,
+  };
+
+  adminMenus.push(newMenu);
+  adminMenus.sort((a, b) => a.order - b.order);
+
+  res.status(201).json({
+    success: true,
+    message: `메뉴 [${newMenu.title}]이(가) 등록되었습니다.`,
+    menu: newMenu,
+    menus: adminMenus,
+  });
+});
+
+// PUT /api/admin/menus/:id
+app.put('/api/admin/menus/:id', (req, res) => {
+  const { id } = req.params;
+  const menuIndex = adminMenus.findIndex((m) => m.id === id);
+  if (menuIndex === -1) {
+    return res.status(404).json({ success: false, error: '수정할 메뉴를 찾을 수 없습니다.' });
+  }
+
+  const { title, order, route, progId, parentId, visible } = req.body;
+  if (parentId !== undefined && parentId !== adminMenus[menuIndex].parentId) {
+    if (checkMenuCycle(id, parentId)) {
+      return res.status(400).json({
+        success: false,
+        error: '순환 참조(Cycle) 감지: 자기 자신 또는 자신의 하위 메뉴를 상위 메뉴로 지정할 수 없습니다.',
+      });
+    }
+  }
+
+  const current = adminMenus[menuIndex];
+  if (title !== undefined) current.title = String(title).trim();
+  if (order !== undefined) current.order = Number(order);
+  if (route !== undefined) current.route = String(route).trim();
+  if (progId !== undefined) current.progId = String(progId).trim();
+  if (parentId !== undefined) current.parentId = String(parentId).trim();
+  if (visible !== undefined) current.visible = !!visible;
+
+  adminMenus[menuIndex] = current;
+  adminMenus.sort((a, b) => a.order - b.order);
+
+  res.json({
+    success: true,
+    message: `메뉴 [${current.title}]이(가) 성공적으로 수정되었습니다.`,
+    menu: current,
+    menus: adminMenus,
+  });
+});
+
+// DELETE /api/admin/menus/:id
+app.delete('/api/admin/menus/:id', (req, res) => {
+  const { id } = req.params;
+  const hasChildren = adminMenus.some((m) => m.parentId === id);
+  if (hasChildren) {
+    return res.status(400).json({
+      success: false,
+      error: '하위 메뉴가 존재하여 삭제할 수 없습니다. 하위 메뉴를 먼저 정리해주세요.',
+    });
+  }
+
+  const prevLen = adminMenus.length;
+  adminMenus = adminMenus.filter((m) => m.id !== id);
+  if (adminMenus.length === prevLen) {
+    return res.status(404).json({ success: false, error: '삭제할 메뉴를 찾을 수 없습니다.' });
+  }
+
+  res.json({
+    success: true,
+    message: '메뉴가 성공적으로 삭제되었습니다.',
+    menus: adminMenus,
+  });
+});
+
+// ============================================================================
+// PG-ADM-07: 시스템 실시간 접속 및 활동 로그 스트림 API
+// ============================================================================
+let adminAuditLogs = [
+  { id: 'LOG-001', timestamp: '2026-10-24 14:10:22', actor: 'dev_lead@purepdf.kr', eventType: 'ROLE_UPDATE', targetResource: 'USER-0921 (ROLE_EDITOR 부여)', clientIp: '211.234.120.44', result: 'SUCCESS' },
+  { id: 'LOG-002', timestamp: '2026-10-24 13:55:01', actor: 'system_gate', eventType: 'IP_BLOCKED', targetResource: '45.33.32.156 (무차별 대입 탐지)', clientIp: '45.33.32.156', result: 'BLOCKED' },
+  { id: 'LOG-003', timestamp: '2026-10-24 13:20:18', actor: 'user_0921@corp.com', eventType: 'PDF_VIEW', targetResource: 'DOC-2026-0041 (840쪽 계약서 열람)', clientIp: '121.130.88.19', result: 'SUCCESS' },
+  { id: 'LOG-004', timestamp: '2026-10-24 12:45:00', actor: 'admin_mgr@purepdf.kr', eventType: 'SETTINGS_CHANGE', targetResource: 'PG-ADM-01 (2FA 필수 적용 스위치 ON)', clientIp: '175.209.11.82', result: 'SUCCESS' },
+  { id: 'LOG-005', timestamp: '2026-10-24 11:10:45', actor: 'guest_8812@gmail.com', eventType: 'OCR_EXEC', targetResource: 'OCR-JOB-771 (이미지 추출 시도)', clientIp: '182.222.10.99', result: 'WARN' },
+  { id: 'LOG-006', timestamp: '2026-10-24 10:05:12', actor: 'admin_mgr@purepdf.kr', eventType: 'MENU_UPDATE', targetResource: 'MENU-06 (DAG 경로 수정)', clientIp: '175.209.11.82', result: 'SUCCESS' },
+];
+
+// GET /api/admin/logs/audit
+app.get('/api/admin/logs/audit', (req, res) => {
+  const { keyword, eventType, result } = req.query;
+  let filtered = [...adminAuditLogs];
+
+  if (eventType && eventType !== 'ALL') {
+    filtered = filtered.filter((l) => l.eventType === eventType);
+  }
+  if (result && result !== 'ALL') {
+    filtered = filtered.filter((l) => l.result === result);
+  }
+  if (keyword && typeof keyword === 'string' && keyword.trim()) {
+    const kw = keyword.trim().toLowerCase();
+    filtered = filtered.filter(
+      (l) =>
+        l.id.toLowerCase().includes(kw) ||
+        l.actor.toLowerCase().includes(kw) ||
+        l.clientIp.toLowerCase().includes(kw) ||
+        l.targetResource.toLowerCase().includes(kw)
+    );
+  }
+
+  res.json({
+    success: true,
+    logs: filtered,
+    totalCount: filtered.length,
+    rawCount: adminAuditLogs.length,
+  });
+});
+
+// POST /api/admin/logs/audit
+app.post('/api/admin/logs/audit', (req, res) => {
+  const { actor, eventType, targetResource, clientIp, result } = req.body;
+  const newLog = {
+    id: `LOG-${String(adminAuditLogs.length + 1).padStart(3, '0')}`,
+    timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+    actor: actor || 'system_anonymous',
+    eventType: eventType || 'SETTINGS_CHANGE',
+    targetResource: targetResource || 'SYSTEM_CORE',
+    clientIp: clientIp || req.ip || '127.0.0.1',
+    result: (result || 'SUCCESS') as 'SUCCESS' | 'BLOCKED' | 'WARN',
+  };
+
+  adminAuditLogs.unshift(newLog);
+  res.status(201).json({
+    success: true,
+    log: newLog,
+  });
+});
+
+// ============================================================================
+// PG-ADM-08: 시스템 에러 및 예외 스택 추적 모달 API
+// ============================================================================
+let adminErrorLogs = [
+  {
+    id: 'ERR-1001',
+    timestamp: '2026-10-24 14:15:32',
+    severity: 'WARN' as const,
+    title: 'DB Bridge Connection Delay',
+    message: '원격 DB 브릿지 연결 5000ms 임계치 초과 (로컬 스토어 캐시 자율 폴백 가동)',
+    stack: 'Error: DB_BRIDGE_TIMEOUT_5000MS\n    at HarnessRepository.executeRemoteQuery (src/aiagent/domain/harness/HarnessRepository.ts:109:17)\n    at HarnessRepository.upsertSession (src/aiagent/domain/harness/HarnessRepository.ts:197:29)\n    at Object.<anonymous> (scripts/init_session_0034.ts:251:42)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)',
+    sourceFile: 'src/aiagent/domain/harness/HarnessRepository.ts:109',
+    resolved: true,
+  },
+  {
+    id: 'ERR-1002',
+    timestamp: '2026-10-24 13:40:11',
+    severity: 'ERROR' as const,
+    title: 'OCR Worker Pool Memory Spike',
+    message: 'Tesseract WASM 워커 메모리 임계치 85% 도달',
+    stack: 'RangeError: Array buffer allocation failed\n    at createWorkerInstance (src/domain/ocr/TesseractWorkerPool.ts:88:22)\n    at async runBatchOcrTask (src/domain/ocr/BatchOcrQueue.ts:145:9)\n    at async WorkerPool.dispatch (src/domain/ocr/WorkerPool.ts:52:13)',
+    sourceFile: 'src/domain/ocr/TesseractWorkerPool.ts:88',
+    resolved: false,
+  },
+  {
+    id: 'ERR-1003',
+    timestamp: '2026-10-24 11:05:00',
+    severity: 'FATAL' as const,
+    title: 'Auth Token Quota Threshold Exceeded',
+    message: 'Gemini Pro 일일 250회 한도 도달 및 Gemini 1.5 Flash 자동 라우팅 폴백',
+    stack: 'QuotaExhaustedError: 429 Resource Exhausted\n    at TokenQuotaDetectionService.checkQuota (src/aiagent/domain/token-quota/index.ts:74:15)\n    at ModelRouter.dispatch (src/aiagent/domain/routing/ModelRouter.ts:42:11)\n    at AgentSessionRunner.step (src/aiagent/AgentSessionRunner.ts:188:21)',
+    sourceFile: 'src/aiagent/domain/token-quota/index.ts:74',
+    resolved: false,
+  },
+  {
+    id: 'ERR-1004',
+    timestamp: '2026-10-23 18:22:15',
+    severity: 'WARN' as const,
+    title: 'PDF Virtual Scroll Canvas Buffer Miss',
+    message: '800쪽 가상화 뷰어 742페이지 캔버스 버퍼 만료로 인한 즉시 재렌더링',
+    stack: 'Warn: CanvasBufferMiss: page 742 buffer expired\n    at VirtualPageRenderer.renderTile (src/ppdf/components/VirtualPageRenderer.tsx:210:14)\n    at VirtualScrollEngine.handleScroll (src/ppdf/components/VirtualScrollEngine.ts:95:9)',
+    sourceFile: 'src/ppdf/components/VirtualPageRenderer.tsx:210',
+    resolved: true,
+  },
+];
+
+// GET /api/admin/logs/errors
+app.get('/api/admin/logs/errors', (req, res) => {
+  const { severity, resolved } = req.query;
+  let filtered = [...adminErrorLogs];
+
+  if (severity && severity !== 'ALL') {
+    filtered = filtered.filter((e) => e.severity === severity);
+  }
+  if (resolved !== undefined && resolved !== 'ALL') {
+    const isResolved = resolved === 'true' || resolved === true;
+    filtered = filtered.filter((e) => e.resolved === isResolved);
+  }
+
+  res.json({
+    success: true,
+    errors: filtered,
+    totalCount: filtered.length,
+    rawCount: adminErrorLogs.length,
+  });
+});
+
+// GET /api/admin/logs/errors/:id
+app.get('/api/admin/logs/errors/:id', (req, res) => {
+  const { id } = req.params;
+  const item = adminErrorLogs.find((e) => e.id === id);
+  if (!item) {
+    return res.status(404).json({ success: false, error: '에러 로그를 찾을 수 없습니다.' });
+  }
+  res.json({
+    success: true,
+    errorLog: item,
+  });
+});
+
+// PUT /api/admin/logs/errors/:id/resolve
+app.put('/api/admin/logs/errors/:id/resolve', (req, res) => {
+  const { id } = req.params;
+  const itemIndex = adminErrorLogs.findIndex((e) => e.id === id);
+  if (itemIndex === -1) {
+    return res.status(404).json({ success: false, error: '에러 로그를 찾을 수 없습니다.' });
+  }
+
+  const { resolved } = req.body;
+  const current = adminErrorLogs[itemIndex];
+  current.resolved = resolved !== undefined ? !!resolved : !current.resolved;
+  adminErrorLogs[itemIndex] = current;
+
+  res.json({
+    success: true,
+    message: `에러 [${id}] 조치 상태가 [${current.resolved ? '조치 완료' : '미조치'}]로 변경되었습니다.`,
+    errorLog: current,
+    errors: adminErrorLogs,
+  });
+});
+
 // ---------------------- VITE & STATIC SERVING ----------------------
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {

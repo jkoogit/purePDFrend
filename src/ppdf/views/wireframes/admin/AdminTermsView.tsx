@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Textarea, Badge, Card, CardHeader, CardTitle, CardContent, Modal } from '@shared/components/ui';
+import { ThemeMode, resolveThemeMode, getThemeAdaptiveClasses } from '../../../../styles/tokens';
 
 export interface TermVersionItem {
   id: string; // DOC_GRP_01
@@ -19,7 +20,9 @@ const INITIAL_TERMS: TermVersionItem[] = [
   { id: 'DOC_GRP_08', title: '오프라인 동기화 정책', version: 'v1.0', isLatestApplied: true, updatedAt: '2026-10-02', content: '로컬 IndexedDB 및 충돌 해결 정책 안내입니다.' },
 ];
 
-export function AdminTermsView() {
+export function AdminTermsView({ themeMode = 'dark' }: { themeMode?: ThemeMode }) {
+  const resolvedTheme = resolveThemeMode(themeMode);
+  const themeClasses = getThemeAdaptiveClasses(resolvedTheme);
   const [terms, setTerms] = useState<TermVersionItem[]>(INITIAL_TERMS);
   const [searchTerm, setSearchTerm] = useState('');
   const [onlyAppliedVersions, setOnlyAppliedVersions] = useState(false);
@@ -117,7 +120,7 @@ export function AdminTermsView() {
     .filter((t) => (searchTerm ? t.title.includes(searchTerm) || t.id.includes(searchTerm) || t.content.includes(searchTerm) : true));
 
   return (
-    <div className="space-y-4 text-xs">
+    <div className={`space-y-4 text-xs ${themeClasses.textMain}`}>
       {notice && (
         <div className="p-3 bg-blue-950/80 border border-blue-500/40 rounded-xl text-blue-200 flex justify-between items-center animate-fade-in">
           <span>{notice}</span>
@@ -126,7 +129,7 @@ export function AdminTermsView() {
       )}
 
       {/* 검색 & 적용버전 체크 필터 */}
-      <Card variant="subtle">
+      <Card variant="subtle" className={`border ${themeClasses.card}`}>
         <div className="p-3 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
           <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
             <div className="w-full sm:w-64">

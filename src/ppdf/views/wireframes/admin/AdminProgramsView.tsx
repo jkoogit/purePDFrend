@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Badge, Card, Modal } from '@shared/components/ui';
+import { ThemeMode, resolveThemeMode, getThemeAdaptiveClasses } from '../../../../styles/tokens';
 
 export interface ScreenProgramItem {
   id: string;
@@ -28,7 +29,9 @@ const INITIAL_PROGRAMS: ScreenProgramItem[] = [
 
 const AVAILABLE_ROLES = ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_EDITOR', 'ROLE_USER', 'ROLE_GUEST'];
 
-export function AdminProgramsView() {
+export function AdminProgramsView({ themeMode = 'dark' }: { themeMode?: ThemeMode }) {
+  const resolvedTheme = resolveThemeMode(themeMode);
+  const themeClasses = getThemeAdaptiveClasses(resolvedTheme);
   const [programs, setPrograms] = useState<ScreenProgramItem[]>(INITIAL_PROGRAMS);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -208,7 +211,7 @@ export function AdminProgramsView() {
   });
 
   return (
-    <div className="space-y-4 text-xs">
+    <div className={`space-y-4 text-xs ${themeClasses.textMain}`}>
       {notice && (
         <div className="p-3 bg-emerald-950/80 border border-emerald-500/40 rounded-xl text-emerald-200 flex justify-between items-center animate-fade-in">
           <span>{notice}</span>
@@ -216,13 +219,13 @@ export function AdminProgramsView() {
         </div>
       )}
       {/* 헤더 & 등록 버튼 */}
-      <Card variant="subtle">
+      <Card variant="subtle" className={`border ${themeClasses.card}`}>
         <div className="p-3.5 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
           <div>
             <h3 className="font-bold text-white text-sm sm:text-base flex items-center gap-2">
               <span>🖥️</span> 프로그램 및 화면 관리
             </h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">화면 프로그램 등록, 수정, 삭제 및 역할별 다중 접근 권한을 매핑합니다.</p>
+            <p className={`text-[11px] ${themeClasses.textMuted} mt-0.5`}>화면 프로그램 등록, 수정, 삭제 및 역할별 다중 접근 권한을 매핑합니다.</p>
           </div>
           <Button variant="primary" size="sm" onClick={openCreate} className="self-start sm:self-auto">
             + 프로그램 등록

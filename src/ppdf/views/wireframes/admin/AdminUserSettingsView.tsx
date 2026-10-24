@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button, Input, Textarea, Badge, Card, Modal } from '@shared/components/ui';
+import { ThemeMode, resolveThemeMode, getThemeAdaptiveClasses } from '../../../../styles/tokens';
 
 export interface UserSettingItem {
   key: string;
@@ -68,7 +69,9 @@ const DEFAULT_SETTINGS: UserSettingItem[] = [
   },
 ];
 
-export function AdminUserSettingsView() {
+export function AdminUserSettingsView({ themeMode = 'dark' }: { themeMode?: ThemeMode }) {
+  const resolvedTheme = resolveThemeMode(themeMode);
+  const themeClasses = getThemeAdaptiveClasses(resolvedTheme);
   const [settings, setSettings] = useState<UserSettingItem[]>(DEFAULT_SETTINGS);
   const [showModal, setShowModal] = useState(false);
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -150,11 +153,11 @@ export function AdminUserSettingsView() {
   };
 
   return (
-    <div className="space-y-4 text-xs">
-      <Card variant="subtle" className="p-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+    <div className={`space-y-4 text-xs ${themeClasses.textMain}`}>
+      <Card variant="subtle" className={`p-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border ${themeClasses.card}`}>
         <div>
           <span className="font-bold text-white text-sm">⚙️ 사용자 환경설정 항목 및 기본값 관리 (등록/수정/삭제 완비)</span>
-          <p className="text-[11px] text-slate-400 mt-0.5">
+          <p className={`text-[11px] ${themeClasses.textMuted} mt-0.5`}>
             사용자 마이페이지 환경설정에 제공되는 기본 설정 항목(테마, 배율, 자동저장, OCR) 및 메타데이터를 관리합니다.
           </p>
         </div>

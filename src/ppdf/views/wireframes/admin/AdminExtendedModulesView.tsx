@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button, Input, Textarea, Badge, Card, Modal } from '@shared/components/ui';
+import { ThemeMode, resolveThemeMode, getThemeAdaptiveClasses } from '../../../../styles/tokens';
 
 // ============================================================================
 // PG-ADM-08: 알림관리 (요청 10: 생성화면 추가, 모바일 카드보기, 사용여부 추가, 상세 수정/삭제)
@@ -21,7 +22,9 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   { id: 'NT-03', title: '보안 정책 2FA 인증키 갱신', content: 'OTP 보안 세션이 갱신되었습니다. 백업 코드를 확인하세요.', type: '보안공지', target: '관리자 그룹', channel: '이메일', date: '2026-10-04', active: false },
 ];
 
-export function AdminNotificationsView() {
+export function AdminNotificationsView({ themeMode = 'dark' }: { themeMode?: ThemeMode }) {
+  const resolvedTheme = resolveThemeMode(themeMode);
+  const themeClasses = getThemeAdaptiveClasses(resolvedTheme);
   const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingItem, setEditingItem] = useState<NotificationItem | null>(null);
@@ -96,11 +99,11 @@ export function AdminNotificationsView() {
   };
 
   return (
-    <div className="space-y-4 text-xs">
-      <Card variant="subtle" className="p-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+    <div className={`space-y-4 text-xs ${themeClasses.textMain}`}>
+      <Card variant="subtle" className={`p-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border ${themeClasses.card}`}>
         <div>
           <span className="font-bold text-white text-sm">🔔 알림 관리 (공지 / 서비스 / 개인알림)</span>
-          <p className="text-[11px] text-slate-400 mt-0.5">시스템 점검공지 및 OCR 처리완료, 개인보안 알림 템플릿과 사용여부를 관리합니다.</p>
+          <p className={`text-[11px] ${themeClasses.textMuted} mt-0.5`}>시스템 점검공지 및 OCR 처리완료, 개인보안 알림 템플릿과 사용여부를 관리합니다.</p>
         </div>
         <Button
           variant="primary"
@@ -302,7 +305,9 @@ const INITIAL_APIS: ApiEndpointItem[] = [
   { id: 'API-EXT-03', name: 'DeepL 번역 엔진 API', category: 'EXTERNAL', endpoint: 'https://api-free.deepl.com/v2/translate', status: '정상 (200 OK)', latency: '310ms', keyMasked: 'deepl-auth-****-4411', active: false },
 ];
 
-export function AdminApiManagerView() {
+export function AdminApiManagerView({ themeMode = 'dark' }: { themeMode?: ThemeMode }) {
+  const resolvedTheme = resolveThemeMode(themeMode);
+  const themeClasses = getThemeAdaptiveClasses(resolvedTheme);
   const [apiList, setApiList] = useState<ApiEndpointItem[]>(INITIAL_APIS);
   const [activeTab, setActiveTab] = useState<'ALL' | 'INTERNAL' | 'EXTERNAL'>('ALL');
   const [showApiModal, setShowApiModal] = useState(false);
@@ -378,9 +383,9 @@ export function AdminApiManagerView() {
   });
 
   return (
-    <div className="space-y-4 text-xs">
+    <div className={`space-y-4 text-xs ${themeClasses.textMain}`}>
       {/* 단일 통합 헤더 및 요약 대시보드 (요청 4 반영: 내부/외부 API 단일화) */}
-      <Card variant="default" className="p-4 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950/70 border border-slate-800 space-y-3">
+      <Card variant="default" className={`p-4 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950/70 border ${themeClasses.card} space-y-3`}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <div className="flex items-center gap-2">
@@ -628,7 +633,9 @@ export interface BoardBannerItem {
   active: boolean; // 사용여부
 }
 
-export function AdminBoardsAndBannersView() {
+export function AdminBoardsAndBannersView({ themeMode = 'dark' }: { themeMode?: ThemeMode }) {
+  const resolvedTheme = resolveThemeMode(themeMode);
+  const themeClasses = getThemeAdaptiveClasses(resolvedTheme);
   const [boardTab, setBoardTab] = useState<'NOTICES' | 'BANNERS'>('NOTICES');
 
   // 공지사항
@@ -833,8 +840,8 @@ export function AdminBoardsAndBannersView() {
   };
 
   return (
-    <div className="space-y-4 text-xs">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800">
+    <div className={`space-y-4 text-xs ${themeClasses.textMain}`}>
+      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b ${themeClasses.border}`}>
         <div className="flex gap-2">
           <Button
             variant={boardTab === 'NOTICES' ? 'primary' : 'secondary'}
@@ -1352,7 +1359,9 @@ export interface TicketItem {
   };
 }
 
-export function AdminCustomerSupportView() {
+export function AdminCustomerSupportView({ themeMode = 'dark' }: { themeMode?: ThemeMode }) {
+  const resolvedTheme = resolveThemeMode(themeMode);
+  const themeClasses = getThemeAdaptiveClasses(resolvedTheme);
   const [supportTab, setSupportTab] = useState<'FAQ' | 'QNA' | 'INQUIRY'>('FAQ');
 
   // FAQ State
@@ -1464,8 +1473,8 @@ export function AdminCustomerSupportView() {
   };
 
   return (
-    <div className="space-y-4 text-xs">
-      <div className="flex flex-wrap gap-2 pb-2 border-b border-slate-800">
+    <div className={`space-y-4 text-xs ${themeClasses.textMain}`}>
+      <div className={`flex flex-wrap gap-2 pb-2 border-b ${themeClasses.border}`}>
         <Button
           variant={supportTab === 'FAQ' ? 'primary' : 'secondary'}
           size="sm"
@@ -1882,7 +1891,9 @@ export interface FontItem {
   fileNames: string[]; // 다중 글꼴 파일 목록 (요청 5 반영)
 }
 
-export function AdminFontsView() {
+export function AdminFontsView({ themeMode = 'dark' }: { themeMode?: ThemeMode }) {
+  const resolvedTheme = resolveThemeMode(themeMode);
+  const themeClasses = getThemeAdaptiveClasses(resolvedTheme);
   const [fonts, setFonts] = useState<FontItem[]>([
     {
       id: 'FNT-01',
@@ -1983,11 +1994,11 @@ export function AdminFontsView() {
   };
 
   return (
-    <div className="space-y-4 text-xs">
-      <Card variant="subtle" className="p-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+    <div className={`space-y-4 text-xs ${themeClasses.textMain}`}>
+      <Card variant="subtle" className={`p-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border ${themeClasses.card}`}>
         <div>
           <span className="font-bold text-white text-sm">🔤 무료 웹글꼴 관리 (한 글꼴 다중 파일 업로드 지원)</span>
-          <p className="text-[11px] text-slate-400 mt-0.5">전자책 및 PDF 주석 텍스트용 웹폰트를 관리하고 한 글꼴 패밀리에 속한 다중 웨이트/포맷 파일을 업로드합니다.</p>
+          <p className={`text-[11px] ${themeClasses.textMuted} mt-0.5`}>전자책 및 PDF 주석 텍스트용 웹폰트를 관리하고 한 글꼴 패밀리에 속한 다중 웨이트/포맷 파일을 업로드합니다.</p>
         </div>
         <Button
           variant="primary"

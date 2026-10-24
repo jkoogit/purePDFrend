@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Badge, Card, Modal } from '@shared/components/ui';
+import { ThemeMode, resolveThemeMode, getThemeAdaptiveClasses } from '../../../../styles/tokens';
 
 export interface AdminUserItem {
   id: string;
@@ -72,7 +73,9 @@ const INITIAL_USERS: AdminUserItem[] = [
 
 const AVAILABLE_ROLES = ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_EDITOR', 'ROLE_USER'];
 
-export function AdminUsersView() {
+export function AdminUsersView({ themeMode = 'dark' }: { themeMode?: ThemeMode }) {
+  const resolvedTheme = resolveThemeMode(themeMode);
+  const themeClasses = getThemeAdaptiveClasses(resolvedTheme);
   const [users, setUsers] = useState<AdminUserItem[]>(INITIAL_USERS);
   const [selectedUser, setSelectedUser] = useState<AdminUserItem | null>(null);
   const [searchName, setSearchName] = useState<string>('');
@@ -206,7 +209,7 @@ export function AdminUsersView() {
   });
 
   return (
-    <div className="space-y-4 text-xs">
+    <div className={`space-y-4 text-xs ${themeClasses.textMain}`}>
       {notice && (
         <div className="p-3 bg-blue-950/80 border border-blue-500/40 rounded-xl text-blue-200 flex justify-between items-center animate-fade-in">
           <span>{notice}</span>
@@ -221,7 +224,7 @@ export function AdminUsersView() {
       </div>
 
       {/* 검색 및 필터 바 */}
-      <Card variant="subtle">
+      <Card variant="subtle" className={`border ${themeClasses.card}`}>
         <div className="p-3 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <div className="w-full sm:w-48">
