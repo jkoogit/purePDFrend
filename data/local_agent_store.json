@@ -600,7 +600,7 @@
       "task_id": "TASK-0034-01",
       "session_id": "SESSION-0034",
       "task_name": "Phase 4 관리자 2단계 핵심화면(PG-ADM-05~08) 실제 REST API 연동 및 관리자 전 화면 tokens.ts 전면 완결",
-      "status_cd": "준비",
+      "status_cd": "정리",
       "git_branch": "task/0034_01",
       "started_at": "2026-10-24T05:15:31.944Z",
       "ended_at": null,
@@ -611,17 +611,20 @@
         "backlog_ids": [
           "BACKLOG-0033-01",
           "BACKLOG-0033-02"
-        ]
+        ],
+        "reviewDoc": "docs/10.리뷰/261024_056_Phase4_관리자_2단계_API_연동_및_관리자_tokens_전면완결_코드리뷰.md",
+        "commitSha": "7c9825d7",
+        "status": "정리"
       },
       "created_sys": "agent-harness",
       "created_at": "2026-10-24T05:15:31.944Z",
       "created_by": "jkok2j2m",
       "updated_sys": "agent-harness",
-      "updated_at": "2026-10-24T05:15:31.944Z",
+      "updated_at": "2026-10-24T06:15:49.080Z",
       "updated_by": "jkok2j2m",
       "version": 2,
       "priority": "HIGH",
-      "status": "IN_PROGRESS",
+      "status": "정리",
       "assigned_agent": "gemini"
     },
     {
