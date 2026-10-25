@@ -372,14 +372,6 @@ export default function Navbar({
         ? 'bg-[#070e22]/95 border-[#1e3066] text-white shadow-md shadow-sky-950/20'
         : 'bg-slate-950/95 border-slate-800 text-white shadow-md'
     }`}>
-      {/* 상단 리본 접이식 레이어 모듈 (평시 가로 0px 점유, 상단 리본 클릭 시 25대 와이어프레임 메가 레이어 전개) */}
-      <WireframeRibbonLayer
-        theme={resolvedTheme}
-        onSelectProgram={() => {
-          onSelectSystem?.('settings');
-        }}
-      />
-
       {/* 1. Main Global Header (1단 글로벌 바: 브랜드 + 3대 시스템 스위처 + 공통 툴) */}
       <div className="h-14 sm:h-16 px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4">
         {/* Left: Brand & Identity */}
@@ -407,6 +399,25 @@ export default function Navbar({
 
         {/* Right Status Indicators & Action Tools */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          {/* 상단 개발용 메뉴이동 레이어 (정규 인라인 버튼 일체화: 화면 부유 증상 100% 해소) */}
+          <WireframeRibbonLayer
+            theme={resolvedTheme}
+            onSelectProgram={(type, progId) => {
+              if (type === 'agent') {
+                onSelectSystem?.('harness');
+                if (progId === 'PG-AGN-01') onSelectView('graph');
+                else if (progId === 'PG-AGN-02') onSelectView('task');
+                else if (progId === 'PG-AGN-03') onSelectView('usage');
+                else if (progId === 'PG-AGN-04') onSelectView('audit');
+                else if (progId === 'PG-AGN-05') onSelectView('docs');
+                else if (progId === 'PG-AGN-06') onSelectView('settings');
+              } else if (type === 'settings') {
+                onSelectSystem?.('settings');
+              } else {
+                onSelectSystem?.('settings');
+              }
+            }}
+          />
           {/* DB Connection Indicator */}
           <div
             className="relative"

@@ -149,10 +149,23 @@ export default function App() {
     fetchGraph();
   }, []);
 
-  // 전역 와이어프레임 퀵 점프 네비게이션 리스너 (사용자/관리자 25개 와이어프레임 직접 이동)
+  // 전역 와이어프레임 & 4대 시스템 퀵 점프 네비게이션 리스너 (사용자/관리자/설정/에이전트 37개 화면 직접 이동)
   useEffect(() => {
-    const handleWireframeJump = () => {
-      setActiveSystem('settings');
+    const handleWireframeJump = (e: any) => {
+      const detail = e.detail;
+      if (detail?.type === 'agent') {
+        setActiveSystem('harness');
+        if (detail.progId === 'PG-AGN-01') setActiveView('graph');
+        else if (detail.progId === 'PG-AGN-02') setActiveView('task');
+        else if (detail.progId === 'PG-AGN-03') setActiveView('usage');
+        else if (detail.progId === 'PG-AGN-04') setActiveView('audit');
+        else if (detail.progId === 'PG-AGN-05') setActiveView('docs');
+        else if (detail.progId === 'PG-AGN-06') setActiveView('settings');
+      } else if (detail?.type === 'settings') {
+        setActiveSystem('settings');
+      } else {
+        setActiveSystem('settings');
+      }
     };
     window.addEventListener('purepdfrend-navigate-wireframe', handleWireframeJump);
     return () => window.removeEventListener('purepdfrend-navigate-wireframe', handleWireframeJump);
