@@ -63,9 +63,9 @@
 - **작업 브랜치**: `task/0036_01_ribbon_inline_and_phase5_api_Gemini`
 - **배포 승급**: `dev` ➔ `stg` ➔ `main` 3대 브랜치 Fast-forward 동기화 완료
 - **3대 브랜치 커밋 SHA 교차 검증**:
-  - `dev`  SHA: **`[VERIFIED_DEV_SHA]`**
-  - `stg`  SHA: **`[VERIFIED_DEV_SHA]`**
-  - `main` SHA: **`[VERIFIED_DEV_SHA]`**
+  - `dev`  SHA: **`4311b347604507adfe19d9ce1017e94c88391e8b`**
+  - `stg`  SHA: **`4311b347604507adfe19d9ce1017e94c88391e8b`**
+  - `main` SHA: **`4311b347604507adfe19d9ce1017e94c88391e8b`**
   - **검증 판정**: 3대 브랜치 최신 커밋 SHA **100% 일치 (동기화 완료)**
 
 ---
