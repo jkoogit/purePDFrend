@@ -13,9 +13,10 @@ import {
   UserPlus,
   ShieldCheck,
 } from 'lucide-react';
-import { UserSystemRole } from '../../types';
+import { UserSystemRole, PdfPageItem } from '../../types';
 import { ThemeMode, ResolvedTheme, resolveThemeMode, applyThemeToDocument, getThemeAdaptiveClasses } from '../../styles/tokens';
 import { VirtualViewerStudio } from './VirtualViewerStudio';
+import OCRCorrectionStudio from './OCRCorrectionStudio';
 import { HorizontalSlideContainer } from './HorizontalSlideContainer';
 
 export interface PurePdfServicePortalProps {
@@ -77,6 +78,8 @@ export default function PurePdfServicePortal({
   // 2. 공유 열람 문서 조회 검색 상태
   const [searchDocQuery, setSearchDocQuery] = useState('');
   const [isViewerModalOpen, setIsViewerModalOpen] = useState(false);
+  const [viewerStudioMode, setViewerStudioMode] = useState<'viewer' | 'ocr'>('viewer');
+  const [ocrTargetPage, setOcrTargetPage] = useState<PdfPageItem | null>(null);
   const [viewerBookTitle, setViewerBookTitle] = useState('ISO 32000-2 표준 가이드북 및 엔터프라이즈 PDF 아카이빙 지침서');
 
   // 3. PG-USR-01 롤링 이벤트 배너 상태 & 마우스휠/드래그 인터랙션
@@ -1062,21 +1065,47 @@ export default function PurePdfServicePortal({
                   {viewerBookTitle}
                 </span>
                 <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 text-[10px] font-mono">
-                  800P 가상화 모드
+                  {viewerStudioMode === 'viewer' ? '800P 가상화 모드' : `OCR 교정 (P.${ocrTargetPage?.pageNum ?? 1})`}
                 </span>
+                {viewerStudioMode === 'ocr' && (
+                  <button
+                    onClick={() => setViewerStudioMode('viewer')}
+                    className={`px-2 py-0.5 rounded ${themeClasses.buttonSecondary} border ${themeClasses.border} text-[11px] font-semibold flex items-center gap-1 cursor-pointer`}
+                  >
+                    <span>← 뷰어로 전환</span>
+                  </button>
+                )}
               </div>
               <button
-                onClick={() => setIsViewerModalOpen(false)}
-                className={`px-3 py-1 ${themeClasses.buttonSecondary} border rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer`}
+                onClick={() => {
+                  setIsViewerModalOpen(false);
+                  setViewerStudioMode('viewer');
+                }}
+                className={`px-3 py-1 ${themeClasses.buttonSecondary} border ${themeClasses.border} rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer`}
               >
                 <X className="w-3.5 h-3.5" />
                 <span>닫기</span>
               </button>
             </div>
 
-            {/* 실제 대용량 가상화 뷰어 스튜디오 구동 */}
+            {/* 실제 대용량 가상화 뷰어 및 OCR 스튜디오 양방향 연동 */}
             <div className="flex-1 overflow-hidden relative">
-              <VirtualViewerStudio />
+              {viewerStudioMode === 'viewer' ? (
+                <VirtualViewerStudio
+                  themeMode={themeMode}
+                  onNavigateToCorrection={(page) => {
+                    setOcrTargetPage(page);
+                    setViewerStudioMode('ocr');
+                  }}
+                />
+              ) : (
+                <OCRCorrectionStudio
+                  themeMode={themeMode}
+                  pageNumber={ocrTargetPage?.pageNum ?? 1}
+                  onBackToViewer={() => setViewerStudioMode('viewer')}
+                  onSave={() => setViewerStudioMode('viewer')}
+                />
+              )}
             </div>
           </div>
         </div>
