@@ -42,7 +42,7 @@
             "status": "완료"
           }
         ],
-        "promoted_sha": "3695c3059ab10eeae66e407465f8d784f7995dac",
+        "promoted_sha": "8bf072eaa15aebbe87b4d373a807776d3d6af366",
         "local_branches_merged": true,
         "merged_branches": [
           "dev",
@@ -50,7 +50,7 @@
           "main"
         ],
         "tool_mode": "antigravity-local-git",
-        "updated_at": "2026-10-25T10:07:48.794Z"
+        "updated_at": "2026-10-25T10:10:08.532Z"
       },
       "created_sys": "agent-harness",
       "created_at": "2026-10-24T16:17:07.949Z",
