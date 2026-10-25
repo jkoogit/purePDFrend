@@ -1,471 +1,629 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import {
+  Search,
+  Code,
+  Copy,
+  Check,
+  ExternalLink,
+  Sliders,
+  CheckCircle,
+  X,
+  Sun,
+  Smartphone,
+  Sparkles,
+  Pin
+} from 'lucide-react';
 import { tokens } from '../../../styles/tokens';
-import { Button } from '../../../shared/components/ui/Button';
-import { Badge } from '../../../shared/components/ui/Badge';
-import { Card } from '../../../shared/components/ui/Card';
-import { Input } from '../../../shared/components/ui/Input';
-import { PdfrendLogo } from '../../../shared/components/PdfrendLogo';
+import { STANDARD_COMPONENTS_30, getComponentViewportCondition } from '../../../shared/components/ui/showcaseData';
+import { ComponentInteractiveRenderer } from '../../../shared/components/ui/ShowcaseComponentsPool';
 
 export function DesignSystemShowcase() {
-  const [activeSubTab, setActiveSubTab] = useState<'tokens' | 'primitives' | 'comparison'>('tokens');
-  const [sampleInput, setSampleInput] = useState('purepdfrend.sample.pdf');
-  const [selectedVariant, setSelectedVariant] = useState<'primary' | 'secondary' | 'danger'>('primary');
+  const [activeMainTab, setActiveMainTab] = useState<'components' | 'tokens'>('components');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [globalState, setGlobalState] = useState<'default' | 'hover' | 'active' | 'focus' | 'disabled' | 'error'>('default');
+  const [globalSize, setGlobalSize] = useState<'sm' | 'md' | 'lg'>('md');
+  const [previewTheme, setPreviewTheme] = useState<'light' | 'dark' | 'dawn'>('dark');
+  const [viewportMode, setViewportMode] = useState<'desktop' | 'mobile'>('desktop');
+  const [isToolbarPinned, setIsToolbarPinned] = useState(true);
+  const [openCodeMap, setOpenCodeMap] = useState<Record<string, boolean>>({});
+  const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // 1.1 화면 전체 테마 (실제 글로벌 앱 테마 연동)
+  const getGlobalAppTheme = (): 'light' | 'dark' | 'dawn' => {
+    if (typeof document !== 'undefined') {
+      const attr = document.documentElement.getAttribute('data-theme');
+      if (attr === 'light' || attr === 'dark' || attr === 'dawn') return attr;
+      if (document.documentElement.classList.contains('light')) return 'light';
+      if (document.documentElement.classList.contains('dawn')) return 'dawn';
+    }
+    try {
+      const saved = localStorage.getItem('purepdfrend_theme');
+      if (saved === 'light' || saved === 'dark' || saved === 'dawn') return saved;
+    } catch {}
+    return 'dark';
+  };
+
+  const [appTheme, setAppTheme] = useState<'light' | 'dark' | 'dawn'>(getGlobalAppTheme);
+
+  useEffect(() => {
+    const handleThemeChange = () => {
+      const current = getGlobalAppTheme();
+      setAppTheme(current);
+    };
+    handleThemeChange();
+    const observer = new MutationObserver(handleThemeChange);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+    window.addEventListener('storage', handleThemeChange);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('storage', handleThemeChange);
+    };
+  }, []);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage((prev) => (prev === msg ? null : prev));
+    }, 3000);
+  };
+
+  const toggleCodeView = (id: string) => {
+    setOpenCodeMap((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleCopyCode = (id: string, code: string) => {
+    navigator.clipboard?.writeText(code);
+    setCopiedCodeId(id);
+    showToast('컴포넌트 JSX 코드가 클립보드에 복사되었습니다.');
+    setTimeout(() => setCopiedCodeId((prev) => (prev === id ? null : prev)), 2000);
+  };
+
+  const handleNavigateToScreen = (progId: string) => {
+    try {
+      let type: 'user' | 'admin' | 'settings' | 'agent' = 'user';
+      if (progId.startsWith('PG-ADM')) type = 'admin';
+      else if (progId.startsWith('PG-SET')) type = 'settings';
+      else if (progId.startsWith('PG-AGN')) type = 'agent';
+
+      window.dispatchEvent(
+        new CustomEvent('purepdfrend-navigate-wireframe', {
+          detail: { type, progId },
+        })
+      );
+      showToast(`'${progId}' 화면으로 이동합니다.`);
+    } catch {}
+  };
+
+  // 1.1 화면 전체 테마 동적 클래스 맵 (앱 전역 테마 반영)
+  const showcaseThemeClasses = {
+    light: {
+      container: 'bg-white border-slate-200 text-slate-800 shadow-sm',
+      header: 'bg-gradient-to-r from-blue-50/80 via-slate-50 to-indigo-50/80 border-slate-200 text-slate-900',
+      title: 'text-slate-900',
+      subtitle: 'text-slate-600',
+      panel: 'bg-white/95 border-slate-200 text-slate-800 shadow-lg',
+      subPanel: 'bg-slate-100/90 border-slate-200 text-slate-700',
+      border: 'border-slate-200',
+      input: 'bg-white border-2 border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-blue-500',
+      card: 'bg-white border-slate-200 text-slate-800 hover:border-slate-300 shadow-sm',
+      cardHeader: 'border-slate-200/90 bg-slate-50/70',
+      badge: 'bg-blue-50 text-blue-700 border-blue-200',
+      textMuted: 'text-slate-500',
+      activeTab: 'bg-blue-600 text-white shadow-md font-semibold',
+      inactiveTab: 'text-slate-600 hover:text-slate-900 hover:bg-slate-100',
+      tokenBg: 'bg-slate-50 border-slate-200',
+      tokenCard: 'bg-white border-slate-200 text-slate-800',
+    },
+    dawn: {
+      container: 'bg-[#0e1a38] border-[#1e3066] text-sky-100 shadow-xl shadow-sky-950/20',
+      header: 'bg-gradient-to-r from-[#070e22] via-[#0e1a38] to-[#132247] border-[#1e3066] text-white',
+      title: 'text-white',
+      subtitle: 'text-sky-300/80',
+      panel: 'bg-[#070e22]/95 border-[#1e3066] text-sky-200 shadow-xl shadow-sky-950/40',
+      subPanel: 'bg-[#0b152d] border-[#1e3066] text-sky-200',
+      border: 'border-[#1e3066]',
+      input: 'bg-[#070e22] border-2 border-[#1e3066] text-white placeholder:text-sky-400/50 focus:border-sky-400',
+      card: 'bg-[#0e1a38] border-[#1e3066] text-sky-100 hover:border-sky-500/60 shadow-md',
+      cardHeader: 'border-[#1e3066]/80 bg-[#070e22]/60',
+      badge: 'bg-sky-950/80 text-sky-300 border-sky-800/80',
+      textMuted: 'text-sky-300/70',
+      activeTab: 'bg-sky-600 text-white shadow-md shadow-sky-500/20 font-semibold',
+      inactiveTab: 'text-sky-300/70 hover:text-white hover:bg-sky-950/40',
+      tokenBg: 'bg-[#070e22] border-[#1e3066]',
+      tokenCard: 'bg-[#0e1a38] border-[#1e3066] text-sky-100',
+    },
+    dark: {
+      container: 'bg-slate-900 border-slate-800 text-slate-100 shadow-xl',
+      header: 'bg-gradient-to-r from-blue-950/50 via-slate-900 to-indigo-950/50 border-blue-900/40 text-white',
+      title: 'text-white',
+      subtitle: 'text-slate-300',
+      panel: 'bg-slate-900/95 border-slate-800 text-slate-300 shadow-xl shadow-black/40',
+      subPanel: 'bg-slate-950 border-slate-800 text-slate-300',
+      border: 'border-slate-800',
+      input: 'bg-slate-950 border-2 border-slate-700 text-white placeholder:text-slate-500 focus:border-blue-500',
+      card: 'bg-slate-900 border-slate-800 text-slate-100 hover:border-slate-700 shadow-md',
+      cardHeader: 'border-slate-800/80 bg-slate-950/40',
+      badge: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+      textMuted: 'text-slate-400',
+      activeTab: 'bg-blue-600 text-white shadow-md font-semibold',
+      inactiveTab: 'text-slate-400 hover:text-slate-200 hover:bg-slate-800',
+      tokenBg: 'bg-slate-950 border-slate-800',
+      tokenCard: 'bg-slate-900 border-slate-800 text-slate-100',
+    },
+  }[appTheme];
+
+  // 1.1 개별 토큰요소 프리뷰 캔버스 테마 클래스 (설정된 previewTheme 적용)
+  const previewCanvasThemeClasses = {
+    light: 'bg-slate-50/90 border border-slate-200 text-slate-800',
+    dark: 'bg-slate-950/80 border border-slate-800 text-slate-100',
+    dawn: 'bg-[#070e22]/90 border border-[#1e3066] text-sky-100',
+  }[previewTheme];
+
+  // Filter components by search and category
+  const filteredComponents = useMemo(() => {
+    return STANDARD_COMPONENTS_30.filter((c) => {
+      const matchCat = selectedCategory === 'all' || c.category === selectedCategory;
+      const q = searchQuery.toLowerCase().trim();
+      const matchSearch =
+        !q ||
+        c.id.toLowerCase().includes(q) ||
+        c.name.toLowerCase().includes(q) ||
+        c.enName.toLowerCase().includes(q) ||
+        c.description.toLowerCase().includes(q) ||
+        c.usedScreens.some((s) => s.id.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
+      return matchCat && matchSearch;
+    });
+  }, [searchQuery, selectedCategory]);
 
   return (
-    <div className="space-y-8 animate-fadeIn">
-      {/* 1. 디자인 시스템 헤더 */}
-      <div className="bg-gradient-to-r from-blue-950/40 via-slate-900 to-indigo-950/40 border border-blue-900/40 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="space-y-6 animate-fadeIn select-text pb-16">
+      {/* 1. 디자인 시스템 헤더 (1.3 장황한 설명 배제 & 기능 심플 정리) */}
+      <div className={`border rounded-2xl p-5 shadow-xl relative overflow-hidden select-text transition-all ${showcaseThemeClasses.header}`}>
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-2.5 py-0.5 text-xs font-mono font-semibold bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-md">
-                Phase 1 & 2 Completed
-              </span>
-              <span className="text-xs text-slate-400 font-mono">tokens.ts (SSOT)</span>
-            </div>
-            <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-              🎨 purePDFrend 통합 디자인 토큰 & 컴포넌트 쇼케이스
+          <div className="space-y-1">
+            <h2 className={`text-lg sm:text-xl font-bold tracking-tight flex items-center gap-2 ${showcaseThemeClasses.title}`}>
+              <span>🎨 디자인시스템 쇼케이스</span>
+              <span className="text-xs font-mono px-2 py-0.5 rounded bg-blue-500/20 text-blue-400">30 컴포넌트</span>
             </h2>
-            <p className="text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              정책 03-23 가이드라인에 의거하여 50여 개 난립 색상을 Brand/Gray/Semantic 3단계로 표준화하고, 
-              4pt 그리드 시스템과 Zero-pill 규율을 실시간으로 확인하는 인터랙티브 쇼케이스입니다.
+            <p className={`text-xs ${showcaseThemeClasses.subtitle}`}>
+              30대 표준 원자·분자 컴포넌트 프리뷰, 인터랙션 상태 테스트 및 디자인 토큰 규격
             </p>
           </div>
 
-          {/* 탭 전환 스위처 */}
-          <div className="bg-slate-950 p-1 rounded-xl border border-slate-800 flex items-center text-xs shrink-0">
+          {/* 2대 메인 탭 전환 스위처 (1.1 전환 전/후 비교 삭제 완료) */}
+          <div className={`p-1 rounded-xl border flex items-center text-xs shrink-0 ${showcaseThemeClasses.subPanel}`}>
             <button
-              onClick={() => setActiveSubTab('tokens')}
-              className={`px-3.5 py-2 min-h-[40px] rounded-lg font-medium transition-all ${
-                activeSubTab === 'tokens'
-                  ? 'bg-blue-600 text-white shadow-md font-semibold'
-                  : 'text-slate-400 hover:text-slate-200'
+              onClick={() => setActiveMainTab('components')}
+              className={`px-3.5 py-2 min-h-[40px] rounded-lg font-medium transition-all cursor-pointer ${
+                activeMainTab === 'components'
+                  ? showcaseThemeClasses.activeTab
+                  : showcaseThemeClasses.inactiveTab
+              }`}
+            >
+              🧩 30대 표준 컴포넌트
+            </button>
+            <button
+              onClick={() => setActiveMainTab('tokens')}
+              className={`px-3.5 py-2 min-h-[40px] rounded-lg font-medium transition-all cursor-pointer ${
+                activeMainTab === 'tokens'
+                  ? showcaseThemeClasses.activeTab
+                  : showcaseThemeClasses.inactiveTab
               }`}
             >
               📐 디자인 토큰 규격
             </button>
-            <button
-              onClick={() => setActiveSubTab('primitives')}
-              className={`px-3.5 py-2 min-h-[40px] rounded-lg font-medium transition-all ${
-                activeSubTab === 'primitives'
-                  ? 'bg-blue-600 text-white shadow-md font-semibold'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              🧩 표준 원자 컴포넌트
-            </button>
-            <button
-              onClick={() => setActiveSubTab('comparison')}
-              className={`px-3.5 py-2 min-h-[40px] rounded-lg font-medium transition-all ${
-                activeSubTab === 'comparison'
-                  ? 'bg-blue-600 text-white shadow-md font-semibold'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              ⚖️ 전환 전/후 비교
-            </button>
+          </div>
+        </div>
+
+        {/* 실시간 요소 검색창 */}
+        <div className="mt-4 pt-3.5 border-t border-inherit/40">
+          <div className="relative flex items-center max-w-2xl">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={`w-full pl-10 pr-9 h-11 rounded-xl text-xs sm:text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 transition-all select-text ${showcaseThemeClasses.input}`}
+              placeholder="30대 컴포넌트 이름, ID (COMP-01), 설명, 사용화면 (PG-USR-01) 검색..."
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 text-slate-400 hover:text-slate-200 cursor-pointer"
+                title="검색어 지우기"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* 2. 서브 탭 1: 디자인 토큰 규격 (Tokens) */}
-      {activeSubTab === 'tokens' && (
+      {/* =================================================================== */}
+      {/* TAB 1: 30대 표준 컴포넌트 갤러리 */}
+      {/* =================================================================== */}
+      {activeMainTab === 'components' && (
         <div className="space-y-6">
-          {/* 색상 팔레트 섹션 */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          {/* 1.5 설정 영역: 스크롤 고정 앵커 지원 (sticky toggle & 아이콘만 표시) */}
+          <div className={`border rounded-2xl p-4 shadow-xl space-y-3.5 backdrop-blur-md transition-all ${isToolbarPinned ? 'sticky top-0 z-30' : 'relative z-10'} ${showcaseThemeClasses.panel}`}>
+            {/* 카테고리 칩 필터 + 우측 고정 앵커 아이콘 표시 (아이콘만 표시 & 토글) */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`text-xs font-semibold mr-1 flex items-center gap-1 ${showcaseThemeClasses.textMuted}`}>
+                  <Sliders className="w-3.5 h-3.5 text-blue-400" /> 카테고리:
+                </span>
+                {[
+                  { id: 'all', label: `전체 (${STANDARD_COMPONENTS_30.length})` },
+                  { id: 'layout', label: '레이아웃 & 쉘 (4)' },
+                  { id: 'form', label: '입력 & 폼 필드 (6)' },
+                  { id: 'select', label: '선택 & 스위치 (4)' },
+                  { id: 'indicator', label: '뱃지 & 인디케이터 (4)' },
+                  { id: 'interaction', label: '고급 인터랙션 (4)' },
+                  { id: 'overlay', label: '팝오버 & 오버레이 (4)' },
+                  { id: 'container', label: '컨테이너 & 도크 (4)' },
+                ].map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`min-h-[34px] px-3 py-1.5 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
+                      selectedCategory === cat.id
+                        ? 'border-blue-500 bg-blue-600 text-white shadow-xs font-semibold'
+                        : `${showcaseThemeClasses.subPanel} hover:border-slate-500`
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* 1.5 고정 앵커 아이콘 표시 (아이콘만 표시하고 해제시 스크롤에 밀려나도록 토글) */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsToolbarPinned((prev) => !prev);
+                  showToast(isToolbarPinned ? '설정 영역 상단 고정이 해제되었습니다. (스크롤 시 이동)' : '설정 영역이 상단에 고정되었습니다.');
+                }}
+                className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center shrink-0 ${
+                  isToolbarPinned
+                    ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/25'
+                    : `${showcaseThemeClasses.subPanel} opacity-60 hover:opacity-100 hover:border-slate-500`
+                }`}
+                title={isToolbarPinned ? '상단 고정 해제 (클릭 시 스크롤과 함께 밀려납니다)' : '상단 고정 (클릭 시 스크롤 시에도 화면 상단에 고정됩니다)'}
+              >
+                <Pin className={`w-4 h-4 transition-transform ${isToolbarPinned ? 'rotate-45' : 'rotate-0'}`} />
+              </button>
+            </div>
+
+            {/* 옵션 및 상태 제어기 (상태, 크기, 테마, 화면모드) */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-inherit/40 text-xs">
+              <div className="flex flex-wrap items-center gap-3">
+                {/* 1) 컴포넌트 상태 (B. 각 요소별 상태에 따른 동작) */}
+                <div className="flex items-center gap-1.5">
+                  <span className={`font-medium ${showcaseThemeClasses.textMuted}`}>상태:</span>
+                  {(['default', 'hover', 'active', 'focus', 'disabled', 'error'] as const).map((st) => (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() => {
+                        setGlobalState(st);
+                        showToast(`컴포넌트 상태가 [${st}] 모드로 시뮬레이션됩니다.`);
+                      }}
+                      className={`px-2 py-1 rounded-lg font-mono text-[11px] border capitalize transition-colors cursor-pointer ${
+                        globalState === st
+                          ? 'border-blue-500 bg-blue-500/20 text-blue-400 font-bold'
+                          : `${showcaseThemeClasses.subPanel} hover:border-slate-500`
+                      }`}
+                    >
+                      {st}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 2) 컴포넌트 크기 */}
+                <div className="flex items-center gap-1.5 pl-2 border-l border-inherit/50">
+                  <span className={`font-medium ${showcaseThemeClasses.textMuted}`}>크기:</span>
+                  {(['sm', 'md', 'lg'] as const).map((sz) => (
+                    <button
+                      key={sz}
+                      type="button"
+                      onClick={() => setGlobalSize(sz)}
+                      className={`px-2 py-1 rounded-lg font-mono text-[11px] border uppercase transition-colors cursor-pointer ${
+                        globalSize === sz
+                          ? 'border-blue-500 bg-blue-500/20 text-blue-400 font-bold'
+                          : `${showcaseThemeClasses.subPanel} hover:border-slate-500`
+                      }`}
+                    >
+                      {sz}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 3) 테마 모드 선택 (A. 주간, 야간, 여명 테마 실시간 반영) */}
+                <div className="flex items-center gap-1.5 pl-2 border-l border-inherit/50">
+                  <span className={`font-medium flex items-center gap-1 ${showcaseThemeClasses.textMuted}`}>
+                    <Sun className="w-3.5 h-3.5 text-amber-400" /> 테마:
+                  </span>
+                  {[
+                    { id: 'light', label: '☀️ 주간' },
+                    { id: 'dark', label: '🌙 야간' },
+                    { id: 'dawn', label: '🌅 여명' },
+                  ].map((th) => (
+                    <button
+                      key={th.id}
+                      type="button"
+                      onClick={() => {
+                        setPreviewTheme(th.id as any);
+                        showToast(`쇼케이스 미리보기 테마가 [${th.label}] 모드로 전환되었습니다.`);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg font-mono text-[11px] border transition-colors cursor-pointer ${
+                        previewTheme === th.id
+                          ? 'border-blue-500 bg-blue-500/20 text-blue-400 font-bold'
+                          : `${showcaseThemeClasses.subPanel} hover:border-slate-500`
+                      }`}
+                    >
+                      {th.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 4) 화면 모드 선택 (A. PC태블릿, 모바일) */}
+                <div className="flex items-center gap-1.5 pl-2 border-l border-inherit/50">
+                  <span className={`font-medium flex items-center gap-1 ${showcaseThemeClasses.textMuted}`}>
+                    <Smartphone className="w-3.5 h-3.5 text-purple-400" /> 화면:
+                  </span>
+                  {[
+                    { id: 'desktop', label: '🖥️ PC/태블릿' },
+                    { id: 'mobile', label: '📱 모바일(360px)' },
+                  ].map((vp) => (
+                    <button
+                      key={vp.id}
+                      type="button"
+                      onClick={() => {
+                        setViewportMode(vp.id as any);
+                        showToast(`화면 모드가 [${vp.label}] 모드로 전환되었습니다.`);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg font-mono text-[11px] border transition-colors cursor-pointer ${
+                        viewportMode === vp.id
+                          ? 'border-blue-500 bg-blue-500/20 text-blue-400 font-bold'
+                          : `${showcaseThemeClasses.subPanel} hover:border-slate-500`
+                      }`}
+                    >
+                      {vp.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className={`text-[11px] font-mono ${showcaseThemeClasses.textMuted}`}>
+                검색 매칭: <span className="text-blue-400 font-bold">{filteredComponents.length}</span> / {STANDARD_COMPONENTS_30.length} 건
+              </div>
+            </div>
+          </div>
+
+          {/* 30대 컴포넌트 반응형 그리드 뷰 */}
+          <div className={`grid gap-5 ${viewportMode === 'mobile' ? 'grid-cols-1 max-w-xl mx-auto' : 'grid-cols-1 md:grid-cols-2'}`}>
+            {filteredComponents.map((comp) => {
+              const isCodeOpen = !!openCodeMap[comp.id];
+              const viewportTag = getComponentViewportCondition(comp);
+              return (
+                <div
+                  key={comp.id}
+                  className={`border rounded-2xl overflow-hidden shadow-md flex flex-col justify-between transition-colors select-text ${showcaseThemeClasses.card}`}
+                >
+                  {/* 카드 헤더 (ID, 카테고리, 화면조건, 테마지원 태그) */}
+                  <div className={`p-4 border-b space-y-2.5 ${showcaseThemeClasses.cardHeader}`}>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                          {comp.id}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] ${showcaseThemeClasses.subPanel}`}>
+                          {comp.categoryLabel}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-purple-500/15 text-purple-300 border border-purple-500/20">
+                          {viewportTag}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-amber-500/15 text-amber-300 border border-amber-500/20 flex items-center gap-0.5">
+                          <Sparkles className="w-2.5 h-2.5" /> 4모드 테마
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggleCodeView(comp.id)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-mono flex items-center gap-1 border transition-colors cursor-pointer shrink-0 ${
+                          isCodeOpen
+                            ? 'border-blue-500 bg-blue-500/20 text-blue-400 font-semibold'
+                            : `${showcaseThemeClasses.subPanel} hover:border-slate-500`
+                        }`}
+                        title="JSX 구현 코드 보기"
+                      >
+                        <Code className="w-3.5 h-3.5" />
+                        <span>{isCodeOpen ? '코드 닫기' : '< > 코드 보기'}</span>
+                      </button>
+                    </div>
+
+                    <div>
+                      <h3 className={`text-sm font-bold flex items-center gap-1.5 ${showcaseThemeClasses.title}`}>
+                        <span>{comp.name}</span>
+                        <span className={`text-xs font-mono font-normal ${showcaseThemeClasses.textMuted}`}>({comp.enName})</span>
+                      </h3>
+                      <p className={`text-xs mt-1 leading-relaxed ${showcaseThemeClasses.subtitle}`}>
+                        {comp.description}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 컴포넌트 실시간 인터랙티브 캔버스 (토큰 요소 결과영역: previewTheme 설정 적용) */}
+                  <div className="p-4 flex-1 flex flex-col justify-center min-w-0 w-full overflow-hidden">
+                    {viewportMode === 'mobile' ? (
+                      <div className="max-w-[360px] mx-auto w-full border-2 border-slate-700/80 bg-slate-950/90 rounded-3xl p-3 shadow-2xl relative my-1 min-w-0 overflow-hidden">
+                        <div className="w-14 h-1 bg-slate-700 rounded-full mx-auto mb-2.5" />
+                        <ComponentInteractiveRenderer
+                          meta={comp}
+                          globalState={globalState}
+                          globalSize={globalSize}
+                          previewTheme={previewTheme}
+                          viewportMode={viewportMode}
+                          onNavigateToProgram={handleNavigateToScreen}
+                          onShowToast={showToast}
+                        />
+                      </div>
+                    ) : (
+                      <div className={`w-full min-w-0 p-3.5 rounded-xl border transition-colors overflow-hidden ${previewCanvasThemeClasses}`}>
+                        <ComponentInteractiveRenderer
+                          meta={comp}
+                          globalState={globalState}
+                          globalSize={globalSize}
+                          previewTheme={previewTheme}
+                          viewportMode={viewportMode}
+                          onNavigateToProgram={handleNavigateToScreen}
+                          onShowToast={showToast}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 구현 코드 토글 표시 영역 */}
+                  {isCodeOpen && (
+                    <div className={`p-3 border-t animate-fadeIn ${showcaseThemeClasses.subPanel}`}>
+                      <div className="flex items-center justify-between text-[11px] font-mono mb-1.5">
+                        <span className={showcaseThemeClasses.textMuted}>JSX & Tailwind Snippet</span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyCode(comp.id, comp.sampleCode)}
+                          className="flex items-center gap-1 text-blue-400 hover:text-blue-300 cursor-pointer"
+                        >
+                          {copiedCodeId === comp.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{copiedCodeId === comp.id ? '복사됨!' : '코드 복사'}</span>
+                        </button>
+                      </div>
+                      <pre className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono text-blue-300 overflow-x-auto whitespace-pre leading-relaxed select-text">
+                        {comp.sampleCode}
+                      </pre>
+                    </div>
+                  )}
+
+                  {/* 카드 푸터: 사용화면 ID 표시 & 점프 링크 */}
+                  <div className={`px-4 py-2.5 border-t flex items-center justify-between text-xs ${showcaseThemeClasses.subPanel}`}>
+                    <span className={`text-[11px] font-medium ${showcaseThemeClasses.textMuted}`}>사용 화면:</span>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {comp.usedScreens.map((sc) => (
+                        <button
+                          key={sc.id}
+                          type="button"
+                          onClick={() => handleNavigateToScreen(sc.id)}
+                          className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 transition-colors flex items-center gap-1 cursor-pointer"
+                          title={`클릭 시 [${sc.id}] ${sc.name} 화면으로 즉시 이동`}
+                        >
+                          <span>{sc.id}</span>
+                          <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* =================================================================== */}
+      {/* TAB 2: 디자인 토큰 규격 (Tokens) - 테마 설정에 따라 동적 연동 */}
+      {/* =================================================================== */}
+      {activeMainTab === 'tokens' && (
+        <div className="space-y-6">
+          <div className={`border rounded-2xl p-5 shadow-sm space-y-4 ${showcaseThemeClasses.container}`}>
+            <div className="flex items-center justify-between border-b border-inherit/40 pb-3">
               <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <h3 className={`text-sm font-bold flex items-center gap-2 ${showcaseThemeClasses.title}`}>
                   <span className="w-2.5 h-2.5 rounded-sm bg-blue-500" />
-                  1. 표준 색상 시스템 (Brand / Neutral / Semantic)
+                  1. 표준 색상 시스템 (Brand / Neutral / Semantic / Dawn)
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  난립하던 임의 Hex 색상을 단일 토큰 딕셔너리로 강제 제한 (WCAG AA 명도 대비 4.5:1 준수)
+                <p className={`text-xs mt-0.5 ${showcaseThemeClasses.subtitle}`}>
+                  설정된 테마 [{previewTheme.toUpperCase()}] 기준 단일 토큰 딕셔너리 연동 (WCAG AA 명도 대비 4.5:1 준수)
                 </p>
               </div>
-              <Badge variant="primary">tokens.colors</Badge>
+              <span className="px-2.5 py-1 text-xs font-mono font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-lg">
+                tokens.colors ({previewTheme})
+              </span>
             </div>
 
-            {/* 브랜드 팔레트 */}
             <div>
-              <span className="text-xs font-semibold text-slate-300 mb-2 block font-mono">Brand Palette (Core Blue-600)</span>
+              <span className={`text-xs font-semibold mb-2 block font-mono ${showcaseThemeClasses.title}`}>Brand Palette (Core Blue-600)</span>
               <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-11 gap-2">
                 {Object.entries(tokens.colors.brand).map(([key, hex]) => (
-                  <div key={key} className="bg-slate-950 p-2 rounded-lg border border-slate-800 flex flex-col items-center">
+                  <div key={key} className={`p-2 rounded-lg border flex flex-col items-center select-text ${showcaseThemeClasses.tokenBg}`}>
                     <div className="w-full h-10 rounded-md shadow-inner mb-2 border border-slate-700/50" style={{ backgroundColor: hex }} />
-                    <span className="text-[11px] font-mono text-slate-200 font-semibold">{key}</span>
-                    <span className="text-[10px] font-mono text-slate-500">{hex}</span>
+                    <span className="text-[11px] font-mono font-semibold">{key}</span>
+                    <span className="text-[10px] font-mono opacity-60">{hex}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* 뉴트럴 팔레트 */}
             <div className="pt-2">
-              <span className="text-xs font-semibold text-slate-300 mb-2 block font-mono">Gray / Neutral Palette (Slate)</span>
+              <span className={`text-xs font-semibold mb-2 block font-mono ${showcaseThemeClasses.title}`}>Gray / Neutral Palette (Slate)</span>
               <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2">
                 {Object.entries(tokens.colors.gray).map(([key, hex]) => (
-                  <div key={key} className="bg-slate-950 p-2 rounded-lg border border-slate-800 flex flex-col items-center">
+                  <div key={key} className={`p-2 rounded-lg border flex flex-col items-center select-text ${showcaseThemeClasses.tokenBg}`}>
                     <div className="w-full h-10 rounded-md shadow-inner mb-2 border border-slate-700/50" style={{ backgroundColor: hex }} />
-                    <span className="text-[11px] font-mono text-slate-200 font-semibold">{key}</span>
-                    <span className="text-[10px] font-mono text-slate-500">{hex}</span>
+                    <span className="text-[11px] font-mono font-semibold">{key}</span>
+                    <span className="text-[10px] font-mono opacity-60">{hex}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* 시맨틱 팔레트 */}
             <div className="pt-2">
-              <span className="text-xs font-semibold text-slate-300 mb-2 block font-mono">Semantic Status Palette</span>
+              <span className={`text-xs font-semibold mb-2 block font-mono ${showcaseThemeClasses.title}`}>Semantic Status Palette</span>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 {Object.entries(tokens.colors.semantic).map(([statusKey, val]) => (
-                  <div key={statusKey} className="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-2">
+                  <div key={statusKey} className={`p-3 rounded-lg border space-y-2 select-text ${showcaseThemeClasses.tokenBg}`}>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-white capitalize">{statusKey}</span>
+                      <span className="text-xs font-bold capitalize">{statusKey}</span>
                       <span className="w-3 h-3 rounded-full" style={{ backgroundColor: val.solid }} />
                     </div>
                     <div className="p-2 rounded border text-xs" style={{ backgroundColor: val.darkBg, borderColor: val.darkBorder, color: val.darkText }}>
-                      상태 알림 미리보기
-                    </div>
-                    <div className="text-[10px] font-mono text-slate-400 space-y-0.5">
-                      <div>Solid: {val.solid}</div>
-                      <div>Text: {val.darkText}</div>
+                      Status Light/Dark Preview
                     </div>
                   </div>
                 ))}
-              </div>
-            </div>
-
-            {/* 4모드 테마 시스템 (Light, Dark, Dawn, System) */}
-            <div className="space-y-3 pt-3 border-t border-slate-800">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-sky-400" />
-                    4모드 테마 시스템 및 여명(Dawn) 블루 팔레트
-                  </h4>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
-                    주간(Light), 야간(Dark), 여명(Dawn), 시스템설정(System) 4단계 테마 동적 바인딩
-                  </p>
-                </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 bg-sky-500/20 text-sky-400 border border-sky-500/30 rounded">
-                  4-Mode Theme Engine
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="p-3 rounded-lg border border-slate-200 bg-white text-slate-900 space-y-2 shadow-sm">
-                  <div className="flex items-center justify-between text-xs font-bold">
-                    <span>☀️ 주간 (Light)</span>
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                  </div>
-                  <div className="flex items-center gap-2 py-1">
-                    <PdfrendLogo size={28} theme="light" />
-                    <span className="text-xs font-black tracking-tight text-slate-900">PDFrend</span>
-                  </div>
-                  <div className="text-[11px] text-slate-600">밝고 선명한 주간 독서 환경</div>
-                  <div className="text-[10px] font-mono text-slate-500 pt-1 border-t border-slate-100">
-                    bg: #ffffff | text: #0f172a
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-lg border border-slate-800 bg-slate-950 text-slate-100 space-y-2 shadow-sm">
-                  <div className="flex items-center justify-between text-xs font-bold">
-                    <span>🌙 야간 (Dark)</span>
-                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
-                  </div>
-                  <div className="flex items-center gap-2 py-1">
-                    <PdfrendLogo size={28} theme="dark" />
-                    <span className="text-xs font-black tracking-tight text-white">PDFrend</span>
-                  </div>
-                  <div className="text-[11px] text-slate-400">눈부심 없는 OLED 다크 모드</div>
-                  <div className="text-[10px] font-mono text-slate-500 pt-1 border-t border-slate-900">
-                    bg: #020617 | text: #f8fafc
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-lg border border-sky-900/60 bg-[#070e22] text-[#f0f6ff] space-y-2 shadow-sm ring-1 ring-sky-500/20">
-                  <div className="flex items-center justify-between text-xs font-bold text-sky-300">
-                    <span>🌅 여명 (Dawn)</span>
-                    <span className="w-2.5 h-2.5 rounded-full bg-sky-400" />
-                  </div>
-                  <div className="flex items-center gap-2 py-1">
-                    <PdfrendLogo size={28} theme="dawn" />
-                    <span className="text-xs font-black tracking-tight text-sky-100">PDFrend</span>
-                  </div>
-                  <div className="text-[11px] text-slate-300">새벽 미드나잇 블루 고대비</div>
-                  <div className="text-[10px] font-mono text-sky-400/80 pt-1 border-t border-sky-950">
-                    bg: #070e22 | accent: #38bdf8
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-lg border border-slate-800 bg-slate-900/80 text-slate-100 space-y-2 shadow-sm">
-                  <div className="flex items-center justify-between text-xs font-bold text-emerald-400">
-                    <span>💻 시스템 (System)</span>
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                  </div>
-                  <div className="flex items-center gap-2 py-1">
-                    <PdfrendLogo size={28} theme="dark" />
-                    <span className="text-xs font-black tracking-tight text-white">PDFrend</span>
-                  </div>
-                  <div className="text-[11px] text-slate-400">OS 화면 설정 실시간 자동 동기화</div>
-                  <div className="text-[10px] font-mono text-emerald-500 pt-1 border-t border-slate-800">
-                    matchMedia prefers-color-scheme
-                  </div>
-                </div>
               </div>
             </div>
           </div>
 
-          {/* 4pt 스페이싱 & 모서리 규율 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
-              <div className="border-b border-slate-800 pb-3">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-indigo-500" />
-                  2. 4pt 그리드 스페이싱 시스템
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  여백과 패딩을 4px 배수로 완전 고정하여 정렬 오차 제거
-                </p>
-              </div>
-              <div className="space-y-2">
-                {Object.entries(tokens.spacing).slice(1, 9).map(([step, px]) => (
-                  <div key={step} className="flex items-center gap-3 text-xs">
-                    <span className="w-12 font-mono text-slate-400 font-semibold">{step} ({px})</span>
-                    <div className="flex-1 bg-slate-950 rounded p-1 border border-slate-800">
-                      <div className="bg-blue-600/80 h-3 rounded-sm" style={{ width: px }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
+          <div className={`border rounded-2xl p-5 shadow-sm space-y-4 ${showcaseThemeClasses.container}`}>
+            <div className="border-b border-inherit/40 pb-3">
+              <h3 className={`text-sm font-bold flex items-center gap-2 ${showcaseThemeClasses.title}`}>
+                <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />
+                2. 모서리 둥글기 (Zero-Pill 규율)
+              </h3>
+              <p className={`text-xs mt-0.5 ${showcaseThemeClasses.subtitle}`}>
+                직사각형 컨테이너에 pill(둥근알약) 남발 금지 (최대 16px 이내 규격화)
+              </p>
             </div>
-
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
-              <div className="border-b border-slate-800 pb-3">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />
-                  3. 모서리 둥글기 (Zero-Pill 규율)
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  직사각형 컨테이너에 pill(둥근알약) 남발 금지 (최대 16px 이내)
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                {Object.entries(tokens.radius).filter(([k]) => k !== 'none').map(([name, r]) => (
-                  <div key={name} className="bg-slate-950 p-3 border border-slate-800 flex items-center justify-between" style={{ borderRadius: r }}>
-                    <span className="text-xs font-mono text-slate-300 font-medium">{name} ({r})</span>
-                    <span className="text-[10px] px-1.5 py-0.5 bg-slate-800 text-slate-400 font-mono rounded">규격 준수</span>
-                  </div>
-                ))}
-              </div>
-              <div className="p-3 bg-rose-950/30 border border-rose-900/50 rounded-lg text-xs text-rose-300 flex items-center gap-2">
-                <span>🚫</span>
-                <span>비권장(Anti-pattern): 직사각형 버튼/패널에 `rounded-full` 적용 금지</span>
-              </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {Object.entries(tokens.radius).filter(([k]) => k !== 'none').map(([name, r]) => (
+                <div key={name} className={`p-3 border flex items-center justify-between select-text ${showcaseThemeClasses.tokenBg}`} style={{ borderRadius: r }}>
+                  <span className="text-xs font-mono font-medium">{name} ({r})</span>
+                  <span className="text-[10px] px-1.5 py-0.5 bg-blue-500/20 text-blue-400 font-mono rounded">규격 준수</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       )}
 
-      {/* 3. 서브 탭 2: 표준 원자 컴포넌트 갤러리 (Primitives) */}
-      {activeSubTab === 'primitives' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* 버튼 컴포넌트 규격 */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
-              <div className="border-b border-slate-800 pb-3">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <span>🔘</span> Button (모바일 터치 44px 보장 & 규격 변형)
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">tokens 기반 6대 베리언트 및 사이즈</p>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <span className="text-xs font-medium text-slate-400 block mb-2">Variants:</span>
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="primary" size="md">Primary</Button>
-                    <Button variant="secondary" size="md">Secondary</Button>
-                    <Button variant="outline" size="md">Outline</Button>
-                    <Button variant="ghost" size="md">Ghost</Button>
-                    <Button variant="danger" size="md">Danger</Button>
-                    <Button variant="success" size="md">Success</Button>
-                  </div>
-                </div>
-
-                <div>
-                  <span className="text-xs font-medium text-slate-400 block mb-2">Sizes (with Touch Target):</span>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button variant="primary" size="sm">Small (30px)</Button>
-                    <Button variant="primary" size="md">Medium (38px)</Button>
-                    <Button variant="primary" size="lg">Large (44px 터치)</Button>
-                    <Button variant="primary" size="md" isLoading>로딩 중</Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 인풋 & 폼 컨트롤 규격 */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
-              <div className="border-b border-slate-800 pb-3">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <span>⌨️</span> Input (4pt 그리드 & 명확한 포커스 링)
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">WCAG AA 기준 명도 대비 및 에러 상태</p>
-              </div>
-
-              <div className="space-y-3">
-                <Input
-                  label="문서 파일명"
-                  value={sampleInput}
-                  onChange={(e) => setSampleInput(e.target.value)}
-                  placeholder="파일명 입력"
-                />
-                <Input
-                  label="보안 정책 (에러 상태 예시)"
-                  defaultValue="INV-PASS"
-                  error="보안 암호화 규칙이 유효하지 않습니다."
-                />
-              </div>
-            </div>
-
-            {/* 뱃지 & 상태 표시 규격 */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
-              <div className="border-b border-slate-800 pb-3">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <span>🏷️</span> Badge (시맨틱 상태 표시)
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">상태 알림 및 점(dot) 표시 지원</p>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="neutral">Neutral</Badge>
-                  <Badge variant="primary">Primary</Badge>
-                  <Badge variant="success" dot>Success (Active)</Badge>
-                  <Badge variant="warning" dot>Warning (Pending)</Badge>
-                  <Badge variant="danger" dot>Danger (Error)</Badge>
-                  <Badge variant="info">Info</Badge>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="success" size="md">Large Success</Badge>
-                  <Badge variant="danger" size="md">Large Danger</Badge>
-                </div>
-              </div>
-            </div>
-
-            {/* 카드 & 컨테이너 엘리베이션 */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
-              <div className="border-b border-slate-800 pb-3">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <span>🃏</span> Card & Panel (엘레베이션 & 모서리 규율)
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">다크 배경 계층화 및 은은한 테두리 하이라이트</p>
-              </div>
-
-              <div className="space-y-3">
-                <Card variant="default">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-white">표준 카드 (Default)</span>
-                    <Badge variant="neutral">tokens.radius.lg</Badge>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">배경 slate-900 + border slate-800 + 미세 그림자</p>
-                </Card>
-
-                <Card variant="default" interactive onClick={() => setSelectedVariant(selectedVariant === 'primary' ? 'secondary' : 'primary')}>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-white">인터랙티브 카드 (클릭 가능)</span>
-                    <Badge variant="primary">Interactive Hover</Badge>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">호버 시 테두리 반응 및 부드러운 전환 효과</p>
-                </Card>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 4. 서브 탭 3: 전환 전/후 비교 (Comparison) */}
-      {activeSubTab === 'comparison' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 전환 전: 임의 스타일 와이어프레임 */}
-            <div className="bg-slate-950 border border-rose-900/40 rounded-xl p-5 space-y-4 relative">
-              <div className="flex items-center justify-between border-b border-rose-900/30 pb-3">
-                <div>
-                  <h4 className="text-sm font-bold text-rose-400 flex items-center gap-2">
-                    <span>⚠️</span> 전환 전: 임의 Tailwind 스타일 (비표준)
-                  </h4>
-                  <p className="text-xs text-slate-500 mt-0.5">화면마다 제각각인 색상, 알약형 버튼, 불일치 여백</p>
-                </div>
-                <span className="px-2 py-0.5 text-[11px] font-mono bg-rose-950 text-rose-400 border border-rose-800 rounded">
-                  AS-IS (난립 상태)
-                </span>
-              </div>
-
-              <div className="space-y-4 opacity-80">
-                <div className="p-4 bg-gray-800 rounded-full border border-gray-600 flex items-center justify-between">
-                  <span className="text-xs text-yellow-300">비표준 알약형 컨테이너 (Anti-pattern)</span>
-                  <button className="px-5 py-1 bg-purple-600 text-xs rounded-full text-white">알약 버튼</button>
-                </div>
-
-                <div className="p-3 bg-neutral-900 rounded-none border border-cyan-700 space-y-2">
-                  <span className="text-xs text-cyan-400 font-serif">불일치 폰트 & 0px 각진 테두리</span>
-                  <div className="flex gap-1">
-                    <input className="bg-black text-xs text-green-400 p-1 border border-green-700 w-full" defaultValue="임의 입력창" />
-                  </div>
-                </div>
-
-                <p className="text-xs text-slate-400 leading-relaxed bg-slate-900/60 p-3 rounded">
-                  • 문제점: 색상 코드 50종 이상 중복, 컴포넌트 재사용 불가, 모바일 터치 영역 24px로 접근성 결여.
-                </p>
-              </div>
-            </div>
-
-            {/* 전환 후: tokens.ts 및 디자인 시스템 적용 */}
-            <div className="bg-slate-900 border border-blue-900/60 rounded-xl p-5 space-y-4 shadow-lg shadow-blue-950/20">
-              <div className="flex items-center justify-between border-b border-blue-900/40 pb-3">
-                <div>
-                  <h4 className="text-sm font-bold text-blue-400 flex items-center gap-2">
-                    <span>✨</span> 전환 후: tokens.ts 기반 단일 표준 (TO-BE)
-                  </h4>
-                  <p className="text-xs text-slate-400 mt-0.5">일관된 4pt 여백, 브랜드 통일, 44px 터치 보장</p>
-                </div>
-                <span className="px-2 py-0.5 text-[11px] font-mono bg-blue-950 text-blue-300 border border-blue-800 rounded-md">
-                  TO-BE (모아보고 정책)
-                </span>
-              </div>
-
-              <div className="space-y-4">
-                <Card variant="default">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-sm font-semibold text-white">규격 카드 컴포넌트</span>
-                      <p className="text-xs text-slate-400">Zero-pill 규율 준수 (radius.lg: 8px)</p>
-                    </div>
-                    <Button variant="primary" size="md">표준 버튼</Button>
-                  </div>
-                </Card>
-
-                <div className="p-4 bg-slate-950/80 rounded-xl border border-slate-800 space-y-3">
-                  <Input
-                    label="표준 폼 인풋 (44px 터치 타겟)"
-                    defaultValue="purePDFrend-official-policy.pdf"
-                  />
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-xs text-slate-400">상태 모니터링:</span>
-                    <Badge variant="success" dot>규격 검증 완료</Badge>
-                  </div>
-                </div>
-
-                <p className="text-xs text-blue-300/90 leading-relaxed bg-blue-950/30 border border-blue-900/30 p-3 rounded-lg">
-                  • 개선점: `tokens.ts` 1곳에서 전역 테마 및 스타일 통제, 44px 모바일 터치 완벽 지원, 23개 화면 공통 쉘 전환 기반 완성.
-                </p>
-              </div>
-            </div>
-          </div>
+      {/* 플로팅 상태 피드백 토스트 레이어 */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-2xl border border-slate-700 text-xs font-medium animate-fadeIn select-text">
+          <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
         </div>
       )}
     </div>
