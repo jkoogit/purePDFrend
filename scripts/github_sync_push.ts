@@ -155,6 +155,19 @@ async function syncViaAntigravityLocalGit(
   // 1. Identify active branch
   const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8' }).trim();
   const activeTaskBranch = taskBranch || currentBranch;
+
+  // 1-1. Commit any uncommitted changes on activeTaskBranch first
+  const statusOutput = execSync('git status --porcelain', { encoding: 'utf8' }).trim();
+  if (statusOutput.length > 0) {
+    console.log(`   📝 Committing uncommitted changes on '${activeTaskBranch}'...`);
+    execSync('git add -A', { stdio: 'pipe' });
+    try {
+      execSync(`git commit -m "${commitMessage.replace(/"/g, '\\"')}"`, { stdio: 'pipe' });
+    } catch (e: any) {
+      console.warn('   ⚠️ Commit skipped or already clean:', e.message);
+    }
+  }
+
   const currentSha = execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
   console.log(`📌 Active Task Branch: ${activeTaskBranch} (HEAD SHA: ${currentSha})`);
 
