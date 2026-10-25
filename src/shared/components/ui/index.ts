@@ -6,3 +6,5 @@ export * from './Badge';
 export * from './Modal';
 export * from './KeyCap';
 export * from './ToolIcon';
+export * from './showcaseData';
+export * from './ShowcaseComponentsPool';
