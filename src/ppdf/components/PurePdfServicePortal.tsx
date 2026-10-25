@@ -12,6 +12,7 @@ import {
   Sparkles,
   UserPlus,
   ShieldCheck,
+  Search,
 } from 'lucide-react';
 import { UserSystemRole, PdfPageItem } from '../../types';
 import { ThemeMode, ResolvedTheme, resolveThemeMode, applyThemeToDocument, getThemeAdaptiveClasses } from '../../styles/tokens';
@@ -244,7 +245,7 @@ export default function PurePdfServicePortal({
               <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-500 border border-blue-500/25 font-semibold">Portal v2.0</span>
             </div>
             <p className={`text-xs ${themeClasses.textMuted} mt-0.5`}>
-              대용량 스캔 PDF 듀얼 OCR, 800쪽 고속 가상화 뷰어 및 7대 핵심 도구 스튜디오
+              편리하게 PDF 문서를 열고, 글자를 추출하며, 안전하게 편집하고 공유할 수 있는 스마트 전자문서 서비스입니다.
             </p>
           </div>
         </div>
@@ -304,7 +305,7 @@ export default function PurePdfServicePortal({
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 type="button"
                 id="btn-portal-open-login"
@@ -312,10 +313,10 @@ export default function PurePdfServicePortal({
                   setLoginTab('signin');
                   setShowLoginModal(true);
                 }}
-                className={`min-h-[38px] px-4 py-1.5 rounded-xl text-xs ${themeClasses.buttonPrimary} flex items-center gap-1.5 cursor-pointer shadow-sm`}
+                className={`min-h-[38px] px-4 py-1.5 rounded-xl text-xs ${themeClasses.buttonPrimary} flex items-center gap-1.5 cursor-pointer shadow-sm whitespace-nowrap`}
               >
                 <LogIn className="w-3.5 h-3.5" />
-                <span>로그인 / 권한시뮬</span>
+                <span>로그인</span>
               </button>
               <button
                 type="button"
@@ -323,7 +324,7 @@ export default function PurePdfServicePortal({
                   setLoginTab('signup');
                   setShowLoginModal(true);
                 }}
-                className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs ${themeClasses.buttonOutline} flex items-center gap-1.5 cursor-pointer`}
+                className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs ${themeClasses.buttonOutline} flex items-center gap-1.5 cursor-pointer whitespace-nowrap`}
               >
                 <UserPlus className="w-3.5 h-3.5" />
                 <span>회원가입</span>
@@ -565,34 +566,6 @@ export default function PurePdfServicePortal({
       ) : (
         /* B. 공개 첫화면 (PG-USR-01 랜딩) 전개 영역 */
         <div className="space-y-5 text-xs">
-          {/* 비로그인 사용자 전용 환영 & 빠른 로그인/대시보드 안내 배너 */}
-          {!isLoggedIn && (
-            <div className={`p-4 rounded-2xl border ${themeClasses.container} flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg`}>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-500 flex items-center justify-center text-lg shrink-0">
-                  ⚡
-                </div>
-                <div>
-                  <h4 className={`text-xs font-bold ${themeClasses.textMain}`}>7대 PDF 핵심 도구 및 전용 대시보드가 준비되어 있습니다</h4>
-                  <p className={`text-[11px] ${themeClasses.textMuted} mt-0.5`}>
-                    로그인하시면 개인화된 문서 라이브러리, 주석 스튜디오 및 작업 대시보드(PG-USR-03)가 즉시 활성화됩니다.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setLoginTab('signin');
-                  setShowLoginModal(true);
-                }}
-                className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer active:scale-95 shrink-0 whitespace-nowrap ${themeClasses.buttonPrimary}`}
-              >
-                <LogIn className="w-4 h-4" />
-                <span>로그인하고 대시보드 열기 ➔</span>
-              </button>
-            </div>
-          )}
-
         {/* 2-1. 중앙 롤링 이벤트 및 프로모션 배너 슬라이더 */}
         <div className="space-y-2">
           {bannerList.length > 0 ? (
@@ -876,22 +849,33 @@ export default function PurePdfServicePortal({
             </span>
           </div>
           <div className="flex flex-wrap sm:flex-nowrap gap-2.5 mt-1">
-            <input
-              type="text"
-              value={searchDocQuery}
-              onChange={(e) => setSearchDocQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleOpenSampleDoc(searchDocQuery || 'ISO 32000-2 표준 가이드북');
-                }
-              }}
-              placeholder="공유받은 문서 고유번호(DOC-xxxx) 또는 공유 링크를 입력하세요..."
-              className={`flex-1 min-w-[220px] ${themeClasses.input} rounded-lg px-3.5 py-2.5 text-xs outline-none transition-colors`}
-            />
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none transition-colors ${
+                searchDocQuery ? 'text-blue-500' : themeClasses.textMuted
+              }`} />
+              <input
+                type="text"
+                value={searchDocQuery}
+                onChange={(e) => setSearchDocQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleOpenSampleDoc(searchDocQuery || 'ISO 32000-2 표준 가이드북');
+                  }
+                }}
+                placeholder="공유받은 문서 고유번호(DOC-xxxx) 또는 공유 링크를 입력하세요..."
+                className={`w-full rounded-xl pl-10 pr-4 py-2.5 text-xs outline-none transition-all border-2 shadow-xs ${
+                  resolvedTheme === 'light'
+                    ? 'bg-slate-50/90 border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20'
+                    : resolvedTheme === 'dawn'
+                    ? 'bg-[#070e22] border-[#1e3066] text-white placeholder:text-sky-400/50 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20'
+                    : 'bg-slate-950/90 border-slate-700 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
+                }`}
+              />
+            </div>
             <button
               id="btn-public-doc-open"
               onClick={() => handleOpenSampleDoc(searchDocQuery || 'ISO 32000-2 표준 가이드북')}
-              className={`whitespace-nowrap w-full sm:w-auto px-5 py-2.5 ${themeClasses.buttonPrimary} rounded-lg font-medium transition-all shadow-md active:scale-95 shrink-0 flex items-center justify-center gap-1.5 cursor-pointer`}
+              className={`whitespace-nowrap w-full sm:w-auto px-5 py-2.5 ${themeClasses.buttonPrimary} rounded-xl font-medium transition-all shadow-md active:scale-95 shrink-0 flex items-center justify-center gap-1.5 cursor-pointer`}
             >
               <span className="whitespace-nowrap font-semibold">열람하기</span>
               <span>➔</span>

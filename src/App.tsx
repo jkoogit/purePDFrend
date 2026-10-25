@@ -161,6 +161,8 @@ export default function App() {
         else if (detail.progId === 'PG-AGN-04') setActiveView('audit');
         else if (detail.progId === 'PG-AGN-05') setActiveView('docs');
         else if (detail.progId === 'PG-AGN-06') setActiveView('settings');
+      } else if (detail?.type === 'user' && detail?.progId === 'PG-USR-01') {
+        setActiveSystem('service');
       } else if (detail?.type === 'settings') {
         setActiveSystem('settings');
       } else {
