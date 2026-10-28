@@ -22,7 +22,6 @@ import {
 import { HistoryManager } from '../services/PageHistoryManager';
 import { usePdfConfig } from '../services/PdfConfigManager';
 import PdfSettingsModal from './PdfSettingsModal';
-import { ThemeMode, resolveThemeMode, getThemeAdaptiveClasses } from '../../styles/tokens';
 
 interface OCRCorrectionStudioProps {
   initialBoxes?: BoundingBoxItem[];
@@ -30,7 +29,6 @@ interface OCRCorrectionStudioProps {
   onBackToViewer?: () => void;
   sampleImageUrl?: string;
   pageNumber?: number;
-  themeMode?: ThemeMode;
 }
 
 const DEFAULT_SAMPLE_BOXES: BoundingBoxItem[] = [
@@ -92,11 +90,7 @@ export default function OCRCorrectionStudio({
   onBackToViewer,
   sampleImageUrl,
   pageNumber = 1,
-  themeMode,
 }: OCRCorrectionStudioProps) {
-  const resolvedTheme = React.useMemo(() => resolveThemeMode(themeMode || 'dark'), [themeMode]);
-  const themeClasses = React.useMemo(() => getThemeAdaptiveClasses(resolvedTheme), [resolvedTheme]);
-
   const config = usePdfConfig();
 
   // History Manager (Command & Memento Pattern)
@@ -439,15 +433,15 @@ export default function OCRCorrectionStudio({
   const stats = historyManagerRef.current.getStats();
 
   return (
-    <div className={`flex flex-col h-full ${themeClasses.shellBg} select-none`}>
+    <div className="flex flex-col h-full bg-slate-950 text-slate-100 select-none">
       {/* Top Action Toolbar */}
-      <div className={`flex items-center justify-between px-4 py-2.5 ${themeClasses.subPanel} border-b ${themeClasses.border} shadow-md`}>
+      <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800 shadow-md">
         {/* Left: Back & Title & Page Badge */}
         <div className="flex items-center gap-3">
           {onBackToViewer && (
             <button
               onClick={onBackToViewer}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${themeClasses.card} hover:${themeClasses.cardHover} text-xs font-semibold ${themeClasses.textMain} border ${themeClasses.border} transition`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 hover:text-white border border-slate-700 transition"
               title="뷰어로 돌아가기"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
@@ -456,7 +450,7 @@ export default function OCRCorrectionStudio({
           )}
 
           <div className="flex items-center gap-2">
-            <span className={`text-sm font-bold ${themeClasses.textMain} flex items-center gap-1.5`}>
+            <span className="text-sm font-bold text-white flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-indigo-400" />
               2-Way BBox 인라인 교정기
             </span>
@@ -469,7 +463,7 @@ export default function OCRCorrectionStudio({
                 Live Sync ON
               </span>
             ) : (
-              <span className={`text-[11px] px-2 py-0.5 rounded-full ${themeClasses.card} ${themeClasses.textMuted} border ${themeClasses.border}`}>
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
                 수동 저장 모드
               </span>
             )}
@@ -477,14 +471,14 @@ export default function OCRCorrectionStudio({
         </div>
 
         {/* Center: Tools (Undo/Redo, Zoom, Pan, Merge, Split) */}
-        <div className={`flex items-center gap-1.5 ${themeClasses.card} p-1 rounded-xl border ${themeClasses.border}`}>
+        <div className="flex items-center gap-1.5 bg-slate-800/80 p-1 rounded-xl border border-slate-700/60">
           <button
             onClick={handleUndo}
             disabled={!stats.canUndo}
             className={`p-1.5 rounded-lg text-xs flex items-center gap-1 ${
               stats.canUndo
-                ? `${themeClasses.textMain} hover:${themeClasses.cardHover}`
-                : `${themeClasses.textMuted} opacity-40 cursor-not-allowed`
+                ? 'text-slate-200 hover:bg-slate-700 hover:text-white'
+                : 'text-slate-600 cursor-not-allowed'
             }`}
             title="실행취소 (Ctrl+Z)"
           >
@@ -496,8 +490,8 @@ export default function OCRCorrectionStudio({
             disabled={!stats.canRedo}
             className={`p-1.5 rounded-lg text-xs flex items-center gap-1 ${
               stats.canRedo
-                ? `${themeClasses.textMain} hover:${themeClasses.cardHover}`
-                : `${themeClasses.textMuted} opacity-40 cursor-not-allowed`
+                ? 'text-slate-200 hover:bg-slate-700 hover:text-white'
+                : 'text-slate-600 cursor-not-allowed'
             }`}
             title="다시실행 (Ctrl+Y)"
           >
@@ -505,14 +499,14 @@ export default function OCRCorrectionStudio({
             <span className="text-[10px] hidden md:inline">Redo({stats.redoCount})</span>
           </button>
 
-          <div className={`w-px h-4 ${themeClasses.border} mx-1`} />
+          <div className="w-px h-4 bg-slate-700 mx-1" />
 
           <button
             onClick={() => setIsPanMode(!isPanMode)}
             className={`p-1.5 rounded-lg text-xs flex items-center gap-1 ${
               isPanMode
                 ? 'bg-indigo-600 text-white shadow-sm'
-                : `${themeClasses.textMuted} hover:${themeClasses.textMain}`
+                : 'text-slate-300 hover:bg-slate-700'
             }`}
             title="캔버스 이동 (Pan Mode)"
           >
@@ -520,30 +514,30 @@ export default function OCRCorrectionStudio({
           </button>
           <button
             onClick={handleZoomOut}
-            className={`p-1.5 rounded-lg ${themeClasses.textMuted} hover:${themeClasses.textMain}`}
+            className="p-1.5 rounded-lg text-slate-300 hover:bg-slate-700"
             title="축소"
           >
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
-          <span className={`text-xs font-mono font-semibold px-1 ${themeClasses.textMain} min-w-[40px] text-center`}>
+          <span className="text-xs font-mono font-semibold px-1 text-slate-300 min-w-[40px] text-center">
             {zoomLevel}%
           </span>
           <button
             onClick={handleZoomIn}
-            className={`p-1.5 rounded-lg ${themeClasses.textMuted} hover:${themeClasses.textMain}`}
+            className="p-1.5 rounded-lg text-slate-300 hover:bg-slate-700"
             title="확대"
           >
             <ZoomIn className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={handleResetZoom}
-            className={`p-1.5 rounded-lg ${themeClasses.textMuted} hover:${themeClasses.textMain}`}
+            className="p-1.5 rounded-lg text-slate-300 hover:bg-slate-700"
             title="100% 리셋"
           >
             <Maximize2 className="w-3.5 h-3.5" />
           </button>
 
-          <div className={`w-px h-4 ${themeClasses.border} mx-1`} />
+          <div className="w-px h-4 bg-slate-700 mx-1" />
 
           <button
             onClick={handleMergeSelected}
@@ -551,7 +545,7 @@ export default function OCRCorrectionStudio({
             className={`px-2 py-1 rounded-lg text-xs flex items-center gap-1 font-medium ${
               selectedBoxIds.size >= 2
                 ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-600 hover:text-white'
-                : `${themeClasses.textMuted} opacity-40 cursor-not-allowed`
+                : 'text-slate-600 border border-transparent cursor-not-allowed'
             }`}
             title="선택된 박스 병합 (M)"
           >
@@ -561,7 +555,7 @@ export default function OCRCorrectionStudio({
 
           <button
             onClick={handleSplitActiveBox}
-            className={`px-2 py-1 rounded-lg text-xs flex items-center gap-1 font-medium ${themeClasses.card} hover:${themeClasses.cardHover} ${themeClasses.textMain} border ${themeClasses.border}`}
+            className="px-2 py-1 rounded-lg text-xs flex items-center gap-1 font-medium text-slate-300 hover:bg-slate-700 border border-slate-700/60"
             title="현재 박스 2분할 (S)"
           >
             <SplitSquareVertical className="w-3.5 h-3.5" />
@@ -590,7 +584,7 @@ export default function OCRCorrectionStudio({
 
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className={`p-1.5 rounded-lg ${themeClasses.card} hover:${themeClasses.cardHover} ${themeClasses.textMain} border ${themeClasses.border} transition`}
+            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition"
             title="PDF 시스템 환경설정"
           >
             <Settings className="w-4 h-4" />
@@ -611,7 +605,7 @@ export default function OCRCorrectionStudio({
           }}
           onMouseMove={handleContainerMouseMove}
           onMouseUp={handleContainerMouseUp}
-          className={`flex-1 relative overflow-hidden ${themeClasses.panel} flex items-center justify-center p-6 border-r ${themeClasses.border} ${
+          className={`flex-1 relative overflow-hidden bg-slate-900/60 flex items-center justify-center p-6 border-r border-slate-800 ${
             isPanMode ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
           }`}
         >
@@ -713,14 +707,14 @@ export default function OCRCorrectionStudio({
         </div>
 
         {/* Right Pane: 2-Way Inline Text Editor List */}
-        <div className={`w-full md:w-[480px] ${themeClasses.card} flex flex-col border-l ${themeClasses.border}`}>
-          <div className={`p-3.5 border-b ${themeClasses.border} flex items-center justify-between ${themeClasses.subPanel}`}>
+        <div className="w-full md:w-[480px] bg-slate-900 flex flex-col border-l border-slate-800">
+          <div className="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
             <div className="flex items-center gap-2">
               <Layers className="w-4 h-4 text-indigo-400" />
-              <span className={`text-xs font-bold ${themeClasses.textMain}`}>인라인 OCR 텍스트 목록</span>
-              <span className={`text-[11px] ${themeClasses.textMuted} font-mono`}>({boxes.length}개 행)</span>
+              <span className="text-xs font-bold text-slate-200">인라인 OCR 텍스트 목록</span>
+              <span className="text-[11px] text-slate-400 font-mono">({boxes.length}개 행)</span>
             </div>
-            <div className={`text-[11px] ${themeClasses.textMuted} flex items-center gap-1`}>
+            <div className="text-[11px] text-slate-400 flex items-center gap-1">
               <HelpCircle className="w-3 h-3 text-slate-500" />
               <span>Shift+드래그: 1px 미세조정</span>
             </div>
@@ -742,12 +736,12 @@ export default function OCRCorrectionStudio({
                       ? 'border-indigo-500 bg-indigo-950/40 ring-1 ring-indigo-500/40'
                       : isSelected
                       ? 'border-amber-500/50 bg-amber-950/20'
-                      : `${themeClasses.subPanel} border-${themeClasses.border} hover:${themeClasses.cardHover}`
+                      : 'border-slate-800 bg-slate-800/40 hover:bg-slate-800/70 hover:border-slate-700'
                   }`}
                 >
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
-                      <span className={`font-mono ${themeClasses.textMuted} font-semibold`}>#{index + 1}</span>
+                      <span className="font-mono text-slate-400 font-semibold">#{index + 1}</span>
                       {isLowConf && config.showConfidenceBadges ? (
                         <span className="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
                           <AlertTriangle className="w-2.5 h-2.5" />
@@ -766,7 +760,7 @@ export default function OCRCorrectionStudio({
                     </div>
 
                     <div className="flex items-center gap-1.5">
-                      <span className={`text-[10px] ${themeClasses.textMuted} font-mono`}>
+                      <span className="text-[10px] text-slate-500 font-mono">
                         X:{box.x.toFixed(0)} Y:{box.y.toFixed(0)} W:{box.w.toFixed(0)}
                       </span>
                       <button
@@ -788,7 +782,7 @@ export default function OCRCorrectionStudio({
                     onChange={(e) => handleUpdateText(box.id, e.target.value)}
                     onFocus={() => handleSelectBox(box.id)}
                     rows={2}
-                    className={`w-full ${themeClasses.input} border ${themeClasses.border} rounded-lg p-2 text-xs ${themeClasses.textMain} font-sans focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none`}
+                    className="w-full bg-slate-950/80 border border-slate-700/80 rounded-lg p-2 text-xs text-slate-100 font-sans focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none"
                     placeholder="인식된 OCR 텍스트 교정..."
                   />
                 </div>

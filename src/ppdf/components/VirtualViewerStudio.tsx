@@ -40,22 +40,16 @@ import { PageThumbnailSidebar } from './PageThumbnailSidebar';
 import PdfSettingsModal from './PdfSettingsModal';
 import { OcrBatchProgressModal } from './OcrBatchProgressModal';
 import { PageOcrJob } from '../services/ocr/OcrBatchQueueManager';
-import { ThemeMode, resolveThemeMode, getThemeAdaptiveClasses } from '../../styles/tokens';
 
 interface VirtualViewerStudioProps {
   onNavigateToCorrection?: (page: PdfPageItem) => void;
   onNavigateView?: (viewId: ActiveViewId) => void;
-  themeMode?: ThemeMode;
 }
 
 export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
   onNavigateToCorrection,
   onNavigateView,
-  themeMode,
 }) => {
-  const resolvedTheme = React.useMemo(() => resolveThemeMode(themeMode || 'dark'), [themeMode]);
-  const themeClasses = React.useMemo(() => getThemeAdaptiveClasses(resolvedTheme), [resolvedTheme]);
-
   // 1. Initial Pages Generator
   const bookTitle = '엔터프라이즈 디지털 도서 아카이빙 표준 지침서';
   const initialPages = useRef<PdfPageItem[]>(
@@ -373,7 +367,7 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
   const deletedPagesCount = pages.filter((p) => p.isDeleted).length;
 
   return (
-    <div className={`flex h-[calc(100vh-4rem)] max-w-full w-full ${themeClasses.shellBg} overflow-hidden select-none relative`}>
+    <div className="flex h-[calc(100vh-4rem)] max-w-full w-full bg-slate-950 text-slate-100 overflow-hidden select-none relative">
       {/* Toast Notification Banner */}
       {toastMessage && (
         <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 bg-indigo-900/90 text-indigo-100 border border-indigo-500/80 px-4 py-2 rounded-full shadow-2xl backdrop-blur-md text-xs font-semibold flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
@@ -384,8 +378,8 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
 
       {/* Export Progress Modal */}
       {isExporting && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className={`${themeClasses.card} border ${themeClasses.border} rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4`}>
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-indigo-500/20 rounded-xl">
@@ -393,10 +387,10 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <h3 className={`text-sm font-bold ${themeClasses.textMain}`}>Searchable PDF 내보내는 중...</h3>
+                    <h3 className="text-sm font-bold text-slate-100">Searchable PDF 내보내는 중...</h3>
                     <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-indigo-950 text-indigo-300 border border-indigo-800 font-semibold">Web Worker</span>
                   </div>
-                  <p className={`text-xs ${themeClasses.textMuted}`}>{exportProgress.message}</p>
+                  <p className="text-xs text-slate-400">{exportProgress.message}</p>
                 </div>
               </div>
               <button
@@ -409,7 +403,7 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
 
             {/* Progress Bar */}
             <div className="space-y-1.5">
-              <div className={`flex justify-between text-xs font-mono ${themeClasses.textMuted}`}>
+              <div className="flex justify-between text-xs font-mono text-slate-400">
                 <span>진행률</span>
                 <span>
                   {exportProgress.total > 0
@@ -432,7 +426,7 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
               </div>
             </div>
 
-            <div className={`text-[11px] ${themeClasses.textMuted} ${themeClasses.subPanel} p-2.5 rounded-lg border ${themeClasses.border} flex items-center gap-2`}>
+            <div className="text-[11px] text-slate-500 bg-slate-950 p-2.5 rounded-lg border border-slate-800 flex items-center gap-2">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span>투명 텍스트 레이어(opacity:0) 및 OCR BBox 좌표가 합성됩니다.</span>
             </div>
@@ -455,6 +449,7 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
         onComplete={handleBatchOcrComplete}
       />
 
+
       {/* 1. Left Thumbnail Sidebar (DnD & Layout) */}
       <PageThumbnailSidebar
         pages={pages}
@@ -467,24 +462,23 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
         onOpenCorrection={handleOpenCorrection}
         isOpen={isSidebarOpen}
         onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-        themeMode={themeMode}
       />
 
       {/* 2. Main Viewer Area */}
-      <div className={`flex-1 flex flex-col min-w-0 ${themeClasses.panel}`}>
+      <div className="flex-1 flex flex-col min-w-0 bg-slate-900/50">
         {/* Top Control Toolbar */}
-        <header className={`h-14 ${themeClasses.subPanel} border-b ${themeClasses.border} px-4 flex items-center justify-between gap-3 shrink-0 shadow-md`}>
+        <header className="h-14 bg-slate-900/90 border-b border-slate-800 px-4 flex items-center justify-between gap-3 shrink-0 shadow-md">
           {/* Left: View Mode & History Controls */}
           <div className="flex items-center gap-2">
             {/* View Mode Switcher */}
-            <div className={`flex ${themeClasses.card} p-0.5 rounded-lg border ${themeClasses.border}`}>
+            <div className="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700">
               <button
                 onClick={() => setLayoutMode('single')}
                 title="단면 보기 (Single Page)"
                 className={`flex items-center gap-1 px-2.5 py-1 text-xs rounded-md transition-colors ${
                   layoutMode === 'single'
                     ? 'bg-indigo-600 text-white font-bold shadow'
-                    : `${themeClasses.textMuted} hover:${themeClasses.textMain}`
+                    : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <FileText className="w-3.5 h-3.5" />
@@ -496,7 +490,7 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
                 className={`flex items-center gap-1 px-2.5 py-1 text-xs rounded-md transition-colors ${
                   layoutMode === 'facing'
                     ? 'bg-indigo-600 text-white font-bold shadow'
-                    : `${themeClasses.textMuted} hover:${themeClasses.textMain}`
+                    : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <BookOpen className="w-3.5 h-3.5" />
@@ -505,15 +499,15 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
             </div>
 
             {/* Undo / Redo Toolbar Buttons */}
-            <div className={`flex items-center gap-1 pl-2 border-l ${themeClasses.border}`}>
+            <div className="flex items-center gap-1 pl-2 border-l border-slate-700">
               <button
                 onClick={handleUndo}
                 disabled={!historyStats.canUndo}
                 title={`실행 취소 (Ctrl+Z) - 누적: ${historyStats.undoCount}단계`}
                 className={`flex items-center gap-1 px-2.5 py-1.5 text-xs rounded-lg border transition-all ${
                   historyStats.canUndo
-                    ? `${themeClasses.card} hover:${themeClasses.cardHover} ${themeClasses.textMain} border ${themeClasses.border}`
-                    : `${themeClasses.subPanel} ${themeClasses.textMuted} border ${themeClasses.border} opacity-40 cursor-not-allowed`
+                    ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700 hover:border-slate-600'
+                    : 'bg-slate-900/50 text-slate-600 border-slate-800/80 cursor-not-allowed'
                 }`}
               >
                 <Undo2 className="w-3.5 h-3.5 text-indigo-400" />
@@ -531,8 +525,8 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
                 title={`다시 실행 (Ctrl+Y / Ctrl+Shift+Z) - 대기: ${historyStats.redoCount}단계`}
                 className={`flex items-center gap-1 px-2.5 py-1.5 text-xs rounded-lg border transition-all ${
                   historyStats.canRedo
-                    ? `${themeClasses.card} hover:${themeClasses.cardHover} ${themeClasses.textMain} border ${themeClasses.border}`
-                    : `${themeClasses.subPanel} ${themeClasses.textMuted} border ${themeClasses.border} opacity-40 cursor-not-allowed`
+                    ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700 hover:border-slate-600'
+                    : 'bg-slate-900/50 text-slate-600 border-slate-800/80 cursor-not-allowed'
                 }`}
               >
                 <Redo2 className="w-3.5 h-3.5 text-indigo-400" />
@@ -546,14 +540,14 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
             </div>
 
             {/* Presets Button Group */}
-            <div className={`hidden 2xl:flex items-center gap-1 pl-2 border-l ${themeClasses.border} text-xs`}>
-              <span className={`text-[11px] ${themeClasses.textMuted}`}>도서규모:</span>
+            <div className="hidden 2xl:flex items-center gap-1 pl-2 border-l border-slate-700 text-xs">
+              <span className="text-[11px] text-slate-400">도서규모:</span>
               <button
                 onClick={() => handleGeneratePreset(120)}
                 className={`px-2 py-0.5 rounded text-[11px] font-mono border ${
                   pages.length === 120
-                    ? 'bg-indigo-600 border-indigo-500 text-white font-bold'
-                    : `${themeClasses.card} border ${themeClasses.border} ${themeClasses.textMuted} hover:${themeClasses.textMain}`
+                    ? 'bg-indigo-950 border-indigo-500 text-indigo-300 font-bold'
+                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
                 }`}
               >
                 120P
@@ -562,8 +556,8 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
                 onClick={() => handleGeneratePreset(400)}
                 className={`px-2 py-0.5 rounded text-[11px] font-mono border ${
                   pages.length === 400
-                    ? 'bg-indigo-600 border-indigo-500 text-white font-bold'
-                    : `${themeClasses.card} border ${themeClasses.border} ${themeClasses.textMuted} hover:${themeClasses.textMain}`
+                    ? 'bg-indigo-950 border-indigo-500 text-indigo-300 font-bold'
+                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
                 }`}
               >
                 400P
@@ -572,8 +566,8 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
                 onClick={() => handleGeneratePreset(800)}
                 className={`px-2 py-0.5 rounded text-[11px] font-mono border ${
                   pages.length === 800
-                    ? 'bg-emerald-600 border-emerald-500 text-white font-bold'
-                    : `${themeClasses.card} border ${themeClasses.border} ${themeClasses.textMuted} hover:${themeClasses.textMain}`
+                    ? 'bg-emerald-950 border-emerald-500 text-emerald-300 font-bold'
+                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
                 }`}
               >
                 800P
@@ -586,7 +580,7 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
             <button
               onClick={() => handleJumpToPage(currentPage - 1)}
               disabled={currentPage <= 1}
-              className={`p-1.5 ${themeClasses.card} hover:${themeClasses.cardHover} ${themeClasses.textMain} disabled:opacity-30 rounded-md border ${themeClasses.border}`}
+              className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-30 rounded-md border border-slate-700"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -601,15 +595,15 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleJumpToPage(parseInt(jumpPageInput, 10));
                 }}
-                className={`w-12 text-center ${themeClasses.input} border ${themeClasses.border} rounded py-1 text-indigo-500 font-bold focus:outline-none`}
+                className="w-12 text-center bg-slate-800 border border-slate-700 rounded py-1 text-indigo-300 font-bold focus:outline-none focus:border-indigo-500"
               />
-              <span className={themeClasses.textMuted}>/ {pages.length}P</span>
+              <span className="text-slate-400">/ {pages.length}P</span>
             </div>
 
             <button
               onClick={() => handleJumpToPage(currentPage + 1)}
               disabled={currentPage >= pages.length}
-              className={`p-1.5 ${themeClasses.card} hover:${themeClasses.cardHover} ${themeClasses.textMain} disabled:opacity-30 rounded-md border ${themeClasses.border}`}
+              className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-30 rounded-md border border-slate-700"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -618,16 +612,16 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
           {/* Right: Zoom, Font Selection, Cleanse, Searchable PDF Export */}
           <div className="flex items-center gap-2">
             {/* Font Selection Dropdown */}
-            <div className={`hidden lg:flex items-center gap-1 ${themeClasses.card} px-2 py-1 rounded-lg border ${themeClasses.border} text-xs`}>
+            <div className="hidden lg:flex items-center gap-1 bg-slate-800 px-2 py-1 rounded-lg border border-slate-700 text-xs">
               <Type className="w-3.5 h-3.5 text-indigo-400" />
               <select
                 value={selectedFontId}
                 onChange={(e) => setSelectedFontId(e.target.value)}
-                className={`bg-transparent ${themeClasses.textMain} text-xs focus:outline-none cursor-pointer`}
+                className="bg-transparent text-slate-300 text-xs focus:outline-none cursor-pointer"
                 title="투명 텍스트 레이어 임베딩용 폰트 선택"
               >
                 {availableFonts.map((font) => (
-                  <option key={font.id} value={font.id} className={`${themeClasses.subPanel} ${themeClasses.textMain}`}>
+                  <option key={font.id} value={font.id} className="bg-slate-900 text-slate-200">
                     {font.name}
                   </option>
                 ))}
@@ -635,21 +629,21 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
             </div>
 
             {/* Zoom Controls */}
-            <div className={`flex items-center gap-1 ${themeClasses.card} p-1 rounded-lg border ${themeClasses.border}`}>
+            <div className="flex items-center gap-1 bg-slate-800 p-1 rounded-lg border border-slate-700">
               <button
                 onClick={() => setScale((s) => Math.max(0.5, s - 0.1))}
                 title="축소"
-                className={`p-1 ${themeClasses.textMuted} hover:${themeClasses.textMain}`}
+                className="p-1 text-slate-400 hover:text-slate-200"
               >
                 <ZoomOut className="w-3.5 h-3.5" />
               </button>
-              <span className={`text-[11px] font-mono ${themeClasses.textMain} w-12 text-center`}>
+              <span className="text-[11px] font-mono text-slate-300 w-12 text-center">
                 {Math.round(scale * 100)}%
               </span>
               <button
                 onClick={() => setScale((s) => Math.min(3.0, s + 0.1))}
                 title="확대"
-                className={`p-1 ${themeClasses.textMuted} hover:${themeClasses.textMain}`}
+                className="p-1 text-slate-400 hover:text-slate-200"
               >
                 <ZoomIn className="w-3.5 h-3.5" />
               </button>
@@ -674,7 +668,7 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                 showBBoxOverlay
                   ? 'bg-amber-950/60 border-amber-500 text-amber-300 shadow'
-                  : `${themeClasses.card} border ${themeClasses.border} ${themeClasses.textMuted} hover:${themeClasses.textMain}`
+                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
               }`}
             >
               <Eye className="w-3.5 h-3.5" />
@@ -685,7 +679,7 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
             <button
               onClick={() => handleRotateBatch('all')}
               title="모든 페이지 90도 일괄 회전"
-              className={`hidden xl:flex items-center gap-1 px-2.5 py-1.5 ${themeClasses.card} hover:${themeClasses.cardHover} ${themeClasses.textMain} text-xs rounded-lg border ${themeClasses.border} transition-colors`}
+              className="hidden xl:flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-slate-700 transition-colors"
             >
               <RotateCw className="w-3.5 h-3.5 text-indigo-400" />
               <span>전체회전</span>
@@ -729,7 +723,7 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
             <button
               onClick={() => setIsSettingsOpen(true)}
               title="PDF 시스템 환경설정"
-              className={`p-1.5 ${themeClasses.card} hover:${themeClasses.cardHover} ${themeClasses.textMain} rounded-lg border ${themeClasses.border} transition-colors`}
+              className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-colors"
             >
               <Settings className="w-4 h-4" />
             </button>
@@ -740,7 +734,7 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className={`flex-1 overflow-y-auto relative p-6 ${themeClasses.panel} custom-scrollbar flex flex-col items-center`}
+          className="flex-1 overflow-y-auto relative p-6 bg-slate-950 custom-scrollbar flex flex-col items-center"
         >
           {/* Top Spacer */}
           <div
@@ -914,7 +908,7 @@ export const VirtualViewerStudio: React.FC<VirtualViewerStudioProps> = ({
         </div>
 
         {/* Bottom Status Bar */}
-        <footer className={`h-8 ${themeClasses.subPanel} border-t ${themeClasses.border} px-4 flex items-center justify-between text-[11px] ${themeClasses.textMuted} shrink-0 font-mono`}>
+        <footer className="h-8 bg-slate-950 border-t border-slate-800 px-4 flex items-center justify-between text-[11px] text-slate-400 shrink-0 font-mono">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />

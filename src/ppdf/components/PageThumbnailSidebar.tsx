@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   RotateCw,
   CheckCircle2,
@@ -11,7 +11,6 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { PdfPageItem } from '../../types';
-import { ThemeMode, resolveThemeMode, getThemeAdaptiveClasses } from '../../styles/tokens';
 
 interface PageThumbnailSidebarProps {
   pages: PdfPageItem[];
@@ -24,7 +23,6 @@ interface PageThumbnailSidebarProps {
   onOpenCorrection: (page: PdfPageItem) => void;
   isOpen: boolean;
   onToggle: () => void;
-  themeMode?: ThemeMode;
 }
 
 export const PageThumbnailSidebar: React.FC<PageThumbnailSidebarProps> = ({
@@ -38,11 +36,7 @@ export const PageThumbnailSidebar: React.FC<PageThumbnailSidebarProps> = ({
   onOpenCorrection,
   isOpen,
   onToggle,
-  themeMode,
 }) => {
-  const resolvedTheme = useMemo(() => resolveThemeMode(themeMode || 'dark'), [themeMode]);
-  const themeClasses = useMemo(() => getThemeAdaptiveClasses(resolvedTheme), [resolvedTheme]);
-
   const containerRef = useRef<HTMLDivElement>(null);
   const activeItemRef = useRef<HTMLDivElement>(null);
 
@@ -94,15 +88,15 @@ export const PageThumbnailSidebar: React.FC<PageThumbnailSidebarProps> = ({
 
   if (!isOpen) {
     return (
-      <div className={`flex flex-col items-center py-4 ${themeClasses.subPanel} border-r ${themeClasses.border} w-12 shrink-0 select-none`}>
+      <div className="flex flex-col items-center py-4 bg-slate-900 border-r border-slate-800 w-12 shrink-0 select-none">
         <button
           onClick={onToggle}
           title="페이지 썸네일 탐색기 열기"
-          className={`p-2 ${themeClasses.textMuted} hover:${themeClasses.textMain} hover:${themeClasses.cardHover} rounded-lg transition-colors`}
+          className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
         >
           <Layers className="w-5 h-5 text-indigo-400" />
         </button>
-        <span className={`mt-4 text-[10px] font-bold ${themeClasses.textMuted} uppercase tracking-widest [writing-mode:vertical-lr]`}>
+        <span className="mt-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest [writing-mode:vertical-lr]">
           Thumbnails ({activePagesCount}P)
         </span>
       </div>
@@ -110,12 +104,12 @@ export const PageThumbnailSidebar: React.FC<PageThumbnailSidebarProps> = ({
   }
 
   return (
-    <aside className={`w-64 ${themeClasses.subPanel} border-r ${themeClasses.border} flex flex-col shrink-0 select-none transition-all duration-200`}>
+    <aside className="w-64 bg-slate-900/95 border-r border-slate-800 flex flex-col shrink-0 select-none transition-all duration-200">
       {/* Header */}
-      <div className={`p-3 border-b ${themeClasses.border} flex items-center justify-between`}>
+      <div className="p-3 border-b border-slate-800 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Layers className="w-4 h-4 text-indigo-400" />
-          <span className={`text-xs font-bold ${themeClasses.textMain}`}>페이지 탐색기</span>
+          <span className="text-xs font-bold text-slate-200">페이지 탐색기</span>
           <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded-full font-mono">
             {activePagesCount}P
           </span>
@@ -132,7 +126,7 @@ export const PageThumbnailSidebar: React.FC<PageThumbnailSidebarProps> = ({
         <button
           onClick={onToggle}
           title="사이드바 닫기"
-          className={`text-xs ${themeClasses.textMuted} hover:${themeClasses.textMain} p-1 hover:${themeClasses.cardHover} rounded`}
+          className="text-xs text-slate-400 hover:text-slate-200 p-1 hover:bg-slate-800 rounded"
         >
           ✕
         </button>
@@ -167,8 +161,8 @@ export const PageThumbnailSidebar: React.FC<PageThumbnailSidebarProps> = ({
                   : isDeleted
                   ? 'bg-red-950/20 border-red-900/50 opacity-60'
                   : isActive
-                  ? `${themeClasses.card} border-indigo-500/80 ring-2 ring-indigo-500/20 shadow-lg`
-                  : `${themeClasses.card} border-${themeClasses.border} hover:${themeClasses.cardHover}`
+                  ? 'bg-indigo-950/40 border-indigo-500/80 ring-2 ring-indigo-500/20 shadow-lg'
+                  : 'bg-slate-800/60 border-slate-700/60 hover:bg-slate-800 hover:border-slate-600'
               }`}
             >
               {/* Page Number & Badges */}
