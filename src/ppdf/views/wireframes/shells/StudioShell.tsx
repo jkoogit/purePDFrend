@@ -1,11 +1,15 @@
 import React from 'react';
+import { PdfrendLogo } from '../../../../shared/components/PdfrendLogo';
+import { HorizontalSlideContainer } from '../../../components/HorizontalSlideContainer';
 import { ThemeMode, resolveThemeMode, getThemeAdaptiveClasses } from '../../../../styles/tokens';
+import { Monitor, Smartphone, Tablet } from 'lucide-react';
+import { WireframeRibbonLayer } from '../../../components/WireframeRibbonLayer';
 
 export interface StudioShellProps {
-  activeTab?: 'showcase' | 'user' | 'admin';
-  onChangeTab?: (tab: 'showcase' | 'user' | 'admin') => void;
+  activeTab: 'showcase' | 'user' | 'admin';
+  onChangeTab: (tab: 'showcase' | 'user' | 'admin') => void;
   viewportMode: 'full' | 'tablet' | 'mobile';
-  onChangeViewport?: (mode: 'full' | 'tablet' | 'mobile') => void;
+  onChangeViewport: (mode: 'full' | 'tablet' | 'mobile') => void;
   themeMode?: ThemeMode;
   onSelectWireframeProgram?: (type: 'user' | 'admin' | 'showcase', progId: string) => void;
   children: React.ReactNode;
@@ -43,8 +47,12 @@ export const ALL_WIREFRAME_PROGRAMS = [
 ];
 
 export function StudioShell({
+  activeTab,
+  onChangeTab,
   viewportMode,
+  onChangeViewport,
   themeMode = 'dark',
+  onSelectWireframeProgram: _onSelectWireframeProgram,
   children,
 }: StudioShellProps) {
   const resolvedTheme = resolveThemeMode(themeMode);
@@ -52,6 +60,107 @@ export function StudioShell({
 
   return (
     <div className={`space-y-6 font-sans ${themeClasses.shellBg} transition-colors duration-200`}>
+      {/* 상단 컨트롤 바: 브랜드 + 중앙 와이어프레임 퀵 점프 목록 + 우측 도메인/뷰포트 스위처 */}
+      <div className={`p-4 rounded-2xl border ${themeClasses.container} shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4`}>
+        {/* Left: 브랜드 & 타이틀 */}
+        <div className="flex items-center gap-3">
+          <PdfrendLogo size={38} theme={resolvedTheme} />
+          <div>
+            <h1 className="text-base font-bold flex items-center gap-2">
+              <span className={themeClasses.textMain}>purePDFrend 와이어프레임 & 디자인시스템 스튜디오</span>
+              <span className="text-[11px] font-mono px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30">
+                DS v1.0
+              </span>
+            </h1>
+            <p className={`text-xs ${themeClasses.textMuted}`}>
+              3대 공통 쉘(Admin/User/Studio), tokens.ts 디자인 토큰 및 25개 서비스 화면
+            </p>
+          </div>
+        </div>
+
+        {/* Center: 4대 시스템 37개 전체 서비스 화면 '메뉴 바로가기' 메가 네비게이션 */}
+        <WireframeRibbonLayer className="self-start lg:self-center" theme={resolvedTheme} />
+
+        {/* Right: 도메인 선택 탭 & 뷰포트 스위처 */}
+        <div className="w-full lg:w-auto overflow-hidden">
+          <HorizontalSlideContainer showScrollButtons={false} className="w-full lg:w-auto">
+            {/* 3대 도메인 전환 버튼 */}
+            <div className="bg-slate-950 p-1 rounded-xl border border-slate-800 flex items-center text-xs shrink-0">
+              <button
+                id="btn-tab-showcase"
+                onClick={() => onChangeTab('showcase')}
+                className={`px-3.5 py-2 min-h-[40px] rounded-lg font-medium transition-all shrink-0 flex items-center gap-1.5 select-none ${
+                  activeTab === 'showcase'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-semibold'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span>🎨</span>
+                <span>디자인시스템 쇼케이스</span>
+              </button>
+              <button
+                id="btn-tab-user-wireframes"
+                onClick={() => onChangeTab('user')}
+                className={`px-3.5 py-2 min-h-[40px] rounded-lg font-medium transition-all shrink-0 flex items-center gap-1.5 select-none ${
+                  activeTab === 'user'
+                    ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30 font-semibold'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span>📱</span>
+                <span>사용자 서비스 (9개)</span>
+              </button>
+              <button
+                id="btn-tab-admin-wireframes"
+                onClick={() => onChangeTab('admin')}
+                className={`px-3.5 py-2 min-h-[40px] rounded-lg font-medium transition-all shrink-0 flex items-center gap-1.5 select-none ${
+                  activeTab === 'admin'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 font-semibold'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span>🛠</span>
+                <span>관리자 서비스 (16개)</span>
+              </button>
+            </div>
+
+            {/* 뷰포트 시뮬레이션 */}
+            <div className="bg-slate-950 p-1 rounded-xl border border-slate-800 flex items-center text-xs shrink-0">
+              <button
+                onClick={() => onChangeViewport('full')}
+                className={`px-3 py-2 min-h-[40px] rounded-lg transition-all shrink-0 flex items-center gap-1 select-none ${
+                  viewportMode === 'full' ? 'bg-slate-800 text-white font-medium shadow-sm' : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="데스크톱 100% 뷰"
+              >
+                <Monitor className="w-3.5 h-3.5" />
+                <span>PC (100%)</span>
+              </button>
+              <button
+                onClick={() => onChangeViewport('tablet')}
+                className={`px-3 py-2 min-h-[40px] rounded-lg transition-all shrink-0 flex items-center gap-1 select-none ${
+                  viewportMode === 'tablet' ? 'bg-slate-800 text-white font-medium shadow-sm' : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="태블릿 768px 뷰"
+              >
+                <Tablet className="w-3.5 h-3.5" />
+                <span>태블릿 (768px)</span>
+              </button>
+              <button
+                onClick={() => onChangeViewport('mobile')}
+                className={`px-3 py-2 min-h-[40px] rounded-lg transition-all shrink-0 flex items-center gap-1 select-none ${
+                  viewportMode === 'mobile' ? 'bg-slate-800 text-white font-medium shadow-sm' : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="모바일 390px 뷰"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>모바일 (390px)</span>
+              </button>
+            </div>
+          </HorizontalSlideContainer>
+        </div>
+      </div>
+
       {/* 뷰포트 래퍼 (시뮬레이션 모드 반영) */}
       <div
         className={`mx-auto transition-all duration-300 ${

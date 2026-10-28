@@ -18,10 +18,26 @@ export function WireframeStudio({ initialTab = 'showcase', initialProgId }: Wire
   useEffect(() => {
     const handleNavigate = (e: any) => {
       const detail = e.detail;
-      if (detail?.type) {
-        setActiveTab(detail.type);
-        if (detail.progId) {
-          setCurrentProgId(detail.progId);
+      if (!detail) return;
+      if (detail.type === 'user') {
+        setActiveTab('user');
+        if (detail.progId) setCurrentProgId(detail.progId);
+      } else if (detail.type === 'admin') {
+        setActiveTab('admin');
+        if (detail.progId) setCurrentProgId(detail.progId);
+      } else if (detail.type === 'showcase') {
+        setActiveTab('showcase');
+      } else if (detail.type === 'settings') {
+        // 설정 항목 중 서비스 화면 외 와이어프레임 폴백 화면 연결
+        if (detail.progId === 'PG-SET-03' || detail.progId === 'PG-SET-05') {
+          setActiveTab('user');
+          setCurrentProgId(detail.progId === 'PG-SET-03' ? 'PG-USR-09' : 'PG-USR-08');
+        } else if (detail.progId === 'PG-SET-04') {
+          setActiveTab('admin');
+          setCurrentProgId('PG-ADM-14');
+        } else {
+          setActiveTab('admin');
+          setCurrentProgId('PG-ADM-01');
         }
       }
     };

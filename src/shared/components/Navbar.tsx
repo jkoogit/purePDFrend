@@ -27,6 +27,7 @@ import {
   Sunrise,
   Monitor,
   Lock,
+  UserCheck,
   ChevronDown,
   FileBox,
 } from 'lucide-react';
@@ -118,6 +119,13 @@ export const DOMAIN_GROUPS: {
         description: 'Tesseract vs Gemini 듀얼 엔진 설정',
         domain: 'studio',
         icon: Cpu,
+      },
+      {
+        id: 'wireframes',
+        label: '와이어프레임',
+        description: '관리자 16개·사용자 9개 화면 프로토타입',
+        domain: 'studio',
+        icon: Layers,
       },
     ],
   },
@@ -231,6 +239,7 @@ export default function Navbar({
 
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => resolveThemeMode(themeMode));
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
+  const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false);
   const [permissionAlert, setPermissionAlert] = useState<{ message: string; required: string } | null>(null);
 
   useEffect(() => {
@@ -365,7 +374,7 @@ export default function Navbar({
   };
 
   return (
-    <header className={`relative sticky top-0 z-40 flex flex-col w-full border-b backdrop-blur-md transition-colors duration-200 ${
+    <header className={`sticky top-0 z-40 flex flex-col w-full border-b backdrop-blur-md transition-colors duration-200 ${
       resolvedTheme === 'light'
         ? 'bg-white/95 border-slate-200 text-slate-900 shadow-sm'
         : resolvedTheme === 'dawn'
@@ -397,65 +406,210 @@ export default function Navbar({
           </div>
         </div>
 
+        {/* Center: 권한 기반 3대 시스템 전환 인터페이스 (System Switcher) & 역할 시뮬레이터 */}
+        <div className="hidden md:flex items-center gap-1.5 lg:gap-2 bg-slate-900/90 border border-slate-800/90 p-1 rounded-xl shadow-inner shrink-0">
+          {SYSTEM_DOMAINS.map((sys) => {
+            const isActive = activeSystem === sys.id;
+            const hasPermission = sys.requiredRole.includes(userRole);
+            const Icon = sys.icon;
+
+            return (
+              <button
+                key={sys.id}
+                id={`btn-system-switch-${sys.id}`}
+                onClick={() => handleSystemSwitch(sys.id)}
+                className={`min-h-[38px] px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 select-none ${
+                  isActive
+                    ? 'bg-gradient-to-r ' + sys.themeColor + ' text-white shadow-md ring-1 ring-white/20'
+                    : hasPermission
+                    ? 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                    : 'text-slate-500 hover:text-slate-400 hover:bg-slate-900/50 cursor-pointer opacity-70'
+                }`}
+                title={`${sys.label}: ${sys.description}${!hasPermission ? ' (권한 필요)' : ''}`}
+              >
+                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : hasPermission ? 'text-indigo-400' : 'text-slate-500'}`} />
+                <span>{sys.label}</span>
+                {!hasPermission && <Lock className="w-3 h-3 text-amber-500/80 shrink-0 ml-0.5" />}
+              </button>
+            );
+          })}
+
+          {/* 역할 시뮬레이터 (Role Switcher Tag) */}
+          <div className="relative pl-1 border-l border-slate-800">
+            <button
+              id="btn-role-simulator-dropdown"
+              onClick={() => setIsRoleMenuOpen((prev) => !prev)}
+              className="min-h-[36px] px-2.5 py-1 rounded-lg bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800 text-slate-300 hover:text-white text-[11px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="권한 시뮬레이터: 다양한 사용자 역할로 시스템 전환 검증"
+            >
+              <UserCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="font-semibold text-emerald-400">
+                {userRole === 'ROLE_USER' && '일반사용자'}
+                {userRole === 'ROLE_OPERATOR' && '서비스설정자'}
+                {userRole === 'ROLE_ADMIN' && '마스터관리자'}
+                {userRole === 'ROLE_SUPER_ADMIN' && '최고관리자'}
+              </span>
+              <ChevronDown className="w-3 h-3 text-slate-400" />
+            </button>
+
+            {isRoleMenuOpen && (
+              <div className="absolute right-0 top-full mt-1.5 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-2 py-1 text-[10px] text-slate-400 font-bold border-b border-slate-800">
+                  권한 시뮬레이션
+                </div>
+                <button
+                  onClick={() => {
+                    onSelectRole?.('ROLE_USER');
+                    setIsRoleMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-2.5 py-2 rounded-lg flex items-center justify-between text-xs transition-colors ${
+                    userRole === 'ROLE_USER' ? 'bg-indigo-600/30 text-indigo-300 font-bold' : 'text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <span>일반사용자 (ROLE_USER)</span>
+                  <span className="text-[10px] text-slate-500">서비스전용</span>
+                </button>
+                <button
+                  onClick={() => {
+                    onSelectRole?.('ROLE_OPERATOR');
+                    setIsRoleMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-2.5 py-2 rounded-lg flex items-center justify-between text-xs transition-colors ${
+                    userRole === 'ROLE_OPERATOR' ? 'bg-indigo-600/30 text-indigo-300 font-bold' : 'text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <span>서비스설정자 (OPERATOR)</span>
+                  <span className="text-[10px] text-sky-400">설정접근</span>
+                </button>
+                <button
+                  onClick={() => {
+                    onSelectRole?.('ROLE_ADMIN');
+                    setIsRoleMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-2.5 py-2 rounded-lg flex items-center justify-between text-xs transition-colors ${
+                    userRole === 'ROLE_ADMIN' || userRole === 'ROLE_SUPER_ADMIN'
+                      ? 'bg-indigo-600/30 text-indigo-300 font-bold'
+                      : 'text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <span>마스터관리자 (ADMIN)</span>
+                  <span className="text-[10px] text-violet-400">전체접근</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 4대 시스템 37개 전체 서비스 화면 '메뉴 바로가기' 메가 네비게이션 레이어 */}
+          <WireframeRibbonLayer className="pl-1 border-l border-slate-800" theme={resolvedTheme} />
+        </div>
+
         {/* Right Status Indicators & Action Tools */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-          {/* 상단 개발용 메뉴이동 레이어 (정규 인라인 버튼 일체화: 화면 부유 증상 100% 해소) */}
-          <WireframeRibbonLayer
-            theme={resolvedTheme}
-            onSelectProgram={(type, progId) => {
-              if (type === 'agent') {
-                onSelectSystem?.('harness');
-                if (progId === 'PG-AGN-01') onSelectView('graph');
-                else if (progId === 'PG-AGN-02') onSelectView('task');
-                else if (progId === 'PG-AGN-03') onSelectView('usage');
-                else if (progId === 'PG-AGN-04') onSelectView('audit');
-                else if (progId === 'PG-AGN-05') onSelectView('docs');
-                else if (progId === 'PG-AGN-06') onSelectView('settings');
-              } else if (type === 'user' && progId === 'PG-USR-01') {
-                handleSystemSwitch('service');
-              } else if (type === 'settings') {
-                onSelectSystem?.('settings');
-              } else {
-                onSelectSystem?.('settings');
-              }
+          {/* DB Connection Indicator */}
+          <div
+            className="relative"
+            onMouseEnter={() => setHoveredBadge('db')}
+            onMouseLeave={() => setHoveredBadge(null)}
+          >
+            <div className="h-8 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 rounded-full bg-slate-900 border border-slate-800 hover:border-indigo-500/50 cursor-pointer transition-colors text-xs shrink-0 select-none">
+              <Database className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+              <span className="text-slate-400 font-mono text-[10px] sm:text-[11px] hidden sm:inline">DB:</span>
+              {dbStatus === 'CONNECTED' ? (
+                <span className="flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-emerald-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="hidden xs:inline">정상</span>
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-amber-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                  <span className="hidden xs:inline">로컬</span>
+                </span>
+              )}
+            </div>
+
+            {/* Hover Tooltip: DB Details */}
+            {hoveredBadge === 'db' && (
+              <div className="absolute right-0 top-full mt-2 w-72 max-w-[90vw] max-h-[80vh] overflow-y-auto p-3 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 text-xs animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-center gap-2 font-bold text-white pb-2 border-b border-slate-800">
+                  <Server className="w-4 h-4 text-indigo-400" />
+                  <span>데이터베이스 연결 상세정보</span>
+                </div>
+                <div className="mt-2 space-y-1.5 text-[11px]">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">타겟 DB:</span>
+                    <span className="font-mono text-indigo-300 font-semibold">purepdfrend_dev</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">스키마:</span>
+                    <span className="font-mono text-slate-200">aiagent, public</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">연결 상태:</span>
+                    {dbStatus === 'CONNECTED' ? (
+                      <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> 정상 작동 (Bridge OK)
+                      </span>
+                    ) : (
+                      <span className="text-amber-400 font-semibold flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" /> 로컬 캐시 모드 (점검필요)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 비-LLM 긴급 Push 및 DR 관제실 모달 버튼 */}
+          <button
+            id="btn-emergency-recovery-panel"
+            onClick={() => setIsEmergencyModalOpen(true)}
+            className="h-8 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-full bg-amber-950/70 border border-amber-600/80 hover:border-amber-400 hover:bg-amber-900/70 cursor-pointer transition-all text-amber-300 text-xs font-semibold shadow-xs shrink-0 whitespace-nowrap select-none"
+            title="비-LLM 긴급 소스 GitHub Push 및 세션 DR 관제실"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+            <ShieldAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="hidden sm:inline font-semibold">DR 긴급관제</span>
+          </button>
+
+          {/* Comprehensive Service Health Check Button */}
+          <button
+            id="btn-service-health-check"
+            onClick={() => {
+              setIsCheckModalOpen(true);
+              if (!checkResults) runServiceCheck();
             }}
-          />
+            className="h-8 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-full bg-emerald-950/70 border border-emerald-700/80 hover:border-emerald-400 hover:bg-emerald-900/60 cursor-pointer transition-all text-emerald-300 text-xs font-semibold shadow-xs shrink-0 whitespace-nowrap select-none"
+            title="서비스 전수 점검 및 가드레일 진단"
+          >
+            <Stethoscope className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span className="hidden sm:inline font-semibold">정밀점검</span>
+            {allPassed === true && <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />}
+            {allPassed === false && <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping shrink-0" />}
+          </button>
+
           {/* 4모드 테마 스위처 (주간 / 야간 / 여명 / 시스템설정) */}
           <div className="relative">
             <button
               id="btn-theme-toggle"
               onClick={() => setIsThemeMenuOpen((prev) => !prev)}
               onDoubleClick={cycleTheme}
-              className={`h-8 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-full border transition-all cursor-pointer shadow-xs shrink-0 whitespace-nowrap select-none ${
-                resolvedTheme === 'light'
-                  ? 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-800'
-                  : resolvedTheme === 'dawn'
-                  ? 'bg-[#0e1a38] border-[#1e3066] hover:border-sky-500/50 hover:bg-[#132247] text-sky-200'
-                  : 'bg-slate-900 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800 text-slate-200'
-              }`}
+              className="h-8 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-full bg-slate-900 border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800 text-slate-300 hover:text-white transition-all cursor-pointer shadow-xs shrink-0 whitespace-nowrap select-none"
               title={`테마 전환: ${THEME_MODES[themeMode].label} (현재) - 클릭 시 4모드 선택, 더블클릭 시 즉시 순환`}
               aria-label={`테마 전환 (현재: ${THEME_MODES[themeMode].label})`}
             >
-              {renderThemeIcon(themeMode, `w-3.5 h-3.5 ${resolvedTheme === 'dawn' ? 'text-sky-400' : resolvedTheme === 'light' ? 'text-amber-500' : 'text-indigo-400'} shrink-0`)}
-              <span className={`font-semibold text-xs flex items-center gap-1 ${resolvedTheme === 'light' ? 'text-slate-800' : 'text-slate-200'}`}>
+              {renderThemeIcon(themeMode, 'w-3.5 h-3.5 text-indigo-400 shrink-0')}
+              <span className="font-semibold text-xs text-slate-200 flex items-center gap-1">
                 <span>테마</span>
-                <span className={`font-normal hidden xs:inline ${resolvedTheme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>({THEME_MODES[themeMode].label})</span>
+                <span className="text-slate-400 font-normal hidden xs:inline">({THEME_MODES[themeMode].label})</span>
               </span>
-              <ChevronDown className={`w-3 h-3 ${resolvedTheme === 'light' ? 'text-slate-400' : 'text-slate-500'} shrink-0`} />
+              <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
             </button>
 
             {/* 4모드 테마 팝오버 선택기 */}
             {isThemeMenuOpen && (
-              <div className={`absolute right-0 top-full mt-1.5 w-44 border rounded-xl shadow-2xl p-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-150 ${
-                resolvedTheme === 'light'
-                  ? 'bg-white border-slate-200 text-slate-800'
-                  : resolvedTheme === 'dawn'
-                  ? 'bg-[#0e1a38] border-[#1e3066] text-white'
-                  : 'bg-slate-900 border-slate-700 text-slate-100'
-              }`}>
-                <div className={`px-2 py-1 text-[10px] font-bold border-b flex items-center justify-between ${
-                  resolvedTheme === 'light' ? 'text-slate-500 border-slate-100' : resolvedTheme === 'dawn' ? 'text-sky-300 border-[#1e3066]' : 'text-slate-400 border-slate-800'
-                }`}>
+              <div className="absolute right-0 top-full mt-1.5 w-44 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-2 py-1 text-[10px] text-slate-400 font-bold border-b border-slate-800 flex items-center justify-between">
                   <span>4모드 테마 선택</span>
                   <span className="font-mono text-indigo-400 text-[9px]">{resolvedTheme}</span>
                 </div>
@@ -463,25 +617,23 @@ export default function Navbar({
                   <button
                     key={mode}
                     onClick={() => handleSelectThemeMode(mode)}
-                    className={`w-full min-h-[36px] text-left px-2.5 py-1.5 rounded-lg flex items-center gap-2 transition-colors cursor-pointer ${
-                      themeMode === mode
-                        ? resolvedTheme === 'light' ? 'bg-blue-50 text-blue-600 font-bold' : resolvedTheme === 'dawn' ? 'bg-sky-600/30 text-sky-200 font-bold' : 'bg-indigo-600/30 text-indigo-200 font-bold'
-                        : resolvedTheme === 'light' ? 'text-slate-700 hover:bg-slate-100' : resolvedTheme === 'dawn' ? 'text-slate-200 hover:bg-[#132247]' : 'text-slate-300 hover:bg-slate-800'
+                    className={`w-full min-h-[36px] text-left px-2.5 py-1.5 rounded-lg flex items-center gap-2 transition-colors ${
+                      themeMode === mode ? 'bg-indigo-600/30 text-indigo-200 font-bold' : 'text-slate-300 hover:bg-slate-800'
                     }`}
                   >
                     {renderThemeIcon(mode, 'w-3.5 h-3.5')}
                     <div className="flex-1">
                       <div className="leading-tight">{THEME_MODES[mode].label}</div>
-                      <div className={`text-[9px] leading-tight ${resolvedTheme === 'light' ? 'text-slate-400' : 'text-slate-400'}`}>{THEME_MODES[mode].description}</div>
+                      <div className="text-[9px] text-slate-400 leading-tight">{THEME_MODES[mode].description}</div>
                     </div>
                   </button>
                 ))}
-                <div className={`pt-1 mt-1 border-t ${resolvedTheme === 'light' ? 'border-slate-100' : resolvedTheme === 'dawn' ? 'border-[#1e3066]' : 'border-slate-800'}`}>
+                <div className="pt-1 mt-1 border-t border-slate-800">
                   <button
                     onClick={() => {
                       cycleTheme();
                     }}
-                    className="w-full text-center py-1 text-[10px] text-indigo-500 hover:text-indigo-400 font-medium cursor-pointer"
+                    className="w-full text-center py-1 text-[10px] text-indigo-400 hover:text-indigo-300 font-medium"
                   >
                     ⚡ 다음 테마로 즉시 순환
                   </button>
@@ -497,11 +649,7 @@ export default function Navbar({
               onClick={onTogglePinHeader}
               className={`min-h-[44px] min-w-[44px] sm:min-h-[36px] sm:min-w-[36px] w-9 h-9 rounded-lg border flex items-center justify-center transition-all cursor-pointer shadow-xs shrink-0 ${
                 isHeaderPinned
-                  ? resolvedTheme === 'light'
-                    ? 'bg-blue-50 border-blue-300 text-blue-600 hover:bg-blue-100'
-                    : 'bg-indigo-950/70 border-indigo-700/60 text-indigo-300 hover:bg-indigo-900/60 hover:border-indigo-400'
-                  : resolvedTheme === 'light'
-                  ? 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                  ? 'bg-indigo-950/70 border-indigo-700/60 text-indigo-300 hover:bg-indigo-900/60 hover:border-indigo-400'
                   : 'bg-slate-900/90 border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`}
               title={isHeaderPinned ? '헤더 고정 해제' : '상단 헤더 고정'}
@@ -596,91 +744,13 @@ export default function Navbar({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
-                {/* 1.1 DB Connection Indicator */}
-                <div
-                  className="relative"
-                  onMouseEnter={() => setHoveredBadge('db')}
-                  onMouseLeave={() => setHoveredBadge(null)}
-                >
-                  <div className="h-7 flex items-center gap-1.5 px-2.5 rounded-full bg-slate-900 border border-slate-800 hover:border-indigo-500/50 cursor-pointer transition-colors text-xs shrink-0 select-none">
-                    <Database className="w-3 h-3 text-indigo-400 shrink-0" />
-                    <span className="text-slate-400 font-mono text-[10px] hidden sm:inline">DB:</span>
-                    {dbStatus === 'CONNECTED' ? (
-                      <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-400">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="hidden xs:inline">정상</span>
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-400">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                        <span className="hidden xs:inline">로컬</span>
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Hover Tooltip: DB Details */}
-                  {hoveredBadge === 'db' && (
-                    <div className="absolute right-0 top-full mt-2 w-72 max-w-[90vw] max-h-[80vh] overflow-y-auto p-3 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 text-xs animate-in fade-in zoom-in-95 duration-150">
-                      <div className="flex items-center gap-2 font-bold text-white pb-2 border-b border-slate-800">
-                        <Server className="w-4 h-4 text-indigo-400" />
-                        <span>데이터베이스 연결 상세정보</span>
-                      </div>
-                      <div className="mt-2 space-y-1.5 text-[11px]">
-                        <div className="flex justify-between">
-                          <span className="text-slate-400">타겟 DB:</span>
-                          <span className="font-mono text-indigo-300 font-semibold">purepdfrend_dev</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-400">스키마:</span>
-                          <span className="font-mono text-slate-200">aiagent, public</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-400">연결 상태:</span>
-                          {dbStatus === 'CONNECTED' ? (
-                            <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3" /> 정상 작동 (Bridge OK)
-                            </span>
-                          ) : (
-                            <span className="text-amber-400 font-semibold flex items-center gap-1">
-                              <AlertTriangle className="w-3 h-3" /> 로컬 캐시 모드 (점검필요)
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 1.2 비-LLM 긴급 Push 및 DR 관제실 모달 버튼 */}
-                <button
-                  id="btn-emergency-recovery-panel"
-                  onClick={() => setIsEmergencyModalOpen(true)}
-                  className="h-7 flex items-center gap-1 px-2.5 rounded-full bg-amber-950/70 border border-amber-600/80 hover:border-amber-400 hover:bg-amber-900/70 cursor-pointer transition-all text-amber-300 text-xs font-semibold shadow-xs shrink-0 whitespace-nowrap select-none"
-                  title="비-LLM 긴급 소스 GitHub Push 및 세션 DR 관제실"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                  <ShieldAlert className="w-3 h-3 text-amber-400 shrink-0" />
-                  <span className="hidden sm:inline font-semibold text-[11px]">DR 긴급관제</span>
-                </button>
-
-                {/* 1.3 Comprehensive Service Health Check Button */}
-                <button
-                  id="btn-service-health-check"
-                  onClick={() => {
-                    setIsCheckModalOpen(true);
-                    if (!checkResults) runServiceCheck();
-                  }}
-                  className="h-7 flex items-center gap-1 px-2.5 rounded-full bg-emerald-950/70 border border-emerald-700/80 hover:border-emerald-400 hover:bg-emerald-900/60 cursor-pointer transition-all text-emerald-300 text-xs font-semibold shadow-xs shrink-0 whitespace-nowrap select-none"
-                  title="서비스 전수 점검 및 가드레일 진단"
-                >
-                  <Stethoscope className="w-3 h-3 text-emerald-400 shrink-0" />
-                  <span className="hidden sm:inline font-semibold text-[11px]">정밀점검</span>
-                  {allPassed === true && <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />}
-                  {allPassed === false && <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping shrink-0" />}
-                </button>
-
-                <span className="text-slate-500 font-mono text-[10px] hidden xl:inline truncate max-w-[140px]" title={activeSessionId}>
+              <div className="flex items-center gap-3 text-[11px] text-slate-400 font-mono shrink-0">
+                <span className="flex items-center gap-1 text-emerald-400 font-semibold">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  AGENTS.md 준거 거버넌스 활성
+                </span>
+                <span>|</span>
+                <span className="text-slate-400 truncate max-w-[180px] lg:max-w-[280px]" title={activeSessionId}>
                   {activeSessionId}
                 </span>
               </div>

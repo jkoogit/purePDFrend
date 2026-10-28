@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Badge, Card, CardHeader, CardTitle, CardContent } from '@shared/components/ui';
-import { ThemeMode, resolveThemeMode, getThemeAdaptiveClasses } from '../../../../styles/tokens';
 
 // PG-ADM-01: 보안관리 (화이트리스트 + 블랙리스트 + 2FA + 세션/오프라인토큰)
-export function AdminSecurityView({ themeMode = 'dark' }: { themeMode?: ThemeMode }) {
-  const resolvedTheme = resolveThemeMode(themeMode);
-  const themeClasses = getThemeAdaptiveClasses(resolvedTheme);
+export function AdminSecurityView() {
   const [twoFactorEnforced, setTwoFactorEnforced] = useState(true);
   const [geoBlockEnabled, setGeoBlockEnabled] = useState(false);
   const [offlineTokenDays, setOfflineTokenDays] = useState(30);
@@ -118,7 +115,7 @@ export function AdminSecurityView({ themeMode = 'dark' }: { themeMode?: ThemeMod
   };
 
   return (
-    <div className={`space-y-4 text-xs ${themeClasses.textMain}`}>
+    <div className="space-y-4 text-xs">
       {notice && (
         <div className="p-2.5 rounded-lg bg-emerald-950/80 border border-emerald-600 text-emerald-300 flex items-center justify-between animate-in fade-in duration-200">
           <span>{notice}</span>
@@ -128,7 +125,7 @@ export function AdminSecurityView({ themeMode = 'dark' }: { themeMode?: ThemeMod
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* 화이트리스트 관리 */}
-        <Card variant="subtle" className={`border ${themeClasses.card}`}>
+        <Card variant="subtle">
           <CardHeader className="flex-row items-center justify-between pb-3">
             <CardTitle className="text-emerald-400 flex items-center gap-1.5">
               <span>✅</span> 접근 허용 화이트리스트 (CIDR)

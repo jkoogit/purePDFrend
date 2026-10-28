@@ -1,5 +1,4 @@
 import '../src/shared/envLoader';
-import { execSync, spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import https from 'https';
@@ -11,19 +10,9 @@ const OWNER = 'jkoogit';
 const REPO = 'purePDFrend';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 
-// Environment Detection
-export function detectToolEnvironment(): {
-  isAiStudio: boolean;
-  isAntigravityIde: boolean;
-  mode: 'ai-studio-api' | 'antigravity-local-git';
-} {
-  const hasToken = !!GITHUB_TOKEN && GITHUB_TOKEN.trim().length > 0;
-  const isVscode = !!process.env.VSCODE_PID || !!process.env.VSCODE_IPC_HOOK;
-  
-  if (hasToken && !isVscode) {
-    return { isAiStudio: true, isAntigravityIde: false, mode: 'ai-studio-api' };
-  }
-  return { isAiStudio: false, isAntigravityIde: true, mode: 'antigravity-local-git' };
+if (!GITHUB_TOKEN) {
+  console.error('Error: GITHUB_TOKEN is not defined in environment variables.');
+  process.exit(1);
 }
 
 function computeGitBlobSha(content: Buffer): string {
@@ -57,9 +46,6 @@ function requestGitHub<T = any>(
   data?: any
 ): Promise<{ status: number; body: T }> {
   return new Promise((resolve, reject) => {
-    if (!GITHUB_TOKEN) {
-      return resolve({ status: 401, body: { message: 'GITHUB_TOKEN is missing' } as any });
-    }
     const payload = data ? JSON.stringify(data) : null;
     const req = https.request(`https://api.github.com/repos/${OWNER}/${REPO}${endpoint}`, {
       method,
@@ -103,7 +89,7 @@ function getAllFiles(dir: string, baseDir = dir): string[] {
         results = results.concat(getAllFiles(fullPath, baseDir));
       }
     } else {
-      if (!IGNORE_FILES.has(entry.name) && !entry.name.startsWith('.env')) {
+      if (!IGNORE_FILES.has(entry.name)) {
         results.push(relPath);
       }
     }
@@ -128,7 +114,7 @@ async function uploadBlob(filePath: string): Promise<string> {
   return res.body.sha;
 }
 
-async function mergeBranchApi(base: string, head: string, commitMessage: string) {
+async function mergeBranch(base: string, head: string, commitMessage: string) {
   const res = await requestGitHub('/merges', 'POST', {
     base,
     head,
@@ -140,165 +126,52 @@ async function mergeBranchApi(base: string, head: string, commitMessage: string)
   }
 }
 
-/**
- * Antigravity IDE Mode: Local Git CLI Merge & Verification
- */
-async function syncViaAntigravityLocalGit(
-  targetBranch = 'dev',
-  commitMessage = 'feat: automated sync via Antigravity Local Git',
-  taskBranch?: string
-) {
-  console.log(`\n======================================================`);
-  console.log(`🖥️  Antigravity IDE Mode: Local Git Pipeline Activated`);
-  console.log(`======================================================`);
-
-  // 1. Identify active branch
-  const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8' }).trim();
-  const activeTaskBranch = taskBranch || currentBranch;
-
-  // 1-1. Commit any uncommitted changes on activeTaskBranch first
-  const statusOutput = execSync('git status --porcelain', { encoding: 'utf8' }).trim();
-  if (statusOutput.length > 0) {
-    console.log(`   📝 Committing uncommitted changes on '${activeTaskBranch}'...`);
-    execSync('git add -A', { stdio: 'pipe' });
-    try {
-      execSync(`git commit -m "${commitMessage.replace(/"/g, '\\"')}"`, { stdio: 'pipe' });
-    } catch (e: any) {
-      console.warn('   ⚠️ Commit skipped or already clean:', e.message);
-    }
-  }
-
-  const currentSha = execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
-  console.log(`📌 Active Task Branch: ${activeTaskBranch} (HEAD SHA: ${currentSha})`);
-
-  // 2. Perform Local Merge: taskBranch -> dev -> stg -> main
-  console.log(`\n🔀 1. Local Merge: ${activeTaskBranch} -> dev...`);
-  execSync(`git checkout dev`, { stdio: 'pipe' });
-  execSync(`git merge ${activeTaskBranch} --no-edit`, { stdio: 'pipe' });
-  const devSha = execSync('git rev-parse dev', { encoding: 'utf8' }).trim();
-  console.log(`   ✅ dev merged. Latest SHA: ${devSha}`);
-
-  console.log(`🔀 2. Local Merge: dev -> stg...`);
-  try {
-    execSync(`git checkout -B stg origin/stg`, { stdio: 'pipe' });
-  } catch {
-    execSync(`git checkout -B stg`, { stdio: 'pipe' });
-  }
-  execSync(`git merge dev --no-edit`, { stdio: 'pipe' });
-  const stgSha = execSync('git rev-parse stg', { encoding: 'utf8' }).trim();
-  console.log(`   ✅ stg merged. Latest SHA: ${stgSha}`);
-
-  console.log(`🔀 3. Local Merge: stg -> main...`);
-  try {
-    execSync(`git checkout -B main origin/main`, { stdio: 'pipe' });
-  } catch {
-    execSync(`git checkout -B main`, { stdio: 'pipe' });
-  }
-  execSync(`git merge stg --no-edit`, { stdio: 'pipe' });
-  const mainSha = execSync('git rev-parse main', { encoding: 'utf8' }).trim();
-  console.log(`   ✅ main merged. Latest SHA: ${mainSha}`);
-
-  // Return to task branch
-  execSync(`git checkout ${activeTaskBranch}`, { stdio: 'pipe' });
-  console.log(`   ↩️  Switched back to task branch: ${activeTaskBranch}`);
-
-  // 3. Remote Push Execution
-  console.log(`\n🚀 4. Executing Remote Push to GitHub...`);
-  let pushSuccess = false;
-  let pushNotice = '';
-
-  if (GITHUB_TOKEN && GITHUB_TOKEN.trim().length > 0) {
-    const authRemoteUrl = `https://x-access-token:${GITHUB_TOKEN.trim()}@github.com/${OWNER}/${REPO}.git`;
-    try {
-      console.log(`   📡 Pushing '${activeTaskBranch}' to remote...`);
-      execSync(`git -c credential.helper= push "${authRemoteUrl}" ${activeTaskBranch}:refs/heads/${activeTaskBranch}`, { stdio: 'pipe', timeout: 15000 });
-      console.log(`   📡 Pushing 'dev' to remote...`);
-      execSync(`git -c credential.helper= push "${authRemoteUrl}" dev:refs/heads/dev`, { stdio: 'pipe', timeout: 15000 });
-      console.log(`   📡 Pushing 'stg' to remote...`);
-      execSync(`git -c credential.helper= push "${authRemoteUrl}" stg:refs/heads/stg`, { stdio: 'pipe', timeout: 15000 });
-      console.log(`   📡 Pushing 'main' to remote...`);
-      execSync(`git -c credential.helper= push "${authRemoteUrl}" main:refs/heads/main`, { stdio: 'pipe', timeout: 15000 });
-      console.log(`   🔄 Synchronizing local tracking refs (refs/remotes/origin/*)...`);
-      execSync(`git -c credential.helper= fetch "${authRemoteUrl}" +refs/heads/*:refs/remotes/origin/*`, { stdio: 'pipe', timeout: 15000 });
-      pushSuccess = true;
-      pushNotice = '✅ Remote branches (task, dev, stg, main) successfully pushed and local tracking refs updated!';
-      console.log(`   🎉 ${pushNotice}`);
-    } catch (e: any) {
-      console.error('   ❌ Token push error:', e.message, e.stderr?.toString());
-      pushNotice = `Local merge completed, remote push failed: ${e.message}`;
-    }
-  } else {
-    const pushAttempt = spawnSync('git', ['push', '--dry-run', 'origin', activeTaskBranch], {
-      timeout: 3000,
-      encoding: 'utf8'
-    });
-
-    if (pushAttempt.status === 0) {
-      console.log('   ✅ Git Credential helper available. Executing real push to dev...');
-      try {
-        execSync(`git push origin ${activeTaskBranch}`, { stdio: 'pipe', timeout: 10000 });
-        execSync(`git push origin dev`, { stdio: 'pipe', timeout: 10000 });
-        execSync(`git push origin stg`, { stdio: 'pipe', timeout: 10000 });
-        execSync(`git push origin main`, { stdio: 'pipe', timeout: 10000 });
-        pushSuccess = true;
-        console.log('   🎉 Remote branches (dev, stg, main) successfully pushed to GitHub!');
-      } catch (e: any) {
-        pushNotice = `Local merge completed. Remote push pending via IDE UI: ${e.message}`;
-      }
-    } else {
-      pushNotice = 'Local merge complete (dev/stg/main SHA: ' + currentSha + '). Push ready via Antigravity IDE Source Control (Ctrl+Shift+G).';
-      console.log(`   ℹ️  ${pushNotice}`);
-    }
-  }
-
-  // 4. Update local agent store with actual commit SHA
-  try {
-    const storePath = path.resolve('data/local_agent_store.json');
-    if (fs.existsSync(storePath)) {
-      const store = JSON.parse(fs.readFileSync(storePath, 'utf8'));
-      if (store.sessions?.[0]) {
-        store.sessions[0].doc_payload = {
-          ...store.sessions[0].doc_payload,
-          promoted_sha: currentSha,
-          local_branches_merged: true,
-          merged_branches: ['dev', 'stg', 'main'],
-          tool_mode: 'antigravity-local-git',
-          updated_at: new Date().toISOString()
-        };
-      }
-      fs.writeFileSync(storePath, JSON.stringify(store, null, 2), 'utf8');
-      console.log('   ✅ Harness local agent store updated with promoted SHA:', currentSha);
-    }
-  } catch (err: any) {
-    console.warn('   ⚠️ Failed to update store promoted_sha:', err.message);
-  }
-
-  return {
-    newCommitSha: currentSha,
-    newTreeSha: '',
-    prNumber: null,
-    pushSuccess,
-    pushNotice,
-    toolMode: 'antigravity-local-git'
-  };
-}
-
-/**
- * AI Studio Mode: GitHub REST/Git Data API Pipeline
- */
-export async function syncViaAiStudioApi(
+export async function syncAndPush(
   targetBranch = 'dev',
   commitMessage = 'feat: automated sync via Git Data API',
   taskBranch?: string,
   prTitle?: string
 ) {
-  console.log(`\n======================================================`);
-  console.log(`☁️  AI Studio Mode: GitHub Git Data API Pipeline Activated`);
-  console.log(`======================================================`);
-
-  if (!GITHUB_TOKEN) {
-    throw new Error('GITHUB_TOKEN is missing for AI Studio Mode');
+  // Dynamically resolve active task branch and title if not provided
+  if (!taskBranch || !prTitle) {
+    try {
+      const storePath = path.join(process.cwd(), 'data', 'local_agent_store.json');
+      if (fs.existsSync(storePath)) {
+        const store = JSON.parse(fs.readFileSync(storePath, 'utf8'));
+        const activeSession = store.sessions?.[0];
+        const activeTask = store.tasks?.find((t: any) => t.session_id === activeSession?.session_id) || store.tasks?.[0];
+        if (!taskBranch) {
+          taskBranch = activeSession?.doc_payload?.branch || activeTask?.doc_payload?.branch || 'task/0018_01_가상화뷰어최적화_사용자대시보드연동_Gemini';
+        }
+        if (!prTitle) {
+          prTitle = activeTask ? `[${activeTask.task_id}] ${activeTask.task_name}` : `[0018] SESSION-0018 최신 소스 복원 및 작업 브랜치 동기화`;
+        }
+      }
+    } catch (e) {
+      // Fallback defaults
+    }
   }
+  taskBranch = taskBranch || 'task/0016_01_UI정책_긴급백업복구_Gemini';
+  prTitle = prTitle || '[0016-01] 전수 목록 화면 UI 정책 일괄 적용 및 긴급 백업 복구';
+
+  console.log(`=== Starting GitHub Sync & Push via Task Branch ('${taskBranch}') ===`);
+
+  // 0-A. Pre-reconciliation of All Session Conversation Turns (Fail-Safe)
+  console.log('0-A. Pre-reconciling all session conversation turns to remote DB...');
+  try {
+    const recon = await reconcileSessionTraces();
+    console.log(`✅ Session Traces Reconciled: ${recon.syncedCount || 0} turns synced.`);
+  } catch (e: any) {
+    console.warn('⚠️ Turn reconciliation notice:', e.message);
+  }
+
+  // 0. Pre-flight Comprehensive Service Check
+  console.log('0. Running Pre-flight Comprehensive Service Health Check...');
+  const healthCheck = await runComprehensiveServiceCheck();
+  if (!healthCheck.allPassed) {
+    throw new Error('❌ Pre-flight Service Health Check FAILED. GitHub Push aborted to protect remote branches.');
+  }
+  console.log('✅ Pre-flight Service Health Check PASSED (100% Integrity). Proceeding to Git Push...');
 
   // 1. Fetch current dev reference to base our work
   console.log(`1. Fetching current reference for branch '${targetBranch}'...`);
@@ -333,17 +206,25 @@ export async function syncViaAiStudioApi(
 
   const treeItems: Array<{ path: string; mode: string; type: string; sha: string }> = [];
   const filesToUpload: string[] = [];
-
   for (const f of files) {
     const content = fs.readFileSync(path.join(process.cwd(), f));
     const localSha = computeGitBlobSha(content);
     const remoteSha = remoteTreeMap.get(f);
 
     if (remoteSha === localSha) {
-      treeItems.push({ path: f, mode: '100644', type: 'blob', sha: localSha });
-    } else {
-      filesToUpload.push(f);
+      continue;
     }
+
+    // CRLF vs LF 가짜 변경 필터링 (불필요한 대량 업로드 및 2차 Rate Limit 차단)
+    try {
+      const text = content.toString('utf8');
+      const crlfSha = computeGitBlobSha(Buffer.from(text.replace(/\r?\n/g, '\r\n'), 'utf8'));
+      if (remoteSha === crlfSha) {
+        continue;
+      }
+    } catch {}
+
+    filesToUpload.push(f);
   }
 
   console.log(`   Unchanged files: ${files.length - filesToUpload.length} (reusing remote base tree blobs)`);
@@ -351,13 +232,20 @@ export async function syncViaAiStudioApi(
 
   const modifiedTreeItems: Array<{ path: string; mode: string; type: string; sha: string }> = [];
 
-  // Upload modified or new blobs
-  for (let i = 0; i < filesToUpload.length; i++) {
-    const f = filesToUpload[i];
-    const sha = await uploadBlob(f);
-    modifiedTreeItems.push({ path: f, mode: '100644', type: 'blob', sha });
-    console.log(`   Uploaded blob [${i + 1}/${filesToUpload.length}]: ${f}`);
-    await new Promise((res) => setTimeout(res, 80));
+  // Upload modified or new blobs in concurrent batches of 5 with 300ms pause to respect rate limits
+  const BATCH_SIZE = 5;
+  for (let i = 0; i < filesToUpload.length; i += BATCH_SIZE) {
+    const batch = filesToUpload.slice(i, i + BATCH_SIZE);
+    await Promise.all(
+      batch.map(async (f, idx) => {
+        const sha = await uploadBlob(f);
+        modifiedTreeItems.push({ path: f, mode: '100644', type: 'blob', sha });
+        console.log(`   Uploaded blob [${i + idx + 1}/${filesToUpload.length}]: ${f}`);
+      })
+    );
+    if (i + BATCH_SIZE < filesToUpload.length) {
+      await new Promise((res) => setTimeout(res, 300));
+    }
   }
   console.log(`   Total ${modifiedTreeItems.length} modified/new tree items prepared.`);
 
@@ -427,6 +315,7 @@ export async function syncViaAiStudioApi(
     console.log(`   PR #${prNumber} Merge Status: ${mergePrRes.status}`);
   } else {
     console.log(`   PR creation notice: ${JSON.stringify(prRes.body)}`);
+    // Fallback: direct update to dev if PR was not created
     console.log(`   Fallback updating '${targetBranch}' ref directly to ${newCommitSha}...`);
     await requestGitHub(`/git/refs/heads/${targetBranch}`, 'PATCH', {
       sha: newCommitSha,
@@ -436,75 +325,11 @@ export async function syncViaAiStudioApi(
 
   // 8. Auto-promote to stg and main
   console.log('8. Promoting commit to stg and main branches...');
-  await mergeBranchApi('stg', targetBranch, `Promote ${targetBranch} to stg: ${commitMessage}`);
-  await mergeBranchApi('main', 'stg', `Promote stg to main: ${commitMessage}`);
+  await mergeBranch('stg', targetBranch, `Promote ${targetBranch} to stg: ${commitMessage}`);
+  await mergeBranch('main', 'stg', `Promote stg to main: ${commitMessage}`);
   console.log('=== GitHub Sync, PR, and Promotion Complete! ===\n');
 
-  return {
-    newCommitSha,
-    newTreeSha,
-    prNumber,
-    pushSuccess: true,
-    pushNotice: 'GitHub API commit, PR, and promotion completed.',
-    toolMode: 'ai-studio-api'
-  };
-}
-
-/**
- * Universal Dual-Mode Sync & Push Entry Point
- */
-export async function syncAndPush(
-  targetBranch = 'dev',
-  commitMessage = 'feat: automated sync via tool-adaptive harness',
-  taskBranch?: string,
-  prTitle?: string
-) {
-  // Dynamically resolve active task branch and title if not provided
-  if (!taskBranch || !prTitle) {
-    try {
-      const storePath = path.join(process.cwd(), 'data', 'local_agent_store.json');
-      if (fs.existsSync(storePath)) {
-        const store = JSON.parse(fs.readFileSync(storePath, 'utf8'));
-        const activeSession = store.sessions?.[0];
-        const activeTask = store.tasks?.find((t: any) => t.session_id === activeSession?.session_id) || store.tasks?.[0];
-        if (!taskBranch) {
-          taskBranch = activeSession?.doc_payload?.branch || activeTask?.doc_payload?.branch;
-        }
-        if (!prTitle) {
-          prTitle = activeTask ? `[${activeTask.task_id}] ${activeTask.task_name}` : `[${activeSession?.session_id || '0031'}] 최신 소스 동기화`;
-        }
-      }
-    } catch (e) {
-      // Fallback
-    }
-  }
-
-  // Detect tool environment
-  const env = detectToolEnvironment();
-  console.log(`🛠️ Tool Environment Detected: ${env.mode.toUpperCase()} (AI Studio: ${env.isAiStudio}, Antigravity IDE: ${env.isAntigravityIde})`);
-
-  // 0-A. Pre-reconciliation of All Session Conversation Turns (Fail-Safe)
-  console.log('0-A. Pre-reconciling all session conversation turns to remote DB...');
-  try {
-    const recon = await reconcileSessionTraces();
-    console.log(`✅ Session Traces Reconciled: ${recon.syncedCount || 0} turns synced.`);
-  } catch (e: any) {
-    console.warn('⚠️ Turn reconciliation notice:', e.message);
-  }
-
-  // 0. Pre-flight Comprehensive Service Check
-  console.log('0. Running Pre-flight Comprehensive Service Health Check...');
-  const healthCheck = await runComprehensiveServiceCheck();
-  if (!healthCheck.allPassed) {
-    throw new Error('❌ Pre-flight Service Health Check FAILED. GitHub Push aborted to protect remote branches.');
-  }
-  console.log('✅ Pre-flight Service Health Check PASSED (100% Integrity). Proceeding to Git Sync...');
-
-  if (env.mode === 'ai-studio-api') {
-    return await syncViaAiStudioApi(targetBranch, commitMessage, taskBranch, prTitle);
-  } else {
-    return await syncViaAntigravityLocalGit(targetBranch, commitMessage, taskBranch);
-  }
+  return { newCommitSha, newTreeSha, prNumber };
 }
 
 // Allow CLI execution or import

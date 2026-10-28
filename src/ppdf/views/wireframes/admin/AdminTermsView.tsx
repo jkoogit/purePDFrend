@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button, Input, Textarea, Badge, Card, CardHeader, CardTitle, CardContent, Modal } from '@shared/components/ui';
-import { ThemeMode, resolveThemeMode, getThemeAdaptiveClasses } from '../../../../styles/tokens';
 
 export interface TermVersionItem {
   id: string; // DOC_GRP_01
@@ -20,9 +19,7 @@ const INITIAL_TERMS: TermVersionItem[] = [
   { id: 'DOC_GRP_08', title: '오프라인 동기화 정책', version: 'v1.0', isLatestApplied: true, updatedAt: '2026-10-02', content: '로컬 IndexedDB 및 충돌 해결 정책 안내입니다.' },
 ];
 
-export function AdminTermsView({ themeMode = 'dark' }: { themeMode?: ThemeMode }) {
-  const resolvedTheme = resolveThemeMode(themeMode);
-  const themeClasses = getThemeAdaptiveClasses(resolvedTheme);
+export function AdminTermsView() {
   const [terms, setTerms] = useState<TermVersionItem[]>(INITIAL_TERMS);
   const [searchTerm, setSearchTerm] = useState('');
   const [onlyAppliedVersions, setOnlyAppliedVersions] = useState(false);
@@ -34,27 +31,6 @@ export function AdminTermsView({ themeMode = 'dark' }: { themeMode?: ThemeMode }
   const [editContent, setEditContent] = useState(INITIAL_TERMS[1].content);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const fetchTerms = async () => {
-    try {
-      const res = await fetch('/api/admin/terms');
-      const data = await res.json();
-      if (data.success && Array.isArray(data.terms)) {
-        setTerms(data.terms);
-        const latest = data.terms.find((t: TermVersionItem) => t.isLatestApplied) || data.terms[0];
-        if (latest) {
-          setSelectedTerm(latest);
-          setEditContent(latest.content);
-        }
-      }
-    } catch (e: any) {
-      console.warn('약관 목록 로드 예외 (로컬 기본값 유지):', e.message);
-    }
-  };
-
-  useEffect(() => {
-    fetchTerms();
-  }, []);
-
   const calculateNewVersion = (currentVer: string, type: 'major' | 'minor') => {
     const raw = parseFloat(currentVer.replace('v', ''));
     if (type === 'major') {
@@ -63,7 +39,7 @@ export function AdminTermsView({ themeMode = 'dark' }: { themeMode?: ThemeMode }
     return `v${(raw + 0.1).toFixed(1)}`;
   };
 
-  const handleCreateNewVersion = async () => {
+  const handleCreateNewVersion = () => {
     const newVer = calculateNewVersion(selectedTerm.version, versionBumpType);
     const newDoc: TermVersionItem = {
       id: selectedTerm.id,
@@ -80,39 +56,6 @@ export function AdminTermsView({ themeMode = 'dark' }: { themeMode?: ThemeMode }
     ]);
     setSelectedTerm(newDoc);
     setNotice(`🎉 [${selectedTerm.title}] 새 파일 등록 완료! 버전: ${newVer} (${versionBumpType === 'major' ? '개정판' : '경미수정'})`);
-
-    try {
-      const res = await fetch('/api/admin/terms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newDoc),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setTimeout(() => setNotice(null), 3000);
-      }
-    } catch (e: any) {
-      console.warn('약관 등록 API 예외 (로컬 반영 완료):', e.message);
-    }
-  };
-
-  const handleApplyVersion = async (term: TermVersionItem) => {
-    setTerms(
-      terms.map((t) => (t.id === term.id ? { ...t, isLatestApplied: t.version === term.version } : t))
-    );
-    setSelectedTerm({ ...term, isLatestApplied: true });
-    setNotice(`✅ [${term.title}] 최신 적용 버전이 '${term.version}'(으)로 변경되었습니다.`);
-    setTimeout(() => setNotice(null), 3000);
-
-    try {
-      await fetch(`/api/admin/terms/${encodeURIComponent(term.id)}/apply`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ version: term.version }),
-      });
-    } catch (e: any) {
-      console.warn('약관 버전 적용 API 예외:', e.message);
-    }
   };
 
   const filteredTerms = terms
@@ -120,7 +63,7 @@ export function AdminTermsView({ themeMode = 'dark' }: { themeMode?: ThemeMode }
     .filter((t) => (searchTerm ? t.title.includes(searchTerm) || t.id.includes(searchTerm) || t.content.includes(searchTerm) : true));
 
   return (
-    <div className={`space-y-4 text-xs ${themeClasses.textMain}`}>
+    <div className="space-y-4 text-xs">
       {notice && (
         <div className="p-3 bg-blue-950/80 border border-blue-500/40 rounded-xl text-blue-200 flex justify-between items-center animate-fade-in">
           <span>{notice}</span>
@@ -129,7 +72,7 @@ export function AdminTermsView({ themeMode = 'dark' }: { themeMode?: ThemeMode }
       )}
 
       {/* 검색 & 적용버전 체크 필터 */}
-      <Card variant="subtle" className={`border ${themeClasses.card}`}>
+      <Card variant="subtle">
         <div className="p-3 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
           <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
             <div className="w-full sm:w-64">
@@ -191,23 +134,9 @@ export function AdminTermsView({ themeMode = 'dark' }: { themeMode?: ThemeMode }
               </div>
               <div className="pt-2 border-t border-slate-900 flex justify-between items-center text-[10px]">
                 <span className="text-slate-500 font-sans">클릭 시 팝업 조회</span>
-                <div className="flex items-center gap-1.5">
-                  {!t.isLatestApplied && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleApplyVersion(t);
-                      }}
-                      className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 transition-colors font-medium cursor-pointer"
-                    >
-                      적용 활성화
-                    </button>
-                  )}
-                  <Badge variant="info" size="sm">
-                    🔍 약관 상세
-                  </Badge>
-                </div>
+                <Badge variant="info" size="sm">
+                  🔍 약관 상세 팝업
+                </Badge>
               </div>
             </Card>
           ))}

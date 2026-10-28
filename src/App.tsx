@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Navbar, ErrorBoundary, ScrollToTopFab } from './shared';
-import { OcrEngineManager, WireframeStudio, PurePdfServicePortal } from './ppdf';
+import { OcrEngineManager, WireframeStudio, UnifiedServiceScreenRouter } from './ppdf';
 import {
   WorkGraphViewer,
   TaskInfoManager,
@@ -21,18 +21,13 @@ import {
 import { ThemeMode, resolveThemeMode, applyThemeToDocument } from './styles/tokens';
 
 export default function App() {
-  // 1. 3대 시스템 도메인 상태 (기본값: 'service' - 엔드유저 PDF 서비스 첫화면 기본 표시)
-  const [activeSystem, setActiveSystem] = useState<SystemDomainId>(() => {
-    try {
-      const saved = localStorage.getItem('purepdfrend_active_system');
-      if (saved && ['service', 'settings', 'harness'].includes(saved)) {
-        return saved as SystemDomainId;
-      }
-    } catch {}
-    return 'service';
-  });
+  // 1. 현재 활성 프로그램 ID (기본값: 'PG-USR-01' 엔드유저 실제 첫화면/랜딩)
+  const [activeProgId, setActiveProgId] = useState<string>('PG-USR-01');
 
-  // 2. 사용자 권한 체계 (기본값: 'ROLE_ADMIN' - 시뮬레이터로 일반사용자/운영자/관리자 전환 가능)
+  // 2. 3대 시스템 도메인 상태 (기본값: 'service' - 엔드유저 실제 PDF 서비스 첫화면 상시 기본 표시)
+  const [activeSystem, setActiveSystem] = useState<SystemDomainId>('service');
+
+  // 3. 사용자 권한 체계 (기본값: 'ROLE_ADMIN' - 시뮬레이터로 일반사용자/운영자/관리자 전환 가능)
   const [userRole, setUserRole] = useState<UserSystemRole>(() => {
     try {
       const saved = localStorage.getItem('purepdfrend_user_role');
@@ -58,6 +53,9 @@ export default function App() {
 
   const handleSelectSystem = (newSystem: SystemDomainId) => {
     setActiveSystem(newSystem);
+    if (newSystem === 'service') {
+      setActiveProgId('PG-USR-01');
+    }
     try {
       localStorage.setItem('purepdfrend_active_system', newSystem);
     } catch {}
@@ -149,28 +147,24 @@ export default function App() {
     fetchGraph();
   }, []);
 
-  // 전역 와이어프레임 & 4대 시스템 퀵 점프 네비게이션 리스너 (사용자/관리자/설정/에이전트 37개 화면 직접 이동)
+  // 전역 37개 시스템 서비스 직결 점프 리스너 (서비스 화면 우선 직결, 부재 시 와이어프레임 폴백)
   useEffect(() => {
-    const handleWireframeJump = (e: any) => {
+    const handleScreenJump = (e: any) => {
       const detail = e.detail;
-      if (detail?.type === 'agent') {
-        setActiveSystem('harness');
-        if (detail.progId === 'PG-AGN-01') setActiveView('graph');
-        else if (detail.progId === 'PG-AGN-02') setActiveView('task');
-        else if (detail.progId === 'PG-AGN-03') setActiveView('usage');
-        else if (detail.progId === 'PG-AGN-04') setActiveView('audit');
-        else if (detail.progId === 'PG-AGN-05') setActiveView('docs');
-        else if (detail.progId === 'PG-AGN-06') setActiveView('settings');
-      } else if (detail?.type === 'user' && detail?.progId === 'PG-USR-01') {
+      if (!detail) return;
+      const { progId } = detail;
+
+      if (progId) {
+        setActiveProgId(progId);
         setActiveSystem('service');
-      } else if (detail?.type === 'settings') {
-        setActiveSystem('settings');
-      } else {
-        setActiveSystem('settings');
       }
     };
-    window.addEventListener('purepdfrend-navigate-wireframe', handleWireframeJump);
-    return () => window.removeEventListener('purepdfrend-navigate-wireframe', handleWireframeJump);
+    window.addEventListener('purepdfrend-navigate-screen', handleScreenJump);
+    window.addEventListener('purepdfrend-navigate-wireframe', handleScreenJump);
+    return () => {
+      window.removeEventListener('purepdfrend-navigate-screen', handleScreenJump);
+      window.removeEventListener('purepdfrend-navigate-wireframe', handleScreenJump);
+    };
   }, []);
 
   // Update Settings Handler
@@ -258,17 +252,28 @@ export default function App() {
         }`}
       >
         <ErrorBoundary fallbackTitle="화면 로딩 중 오류가 발생했습니다.">
-          {/* [1. 엔드유저 'PDF 서비스 포털' - 첫 화면 기본 표시] */}
+          {/* [1. 엔드유저 'PDF 서비스 포털 & 37개 전체 서비스 화면 직결 라우터'] */}
           {activeSystem === 'service' && (
             <div className="w-full">
-              <PurePdfServicePortal
-                onNavigateToAgent={() => handleSelectSystem('harness')}
-                onNavigateToSettings={() => handleSelectSystem('settings')}
+              <UnifiedServiceScreenRouter
+                currentProgId={activeProgId}
+                onNavigateProgram={(_type, progId) => {
+                  setActiveProgId(progId);
+                  setActiveSystem('service');
+                }}
                 userRole={userRole}
                 onSelectRole={handleSelectRole}
-                systemAdminEmail="jkoogit@gmail.com"
                 themeMode={themeMode}
                 onChangeThemeMode={handleSelectThemeMode}
+                systemSettings={settings}
+                onUpdateSettings={handleUpdateSettings}
+                dbStatus={dbStatus}
+                graphNodes={graphNodes}
+                graphEdges={graphEdges}
+                isLoadingGraph={isLoadingGraph}
+                onRefreshGraph={fetchGraph}
+                traceFilter={traceFilter}
+                onNavigateToTrace={handleNavigateToTrace}
               />
             </div>
           )}
@@ -325,13 +330,17 @@ export default function App() {
                 />
               )}
 
-              {/* [3-3. PDF 스튜디오 도메인] */}
+              {/* [3-3. PDF 스튜디오 도메인 2대 뷰] */}
               {activeView === 'ocr' && (
                 <OcrEngineManager
                   settings={settings}
                   onUpdateSettings={handleUpdateSettings}
                   dbStatus={dbStatus}
                 />
+              )}
+
+              {activeView === 'wireframes' && (
+                <WireframeStudio />
               )}
             </div>
           )}

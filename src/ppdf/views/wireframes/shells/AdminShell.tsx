@@ -45,7 +45,7 @@ export function AdminShell({
   const [activeCategory, setActiveCategory] = useState<string>('ALL');
   const [searchKeyword, setSearchKeyword] = useState<string>('');
 
-  const handleSelectWireframe = (type: 'showcase' | 'user' | 'admin', progId: string) => {
+  const handleSelectWireframe = (type: any, progId: string) => {
     if (type === 'admin') {
       onSelectProg(progId);
     }

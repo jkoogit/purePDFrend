@@ -81,8 +81,9 @@ async function main() {
     }
     console.log('🚀 네이티브 git fetch origin dev 실행...');
     execSync('git fetch origin dev --depth=1', { stdio: 'pipe' });
-    execSync(`git reset --soft ${devSha} || git checkout -B dev ${devSha} || true`, { stdio: 'pipe' });
-    console.log('✅ 네이티브 Git 1초 무손실 동기화 성공!');
+    execSync('git reset --hard FETCH_HEAD', { stdio: 'pipe' });
+    execSync('git checkout -B dev FETCH_HEAD', { stdio: 'pipe' });
+    console.log('✅ 네이티브 Git 1초 무손실 동기화 성공 (Working Tree 100% 최신화 완료)!');
     nativeGitSuccess = true;
   } catch (err: any) {
     console.log(`ℹ️ 네이티브 git 명령 불가 또는 우회: ${err?.message || err}. GitHub Git Data API 검증 모드로 진행.`);

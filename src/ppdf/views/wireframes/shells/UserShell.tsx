@@ -32,7 +32,7 @@ export function UserShell({
   const themeClasses = getThemeAdaptiveClasses(resolvedTheme);
   const currentProg = programs.find((p) => p.id === currentProgId) || programs[0];
 
-  const handleSelectWireframe = (type: 'showcase' | 'user' | 'admin', progId: string) => {
+  const handleSelectWireframe = (type: any, progId: string) => {
     if (type === 'user') {
       onSelectProg(progId);
     }

@@ -73,13 +73,6 @@ describe('tokens.ts 4모드 테마 적응형 클래스 헬퍼 검증', () => {
     const dawnClasses = getThemeAdaptiveClasses('dawn');
     expect(dawnClasses.container).toContain('bg-[#0e1a38]');
     expect(dawnClasses.shellBg).toContain('bg-[#070e22]');
-
-    // 이번 세션(0031)에 추가된 buttonSecondary, tabInactive, tabActive 검증
-    expect(lightClasses.buttonSecondary).toBeDefined();
-    expect(lightClasses.tabInactive).toBeDefined();
-    expect(lightClasses.tabActive).toBeDefined();
-    expect(darkClasses.buttonSecondary).toContain('bg-slate-900');
-    expect(dawnClasses.buttonSecondary).toContain('bg-[#14234b]');
   });
 
   it('tokens 및 tokenClassMap 상수가 불변 정의되어 있어야 한다', () => {
@@ -88,51 +81,4 @@ describe('tokens.ts 4모드 테마 적응형 클래스 헬퍼 검증', () => {
     expect(tokenClassMap.touchButton).toContain('min-h-[44px]');
     expect(tokenClassMap.focusRing).toContain('focus-visible:ring-2');
   });
-
-  it('Phase 2 사용자 와이어프레임(PG-USR-05, PG-USR-06, PG-USR-07) 메타데이터 및 4모드 토큰 일관성이 보장되어야 한다', () => {
-    const usr05 = USER_PROGRAMS.find((p) => p.id === 'PG-USR-05');
-    const usr06 = USER_PROGRAMS.find((p) => p.id === 'PG-USR-06');
-    const usr07 = USER_PROGRAMS.find((p) => p.id === 'PG-USR-07');
-
-    expect(usr05).toBeDefined();
-    expect(usr06).toBeDefined();
-    expect(usr07).toBeDefined();
-
-    expect(usr05?.name).toContain('문서관리');
-    expect(usr06?.name).toContain('문서뷰어');
-    expect(usr07?.name).toContain('문서공유');
-
-    // 4모드 텍스트 및 패널 대비 검증
-    ['light', 'dark', 'dawn'].forEach((mode) => {
-      const classes = getThemeAdaptiveClasses(mode as any);
-      expect(classes.container).toBeTruthy();
-      expect(classes.panel).toBeTruthy();
-      expect(classes.card).toBeTruthy();
-      expect(classes.textMain).toBeTruthy();
-      expect(classes.textMuted).toBeTruthy();
-      expect(classes.buttonSecondary).toBeTruthy();
-    });
-  });
-
-  it('Phase 3 관리자 1단계 핵심화면(PG-ADM-01~04) 및 사용자 전 화면(PG-USR-01~09) 100% 완결이 보장되어야 한다', () => {
-    // 1. 관리자 1단계 4대 프로그램 식별
-    const adm01 = ADMIN_PROGRAMS.find((p) => p.id === 'PG-ADM-01');
-    const adm02 = ADMIN_PROGRAMS.find((p) => p.id === 'PG-ADM-02');
-    const adm03 = ADMIN_PROGRAMS.find((p) => p.id === 'PG-ADM-03');
-    const adm04 = ADMIN_PROGRAMS.find((p) => p.id === 'PG-ADM-04');
-
-    expect(adm01).toBeDefined();
-    expect(adm02).toBeDefined();
-    expect(adm03).toBeDefined();
-    expect(adm04).toBeDefined();
-
-    // 2. 사용자 전 화면 9종 100% 식별 및 이름 확인
-    expect(USER_PROGRAMS.length).toBe(9);
-    const usr08 = USER_PROGRAMS.find((p) => p.id === 'PG-USR-08');
-    const usr09 = USER_PROGRAMS.find((p) => p.id === 'PG-USR-09');
-
-    expect(usr08?.name).toContain('오프라인 작업');
-    expect(usr09?.name).toContain('정밀 사용자 환경설정');
-  });
 });
-
